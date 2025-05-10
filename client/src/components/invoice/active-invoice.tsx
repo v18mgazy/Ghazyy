@@ -143,7 +143,12 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
   // معالجة تغيير مصطلح البحث
   const handleProductSearchChange = (term: string) => {
     setSearchTerm(term);
-    searchProducts(term);
+    // إذا كان المصطلح فارغًا، نعرض جميع المنتجات
+    if (!term.trim()) {
+      setSearchResults(mockProducts);
+    } else {
+      searchProducts(term);
+    }
   };
   
   // معالجة تحديد منتج من نتائج البحث
@@ -168,6 +173,7 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
     const foundProduct = mockProducts.find(p => p.barcode === scannedProd.barcode);
     
     if (foundProduct) {
+      // إضافة المنتج مباشرة عند المسح
       const newProduct = {
         id: foundProduct.id,
         name: foundProduct.name,
@@ -189,6 +195,7 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
       };
       setProducts([...products, newProduct]);
     }
+    // إغلاق نافذة ماسح الباركود بعد إضافة المنتج
     setShowBarcodeScanner(false);
   };
   
@@ -512,13 +519,14 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
                               onChange={(e) => updateProduct(index, 'name', e.target.value)}
                               placeholder={t('product_name')}
                               onClick={() => {
+                                // عرض جميع المنتجات عند النقر على حقل اسم المنتج بغض النظر عن الحالة
+                                setEditingProductIndex(index);
+                                setSearchResults(mockProducts);
                                 if (product.name.trim()) {
-                                  setEditingProductIndex(index);
+                                  // يمكن الاستفادة من البحث إذا كان هناك نص بالفعل
                                   searchProducts(product.name);
                                 } else {
-                                  // إظهار كل المنتجات عند النقر على الحقل الفارغ
-                                  setEditingProductIndex(index);
-                                  setSearchResults(mockProducts);
+                                  // حقل فارغ، تم بالفعل تعيين نتائج البحث في بداية الوظيفة
                                 }
                               }}
                             />
