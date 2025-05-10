@@ -307,11 +307,8 @@ export default function InvoiceManagement() {
               <CardDescription>{t('view_edit_manage_invoices')}</CardDescription>
             </div>
             <div className="mt-4 md:mt-0">
-              <Button variant="outline" className="mr-2 flex items-center">
+              <Button variant="outline" className="flex items-center">
                 <Download className="mr-1 h-4 w-4" /> {t('export_all')}
-              </Button>
-              <Button className="flex items-center bg-gradient-to-r from-primary to-primary/90">
-                <FileText className="mr-1 h-4 w-4" /> {t('create_new_invoice')}
               </Button>
             </div>
           </div>
