@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useLocale } from '@/hooks/use-locale';
+import CreateInvoiceDialog from '@/components/invoice/create-invoice-dialog';
 
 interface DashboardStats {
   totalSales: number;
@@ -32,6 +33,9 @@ interface DashboardStats {
 
 export default function Dashboard() {
   const { t } = useTranslation();
+  
+  // حالة النافذة المنبثقة لإنشاء الفاتورة
+  const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
 
   // Fetch dashboard stats
   const { data: stats, isLoading } = useQuery<DashboardStats>({
@@ -200,37 +204,41 @@ export default function Dashboard() {
         
         {/* زر إنشاء فاتورة جديدة بتصميم جذاب */}
         <Button
-          asChild
           size="lg"
           className={`group relative overflow-hidden bg-gradient-to-r from-primary to-primary/80 hover:from-primary-600 hover:to-primary-500 transition-all shadow-md hover:shadow-lg ${isRtl ? 'flex-row-reverse' : ''}`}
+          onClick={() => setIsCreateInvoiceOpen(true)}
         >
-          <Link href="/invoice/new" className={`flex items-center gap-2 ${isRtl ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex items-center gap-2 ${isRtl ? 'flex-row-reverse' : ''}`}>
             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
               <ReceiptText className="h-4 w-4 text-white" />
             </div>
-            <span className="font-semibold">{t('create_invoice')}</span>
+            <span className="font-semibold">{t('create_new_invoice')}</span>
             <div className={`absolute top-0 bottom-0 ${isRtl ? 'left-0' : 'right-0'} w-8 bg-white/10 flex items-center justify-center transition-transform group-hover:${isRtl ? '-translate-x-1' : 'translate-x-1'}`}>
               <ArrowRight className={`h-4 w-4 text-white ${isRtl ? 'rotate-180' : ''}`} />
             </div>
-          </Link>
+          </div>
         </Button>
       </div>
       
       {/* زر طافي لإنشاء فاتورة جديدة */}
       <div className="fixed bottom-6 right-6 z-50 md:hidden">
         <Button
-          asChild
           size="icon"
           className="h-16 w-16 rounded-full bg-gradient-to-r from-primary to-primary-600 shadow-lg hover:shadow-xl"
+          onClick={() => setIsCreateInvoiceOpen(true)}
         >
-          <Link href="/invoice/new">
-            <div className="relative">
-              <ReceiptText className="h-7 w-7 text-white absolute opacity-100 transition-all group-hover:opacity-0" />
-              <Plus className="h-7 w-7 text-white absolute opacity-0 transition-all group-hover:opacity-100" />
-            </div>
-          </Link>
+          <div className="relative">
+            <ReceiptText className="h-7 w-7 text-white absolute opacity-100 transition-all group-hover:opacity-0" />
+            <Plus className="h-7 w-7 text-white absolute opacity-0 transition-all group-hover:opacity-100" />
+          </div>
         </Button>
       </div>
+      
+      {/* نافذة إنشاء الفاتورة المنبثقة */}
+      <CreateInvoiceDialog 
+        open={isCreateInvoiceOpen} 
+        onOpenChange={setIsCreateInvoiceOpen}
+      />
       
       {renderStats()}
     </div>
