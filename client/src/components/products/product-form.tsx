@@ -39,7 +39,7 @@ export default function ProductForm({
   
   const [formData, setFormData] = useState<Product>({
     name: '',
-    barcode: generateBarcodeNumber(),
+    barcode: generateBarcodeNumber('code128'),
     alternativeCode: '',
     purchasePrice: 0,
     sellingPrice: 0,

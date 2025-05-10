@@ -36,20 +36,28 @@ export function generateInvoiceNumber() {
   return `${prefix}-${year}-${randomNumber}`;
 }
 
-export function generateBarcodeNumber() {
-  // Generate a 13-digit barcode number (similar to EAN-13)
-  const countryCode = '620'; // Example code for Egypt
-  const manufacturerCode = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  const productCode = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
-  
-  // Calculate check digit (last digit)
-  const digits = (countryCode + manufacturerCode + productCode).split('').map(Number);
-  const sum = digits.reduce((acc, digit, index) => {
-    return acc + digit * (index % 2 === 0 ? 1 : 3);
-  }, 0);
-  const checkDigit = (10 - (sum % 10)) % 10;
-  
-  return countryCode + manufacturerCode + productCode + checkDigit;
+export function generateBarcodeNumber(type: 'ean13' | 'code128' = 'ean13') {
+  if (type === 'code128') {
+    // For Code128, generate a more flexible code that can include letters
+    // Can include uppercase letters, numbers, and sometimes special characters
+    const prefix = 'CODE128';
+    const randomDigits = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    return prefix + randomDigits;
+  } else {
+    // Generate a 13-digit barcode number (similar to EAN-13)
+    const countryCode = '620'; // Example code for Egypt
+    const manufacturerCode = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    const productCode = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
+    
+    // Calculate check digit (last digit)
+    const digits = (countryCode + manufacturerCode + productCode).split('').map(Number);
+    const sum = digits.reduce((acc, digit, index) => {
+      return acc + digit * (index % 2 === 0 ? 1 : 3);
+    }, 0);
+    const checkDigit = (10 - (sum % 10)) % 10;
+    
+    return countryCode + manufacturerCode + productCode + checkDigit;
+  }
 }
 
 export function getDirectionFromLanguage(language: string) {
@@ -112,8 +120,132 @@ export function createWhatsAppLink(phoneNumber: string, message: string = "") {
   return `https://wa.me/${phoneWithCountryCode}?text=${encodedMessage}`;
 }
 
-// Implementation of the barcode SVG generator (EAN-13 standard)
+// Implementation of the barcode SVG generator with Code 128 support
 export function generateBarcodeSVG(barcodeValue: string): string {
+  // Determine if we should use Code 128 or EAN-13
+  const useCode128 = !/^\d+$/.test(barcodeValue) || barcodeValue.length !== 13;
+  
+  if (useCode128) {
+    return generateCode128SVG(barcodeValue);
+  } else {
+    return generateEAN13SVG(barcodeValue);
+  }
+}
+
+// Generate a Code 128 barcode
+function generateCode128SVG(barcodeValue: string): string {
+  // Code 128 patterns for all characters (subset B - contains ASCII 32-127)
+  const code128Patterns = [
+    "11011001100", "11001101100", "11001100110", "10010011000", "10010001100", // 0-4
+    "10001001100", "10011001000", "10011000100", "10001100100", "11001001000", // 5-9
+    "11001000100", "11000100100", "10110011100", "10011011100", "10011001110", // 10-14
+    "10111001100", "10011101100", "10011100110", "11001110010", "11001011100", // 15-19
+    "11001001110", "11011100100", "11001110100", "11101101110", "11101001100", // 20-24
+    "11100101100", "11100100110", "11101100100", "11100110100", "11100110010", // 25-29
+    "11011011000", "11011000110", "11000110110", "10100011000", "10001011000", // 30-34
+    "10001000110", "10110001000", "10001101000", "10001100010", "11010001000", // 35-39
+    "11000101000", "11000100010", "10110111000", "10110001110", "10001101110", // 40-44
+    "10111011000", "10111000110", "10001110110", "11101110110", "11010001110", // 45-49
+    "11000101110", "11011101000", "11011100010", "11011101110", "11101011000", // 50-54
+    "11101000110", "11100010110", "11101101000", "11101100010", "11100011010", // 55-59
+    "11101111010", "11001000010", "11110001010", "10100110000", "10100001100", // 60-64
+    "10010110000", "10010000110", "10000101100", "10000100110", "10110010000", // 65-69
+    "10110000100", "10011010000", "10011000010", "10000110100", "10000110010", // 70-74
+    "11000010010", "11001010000", "11110111010", "11000010100", "10001111010", // 75-79
+    "10100111100", "10010111100", "10010011110", "10111100100", "10011110100", // 80-84
+    "10011110010", "11110100100", "11110010100", "11110010010", "11011011110", // 85-89
+    "11011110110", "11110110110", "10101111000", "10100011110", "10001011110", // 90-94
+    "10111101000", "10111100010", "11110101000", "11110100010", "10111011110", // 95-99
+    "10111101110", "11101011110", "11110101110", "11010000100", "11010010000", // 100-104
+    "11010011100" // 105 (START C)
+  ];
+  
+  // Code 128 Start Code B (ASCII 32-127)
+  const startPattern = "11010010000"; // START B (Code 104)
+  
+  // Constants for the barcode
+  const height = 80;
+  const moduleWidth = 2; // Width of the thinnest bar
+  const fontSize = 14;
+  const padding = { top: 10, left: 15, bottom: 20, right: 15 };
+  const barHeight = height - padding.top - padding.bottom;
+  
+  // Calculate total width based on barcode content
+  let totalModules = startPattern.length; // Start with width of START B pattern
+  
+  // Add width for each character
+  for (let i = 0; i < barcodeValue.length; i++) {
+    totalModules += 11; // Each character is 11 modules wide in Code 128
+  }
+  
+  // Add width for checksum and stop character
+  totalModules += 11 + 13; // Checksum (11) + STOP (13)
+  
+  const width = totalModules * moduleWidth + padding.left + padding.right;
+  
+  // Generate SVG for the Code 128 barcode
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
+  
+  // Add white background
+  svg += `<rect x="0" y="0" width="${width}" height="${height}" fill="white" />`;
+  
+  // Start building the actual barcode
+  let x = padding.left;
+  
+  // Calculate checksum
+  let checksum = 104; // START B value
+  for (let i = 0; i < barcodeValue.length; i++) {
+    const charCode = barcodeValue.charCodeAt(i);
+    // Code 128B uses ASCII values directly, but needs adjustment for values < 32
+    const valueIndex = charCode - 32; // Adjust for ASCII table offset (32 is space)
+    checksum += (i + 1) * valueIndex;
+  }
+  checksum %= 103; // Mod 103 gives the checksum index
+  
+  // Add START B pattern
+  addPatternToSVG(startPattern, x, padding.top, moduleWidth, barHeight);
+  x += startPattern.length * moduleWidth;
+  
+  // Add patterns for each character
+  for (let i = 0; i < barcodeValue.length; i++) {
+    const charCode = barcodeValue.charCodeAt(i);
+    const valueIndex = charCode - 32; // Adjust for ASCII table offset
+    const pattern = code128Patterns[valueIndex];
+    
+    addPatternToSVG(pattern, x, padding.top, moduleWidth, barHeight);
+    x += pattern.length * moduleWidth;
+  }
+  
+  // Add checksum pattern
+  const checksumPattern = code128Patterns[checksum];
+  addPatternToSVG(checksumPattern, x, padding.top, moduleWidth, barHeight);
+  x += checksumPattern.length * moduleWidth;
+  
+  // Add STOP pattern (106)
+  const stopPattern = "1100011101011";
+  addPatternToSVG(stopPattern, x, padding.top, moduleWidth, barHeight);
+  
+  // Add text for the barcode value
+  svg += `<text x="${width/2}" y="${height - 5}" text-anchor="middle" font-family="Arial" font-size="${fontSize}">${barcodeValue}</text>`;
+  
+  // Close the SVG
+  svg += `</svg>`;
+  
+  return svg;
+  
+  // Helper function to add a pattern to the SVG
+  function addPatternToSVG(pattern: string, xPos: number, yPos: number, modWidth: number, height: number) {
+    for (let i = 0; i < pattern.length; i++) {
+      if (pattern[i] === '1') {
+        svg += `<rect x="${xPos}" y="${yPos}" width="${modWidth}" height="${height}" fill="black" />`;
+      }
+      xPos += modWidth;
+    }
+  }
+}
+
+// Generate an EAN-13 barcode SVG
+function generateEAN13SVG(barcodeValue: string): string {
   // EAN-13 requires exactly 13 digits
   if (!/^\d{13}$/.test(barcodeValue)) {
     // Pad to 13 digits if needed or generate a valid EAN-13
