@@ -15,7 +15,7 @@ export default function Login() {
   const [, navigate] = useLocation();
   const { toggleLanguage, language } = useLocale();
   
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,7 +26,7 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      const success = await login(email, password);
+      const success = await login(username, password);
       if (success) {
         navigate('/');
       } else {
@@ -60,12 +60,12 @@ export default function Login() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">{t('email')}</Label>
+                <Label htmlFor="username">{t('username')}</Label>
                 <Input 
-                  id="email" 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="username" 
+                  type="text" 
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   required
                 />
               </div>
