@@ -282,5 +282,13 @@
   "products": "المنتجات",
   "price": "السعر",
   "quantity": "الكمية",
-  "invoice_notes_placeholder": "أضف أي ملاحظات حول هذه الفاتورة..."
+  "invoice_notes_placeholder": "أضف أي ملاحظات حول هذه الفاتورة...",
+  "admin_approval_required": "مطلوب موافقة المدير",
+  "later_payment_needs_approval": "الدفع الآجل يتطلب موافقة من مدير النظام",
+  "admin_approval_description": "الرجاء إدخال بيانات اعتماد مدير النظام للموافقة على الدفع الآجل",
+  "admin_username": "اسم مستخدم المدير",
+  "admin_password": "كلمة مرور المدير",
+  "approve": "موافقة",
+  "share_not_supported": "المشاركة غير مدعومة في متصفحك",
+  "please_add_products": "الرجاء إضافة منتجات إلى الفاتورة"
 }

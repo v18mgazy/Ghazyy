@@ -620,8 +620,8 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
-              variant={paymentMethod === 'cash' ? 'default' : 'outline'}
-              className={`flex items-center gap-2 ${paymentMethod === 'cash' ? 'bg-success text-white hover:bg-success/90' : ''}`}
+              variant="outline"
+              className={`flex items-center gap-2 ${paymentMethod === 'cash' ? 'bg-green-500 text-white hover:bg-green-600 border-green-500' : ''}`}
               onClick={() => setPaymentMethod('cash')}
             >
               <Banknote className="h-4 w-4" />
@@ -630,8 +630,8 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
             
             <Button
               type="button"
-              variant={paymentMethod === 'card' ? 'default' : 'outline'}
-              className={`flex items-center gap-2 ${paymentMethod === 'card' ? 'bg-primary text-white hover:bg-primary/90' : ''}`}
+              variant="outline"
+              className={`flex items-center gap-2 ${paymentMethod === 'card' ? 'bg-blue-500 text-white hover:bg-blue-600 border-blue-500' : ''}`}
               onClick={() => setPaymentMethod('card')}
             >
               <CreditCard className="h-4 w-4" />
@@ -640,8 +640,8 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
             
             <Button
               type="button"
-              variant={paymentMethod === 'check' ? 'default' : 'outline'}
-              className={`flex items-center gap-2 ${paymentMethod === 'check' ? 'bg-warning text-white hover:bg-warning/90' : ''}`}
+              variant="outline"
+              className={`flex items-center gap-2 ${paymentMethod === 'check' ? 'bg-purple-500 text-white hover:bg-purple-600 border-purple-500' : ''}`}
               onClick={() => setPaymentMethod('check')}
             >
               <CheckSquare className="h-4 w-4" />
@@ -650,12 +650,15 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
             
             <Button
               type="button"
-              variant={paymentMethod === 'later' ? 'default' : 'outline'}
-              className={`flex items-center gap-2 ${paymentMethod === 'later' ? 'bg-destructive text-white hover:bg-destructive/90' : ''}`}
+              variant="outline"
+              className={`flex items-center gap-2 ${paymentMethod === 'later' ? 'bg-amber-500 text-white hover:bg-amber-600 border-amber-500' : ''}`}
               onClick={() => setPaymentMethod('later')}
             >
               <FileCheck className="h-4 w-4" />
               {t('pay_later')}
+              {paymentMethod === 'later' && isLaterPaymentApproved && (
+                <Check className="ml-1 h-3 w-3 text-white" />
+              )}
             </Button>
           </div>
         </div>
