@@ -361,28 +361,9 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
             </div>
           </div>
           
-          {/* أزرار الطباعة والمشاركة */}
+          {/* نزيل أزرار الطباعة والمشاركة من أعلى الصفحة */}
           <div className="flex gap-2 justify-end pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handlePrintInvoice}
-              className="flex items-center gap-1"
-            >
-              <Printer className="h-4 w-4" />
-              {t('print')}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleShareInvoice}
-              className="flex items-center gap-1"
-            >
-              <Share2 className="h-4 w-4" />
-              {t('share')}
-            </Button>
+            {/* أزرار في المستقبل يمكن إضافتها هنا */}
           </div>
         </div>
       </div>
@@ -525,91 +506,79 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
                 </CardContent>
               </Card>
             ))}
+            
+            {/* ملخص الفاتورة */}
+            <div className="bg-muted/40 p-4 rounded-lg">
+              <div className="flex justify-between mb-2">
+                <span className="text-muted-foreground">{t('subtotal')}:</span>
+                <span>{formatCurrency(subtotal)}</span>
+              </div>
+              <div className="flex justify-between mb-2">
+                <span className="text-muted-foreground">{t('total_discount')}:</span>
+                <span className="text-red-500">- {formatCurrency(totalDiscount)}</span>
+              </div>
+              <div className="flex justify-between font-semibold text-lg">
+                <span>{t('total')}:</span>
+                <span>{formatCurrency(total)}</span>
+              </div>
+            </div>
           </div>
         )}
       </div>
       
-      {/* الملاحظات */}
-      <div>
-        <Label htmlFor="notes" className="mb-2 block">
-          {t('notes')}
-        </Label>
-        <Textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder={t('invoice_notes_placeholder')}
-          className="resize-none"
-          rows={3}
-        />
-      </div>
-      
-      {/* المجاميع */}
-      <Card className="border-none bg-muted/50">
-        <CardContent className="p-4">
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{t('subtotal')}</span>
-              <span>{formatCurrency(subtotal)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{t('discount')}</span>
-              <span>{formatCurrency(totalDiscount)}</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between font-medium text-lg">
-              <span>{t('total')}</span>
-              <span className="text-primary">{formatCurrency(total)}</span>
-            </div>
+      <div className="space-y-4">
+        <h3 className="font-medium text-lg">{t('payment_and_notes')}</h3>
+        
+        <div className="space-y-4">
+          <Textarea
+            placeholder={t('invoice_notes')}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="resize-none h-20"
+          />
+          
+          <h4 className="font-medium">{t('payment_method')}:</h4>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant={paymentMethod === 'cash' ? 'default' : 'outline'}
+              className={`flex items-center gap-2 ${paymentMethod === 'cash' ? 'bg-success text-white hover:bg-success/90' : ''}`}
+              onClick={() => setPaymentMethod('cash')}
+            >
+              <Banknote className="h-4 w-4" />
+              {t('cash')}
+            </Button>
+            
+            <Button
+              type="button"
+              variant={paymentMethod === 'card' ? 'default' : 'outline'}
+              className={`flex items-center gap-2 ${paymentMethod === 'card' ? 'bg-primary text-white hover:bg-primary/90' : ''}`}
+              onClick={() => setPaymentMethod('card')}
+            >
+              <CreditCard className="h-4 w-4" />
+              {t('card')}
+            </Button>
+            
+            <Button
+              type="button"
+              variant={paymentMethod === 'check' ? 'default' : 'outline'}
+              className={`flex items-center gap-2 ${paymentMethod === 'check' ? 'bg-warning text-white hover:bg-warning/90' : ''}`}
+              onClick={() => setPaymentMethod('check')}
+            >
+              <CheckSquare className="h-4 w-4" />
+              {t('check')}
+            </Button>
+            
+            <Button
+              type="button"
+              variant={paymentMethod === 'later' ? 'default' : 'outline'}
+              className={`flex items-center gap-2 ${paymentMethod === 'later' ? 'bg-destructive text-white hover:bg-destructive/90' : ''}`}
+              onClick={() => setPaymentMethod('later')}
+            >
+              <FileCheck className="h-4 w-4" />
+              {t('pay_later')}
+            </Button>
           </div>
-        </CardContent>
-      </Card>
-      
-      {/* طرق الدفع */}
-      <div className="space-y-3">
-        <Label className="block">
-          {t('payment_method')}
-        </Label>
-        <div className="flex flex-wrap gap-2 items-center">
-          <Button
-            type="button"
-            variant={paymentMethod === 'cash' ? 'default' : 'outline'}
-            className={`flex items-center gap-2 ${paymentMethod === 'cash' ? 'bg-success text-white hover:bg-success/90' : ''}`}
-            onClick={() => setPaymentMethod('cash')}
-          >
-            <Banknote className="h-4 w-4" />
-            {t('cash')}
-          </Button>
-          
-          <Button
-            type="button"
-            variant={paymentMethod === 'card' ? 'default' : 'outline'}
-            className={`flex items-center gap-2 ${paymentMethod === 'card' ? 'bg-info text-white hover:bg-info/90' : ''}`}
-            onClick={() => setPaymentMethod('card')}
-          >
-            <CreditCard className="h-4 w-4" />
-            {t('card')}
-          </Button>
-          
-          <Button
-            type="button"
-            variant={paymentMethod === 'check' ? 'default' : 'outline'}
-            className={`flex items-center gap-2 ${paymentMethod === 'check' ? 'bg-warning text-white hover:bg-warning/90' : ''}`}
-            onClick={() => setPaymentMethod('check')}
-          >
-            <CheckSquare className="h-4 w-4" />
-            {t('check')}
-          </Button>
-          
-          <Button
-            type="button"
-            variant={paymentMethod === 'later' ? 'default' : 'outline'}
-            className={`flex items-center gap-2 ${paymentMethod === 'later' ? 'bg-destructive text-white hover:bg-destructive/90' : ''}`}
-            onClick={() => setPaymentMethod('later')}
-          >
-            <FileCheck className="h-4 w-4" />
-            {t('pay_later')}
-          </Button>
         </div>
       </div>
       
@@ -625,7 +594,6 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
         </Button>
         
         <div className="flex flex-wrap gap-2">
-
           <Button
             type="submit"
             className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
