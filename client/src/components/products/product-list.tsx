@@ -34,6 +34,7 @@ interface ProductListProps {
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
   onPrintBarcodes: (productIds: string[]) => void;
+  onPrintInventory?: () => void;
 }
 
 export default function ProductList({
@@ -42,7 +43,8 @@ export default function ProductList({
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
-  onPrintBarcodes
+  onPrintBarcodes,
+  onPrintInventory
 }: ProductListProps) {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');

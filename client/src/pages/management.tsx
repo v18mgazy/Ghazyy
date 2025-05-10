@@ -309,6 +309,189 @@ export default function ManagementPage() {
     }
   });
   
+  // وظيفة طباعة قائمة جرد المنتجات
+  const printInventoryMutation = useMutation({
+    mutationFn: () => {
+      // إنشاء صفحة طباعة جديدة
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        throw new Error(t('popup_blocked'));
+      }
+      
+      // تاريخ اليوم بالتنسيق المحلي
+      const today = new Date().toLocaleDateString();
+      
+      // إنشاء محتوى HTML للطباعة
+      let printContent = `
+        <html>
+        <head>
+          <title>${t('inventory_list')}</title>
+          <meta charset="UTF-8">
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              direction: ${t('direction')};
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 20px;
+              border-bottom: 2px solid #000;
+              padding-bottom: 10px;
+            }
+            h1 {
+              margin: 0;
+              font-size: 24px;
+            }
+            .date {
+              font-size: 16px;
+              margin-top: 10px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+            th, td {
+              border: 1px solid #ddd;
+              padding: 10px;
+              text-align: ${t('direction') === 'rtl' ? 'right' : 'left'};
+            }
+            th {
+              background-color: #f2f2f2;
+              font-weight: bold;
+            }
+            tr:nth-child(even) {
+              background-color: #f9f9f9;
+            }
+            .summary {
+              margin-top: 30px;
+              border-top: 1px solid #ddd;
+              padding-top: 10px;
+            }
+            .signature {
+              margin-top: 50px;
+              display: flex;
+              justify-content: space-between;
+            }
+            .signature-line {
+              width: 200px;
+              border-top: 1px solid #000;
+              margin-top: 40px;
+              text-align: center;
+            }
+            @media print {
+              body { margin: 0; padding: 15px; }
+              .no-print { display: none; }
+              button { display: none; }
+            }
+            .inventory-info {
+              margin-top: 20px;
+              font-size: 16px;
+            }
+            .count-column {
+              width: 100px;
+            }
+            .check-column {
+              width: 60px;
+            }
+            .notes-column {
+              width: 150px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="text-align: center; margin: 20px 0;">
+            <button onclick="window.print()">${t('print')}</button>
+            <button onclick="window.close()">${t('close')}</button>
+          </div>
+          
+          <div class="header">
+            <div>
+              <h1>${t('inventory_list')}</h1>
+              <div class="inventory-info">${t('ghazy_sales')}</div>
+            </div>
+            <div class="date">${t('date')}: ${today}</div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>${t('no')}</th>
+                <th>${t('product_name')}</th>
+                <th>${t('barcode')}</th>
+                <th>${t('system_stock')}</th>
+                <th class="count-column">${t('actual_count')}</th>
+                <th class="check-column">${t('checked')}</th>
+                <th class="notes-column">${t('notes')}</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+      
+      // إضافة صفوف للمنتجات
+      products.forEach((product, index) => {
+        printContent += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${product.name}</td>
+            <td>${product.barcode}</td>
+            <td>${product.stock}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+        `;
+      });
+      
+      // حساب إجمالي كمية المخزون في النظام
+      const totalStock = products.reduce((sum, product) => sum + product.stock, 0);
+      
+      printContent += `
+            </tbody>
+          </table>
+          
+          <div class="summary">
+            <p><strong>${t('total_products')}:</strong> ${products.length}</p>
+            <p><strong>${t('total_system_stock')}:</strong> ${totalStock}</p>
+          </div>
+          
+          <div class="signature">
+            <div>
+              <div class="signature-line">${t('inventory_manager')}</div>
+            </div>
+            <div>
+              <div class="signature-line">${t('store_manager')}</div>
+            </div>
+          </div>
+          
+          <script>
+            // طباعة تلقائية بعد تحميل الصفحة
+            window.onload = function() {
+              // إضافة تأخير بسيط للتأكد من تحميل الصفحة بشكل كامل
+              setTimeout(() => window.print(), 500);
+            }
+          </script>
+        </body>
+        </html>
+      `;
+      
+      printWindow.document.open();
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      
+      return Promise.resolve('success');
+    },
+    onSuccess: () => {
+      console.log('Inventory list printed successfully');
+    },
+    onError: (error) => {
+      console.error('Error printing inventory list:', error);
+      alert(error instanceof Error ? error.message : t('print_error'));
+    }
+  });
+  
   const addEmployeeMutation = useMutation({
     mutationFn: (employee: any) => Promise.resolve(employee),
     onSuccess: () => {
