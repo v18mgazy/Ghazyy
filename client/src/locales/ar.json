@@ -189,5 +189,19 @@
   "manage_products": "إدارة المنتجات",
   "customer_management": "إدارة العملاء",
   "view_reports": "عرض التقارير",
-  "manage_inventory": "إدارة المخزون"
+  "manage_inventory": "إدارة المخزون",
+  
+  "error": "خطأ",
+  "retry": "إعادة المحاولة",
+  "cancel_scanning": "إلغاء المسح",
+  "scanner_initialization_failed": "فشل تهيئة الماسح",
+  "camera_access_denied": "تم رفض الوصول للكاميرا",
+  "allow_camera_access": "يرجى السماح بالوصول إلى الكاميرا في إعدادات المتصفح",
+  "requesting_camera": "جاري طلب الوصول للكاميرا...",
+  "scan_product_barcode": "مسح باركود المنتج",
+  "position_barcode_in_frame": "ضع الباركود داخل الإطار للمسح",
+  "activate_camera": "تشغيل الكاميرا",
+  "use_test_barcode": "استخدام باركود للاختبار",
+  "add_to_invoice": "إضافة للفاتورة",
+  "click_to_scan_barcode": "اضغط للبدء في مسح الباركود"
 }

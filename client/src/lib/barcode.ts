@@ -69,35 +69,76 @@ export const startBarcodeScanner = (
   onProcessed?: (result: any) => void,
   config = defaultScannerConfig
 ) => {
-  Quagga.init({
-    ...config,
-    inputStream: {
-      ...config.inputStream,
-      target: document.querySelector(`#${containerId}`) as HTMLElement
-    }
-  }, (err) => {
-    if (err) {
-      console.error('Error initializing Quagga:', err);
-      return;
+  try {
+    // شكل الكاميرا يحتاج إلى التأكد من وجود العنصر قبل التهيئة
+    const targetElement = document.getElementById(containerId);
+    
+    if (!targetElement) {
+      console.error('Target element not found:', containerId);
+      return () => {}; // return empty cleanup function
     }
     
-    Quagga.start();
-    
-    Quagga.onDetected((result) => {
-      // Play a beep sound when a barcode is detected
-      const beep = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...');
-      beep.play().catch(e => console.log('Error playing beep:', e));
-      
-      onDetected(result);
-    });
-    
-    if (onProcessed) {
-      Quagga.onProcessed(onProcessed);
+    // التحقق من دعم الكاميرا في المتصفح
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.error('Browser does not support camera access');
+      return () => {};
     }
-  });
+    
+    // طلب إذن الوصول إلى الكاميرا قبل تهيئة المكتبة
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        // نجحت الموافقة على الكاميرا، يمكن الآن تهيئة Quagga
+        stream.getTracks().forEach(track => track.stop()); // أغلق الاتصال الأولي
+        
+        console.log('Camera permission granted, initializing scanner on', targetElement);
+        
+        Quagga.init({
+          ...config,
+          inputStream: {
+            ...config.inputStream,
+            target: targetElement
+          }
+        }, (err) => {
+          if (err) {
+            console.error('Error initializing Quagga:', err);
+            return;
+          }
+          
+          console.log('Quagga initialized successfully, starting scanner');
+          Quagga.start();
+          
+          Quagga.onDetected((result) => {
+            console.log('Barcode detected:', result);
+            // صوت عند اكتشاف الباركود
+            try {
+              const beep = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...');
+              beep.play().catch(e => console.log('Error playing beep:', e));
+            } catch (audioErr) {
+              console.log('Audio play error:', audioErr);
+            }
+            
+            onDetected(result);
+          });
+          
+          if (onProcessed) {
+            Quagga.onProcessed(onProcessed);
+          }
+        });
+      })
+      .catch(cameraErr => {
+        console.error('Camera access denied or error:', cameraErr);
+      });
+  } catch (e) {
+    console.error('Fatal error initializing barcode scanner:', e);
+  }
   
   return () => {
-    Quagga.stop();
+    try {
+      Quagga.stop();
+      console.log('Scanner stopped');
+    } catch (e) {
+      console.error('Error stopping scanner:', e);
+    }
   };
 };
 
