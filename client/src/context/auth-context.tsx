@@ -32,29 +32,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
 
   // Simple mock authentication for testing
-  const login = async (email: string, password: string) => {
+  const login = async (username: string, password: string) => {
     setLoading(true);
     try {
       // Custom login credentials
-      if (email === 'admin' && password === '503050') {
+      if (username === 'admin' && password === '503050') {
         setUser({
           id: '1',
-          email: 'admin',
-          name: 'Admin User',
-          role: 'admin'
-        });
-        return true;
-      } else if (email === 'admin@example.com') {
-        setUser({
-          id: '2',
           email: 'admin@example.com',
           name: 'Admin User',
           role: 'admin'
         });
         return true;
-      } else if (email === 'cashier@example.com') {
+      } else if (username === 'cashier' && password === '123456') {
         setUser({
-          id: '3',
+          id: '2',
           email: 'cashier@example.com',
           name: 'Cashier User',
           role: 'cashier'
