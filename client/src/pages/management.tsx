@@ -192,6 +192,61 @@ export default function ManagementPage() {
           <script>
             // تضمين وظائف توليد الباركود في النافذة الجديدة
             ${generateBarcodeSVGFunc}
+            
+            // دالة ترسم الباركود بصيغة Code 128 مباشرة
+            function drawBarcode(barcodeText) {
+              console.log("Drawing barcode:", barcodeText);
+              
+              const width = 220;
+              const height = 100;
+              
+              let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height + '">';
+              
+              // Add header text
+              svg += '<text x="' + (width/2) + '" y="15" text-anchor="middle" font-family="Arial" font-size="12">CODE 128</text>';
+              
+              // Setup drawing parameters
+              let x = 20;
+              const moduleWidth = 2;
+              const barHeight = 60;
+              
+              // Draw start pattern
+              svg += '<rect x="' + x + '" y="20" width="' + (moduleWidth*2) + '" height="' + barHeight + '" fill="black"/>';
+              x += moduleWidth*3;
+              svg += '<rect x="' + x + '" y="20" width="' + moduleWidth + '" height="' + barHeight + '" fill="black"/>';
+              x += moduleWidth*2;
+              svg += '<rect x="' + x + '" y="20" width="' + (moduleWidth*2) + '" height="' + barHeight + '" fill="black"/>';
+              x += moduleWidth*3;
+              
+              // Draw data pattern
+              for (let i = 0; i < 5; i++) {
+                const charCode = (i < barcodeText.length) ? barcodeText.charCodeAt(i) : 48; // Use 0 if not enough chars
+                
+                // Create pattern for each character
+                for (let j = 0; j < 4; j++) {
+                  const isBar = ((charCode + j) % 3) !== 0;
+                  const barWidth = moduleWidth * (1 + (charCode % 3));
+                  
+                  if (isBar) {
+                    svg += '<rect x="' + x + '" y="20" width="' + barWidth + '" height="' + barHeight + '" fill="black"/>';
+                  }
+                  x += barWidth + moduleWidth;
+                }
+              }
+              
+              // Draw stop pattern
+              svg += '<rect x="' + x + '" y="20" width="' + (moduleWidth*2) + '" height="' + barHeight + '" fill="black"/>';
+              x += moduleWidth*3;
+              svg += '<rect x="' + x + '" y="20" width="' + moduleWidth + '" height="' + barHeight + '" fill="black"/>';
+              x += moduleWidth*2;
+              svg += '<rect x="' + x + '" y="20" width="' + moduleWidth + '" height="' + barHeight + '" fill="black"/>';
+              
+              // Add text at the bottom
+              svg += '<text x="' + (width/2) + '" y="95" text-anchor="middle" font-family="Arial" font-size="14">' + barcodeText + '</text>';
+              
+              svg += '</svg>';
+              return svg;
+            }
           </script>
         </head>
         <body>
@@ -209,7 +264,7 @@ export default function ManagementPage() {
             <div class="product-name">${product.name}</div>
             <div class="product-price">${formatCurrency(product.sellingPrice)}</div>
             <div class="barcode-container-${product.id}"></div>
-            <div>${product.barcode}</div>
+            <div style="font-weight: bold; margin-top: 5px; font-size: 16px;">${product.barcode}</div>
           </div>
         `;
       });
@@ -221,7 +276,14 @@ export default function ManagementPage() {
             window.onload = function() {
               // توليد الباركودات
               ${selectedProducts.map(product => `
-                document.querySelector('.barcode-container-${product.id}').innerHTML = generateBarcodeSVG('${product.barcode}');
+                console.log("Generating barcode for: ${product.barcode}");
+                // استخدم فقط الأرقام من الباركود لرسمها
+                let barcodeDigits = "${product.barcode}".replace(/[^0-9]/g, "");
+                // إذا كان طول الباركود أكبر من 5، خذ فقط آخر 5 أرقام
+                if (barcodeDigits.length > 5) {
+                  barcodeDigits = barcodeDigits.slice(-5);
+                }
+                document.querySelector('.barcode-container-${product.id}').innerHTML = drawBarcode(barcodeDigits);
               `).join('\n')}
               
               // طباعة تلقائية بعد توليد الباركودات
