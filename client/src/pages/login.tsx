@@ -25,14 +25,26 @@ export default function Login() {
     setError('');
     setIsLoading(true);
     
+    console.log("محاولة تسجيل الدخول باستخدام:", { username, password });
+    
     try {
+      // للتأكد من أن البيانات صحيحة
+      if (username === 'admin' && password === '503050') {
+        console.log("بيانات تسجيل الدخول صحيحة!");
+      }
+      
       const success = await login(username, password);
+      console.log("نتيجة تسجيل الدخول:", success);
+      
       if (success) {
+        console.log("تم تسجيل الدخول بنجاح، جاري التحويل للصفحة الرئيسية");
         navigate('/');
       } else {
+        console.log("فشل تسجيل الدخول");
         setError(t('login_error'));
       }
     } catch (err) {
+      console.error("خطأ في تسجيل الدخول:", err);
       setError(t('login_error'));
     } finally {
       setIsLoading(false);
