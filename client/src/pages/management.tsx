@@ -7,6 +7,7 @@ import DamagedItemList from '@/components/damaged-items/damaged-item-list';
 import UserList from '@/components/users/user-list';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { formatCurrency, generateBarcodeSVG } from '@/lib/utils';
 
 export default function ManagementPage() {
   const { t } = useTranslation();
@@ -195,7 +196,6 @@ export default function ManagementPage() {
       
       // إضافة بركود لكل منتج محدد
       selectedProducts.forEach(product => {
-        const { generateBarcodeSVG } = require('@/lib/utils');
         const barcodeSvg = generateBarcodeSVG(product.barcode);
         
         printContent += `
