@@ -35,10 +35,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Accept any password for demo purposes
-      if (email === 'admin@example.com') {
+      // Custom login credentials
+      if (email === 'admin' && password === '503050') {
         setUser({
           id: '1',
+          email: 'admin',
+          name: 'Admin User',
+          role: 'admin'
+        });
+        return true;
+      } else if (email === 'admin@example.com') {
+        setUser({
+          id: '2',
           email: 'admin@example.com',
           name: 'Admin User',
           role: 'admin'
@@ -46,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return true;
       } else if (email === 'cashier@example.com') {
         setUser({
-          id: '2',
+          id: '3',
           email: 'cashier@example.com',
           name: 'Cashier User',
           role: 'cashier'
