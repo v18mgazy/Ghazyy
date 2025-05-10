@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocale } from '@/hooks/use-locale';
 import { Input } from '@/components/ui/input';
@@ -7,11 +7,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
+import BarcodeScanner from '@/components/barcode-scanner';
 import { 
   Plus, Trash2, Save, FileCheck, Banknote, CreditCard, Scan, 
-  ReceiptText, CheckSquare, X, Calendar 
+  ReceiptText, CheckSquare, X, Calendar, Tag, Search, ChevronsUpDown
 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, debounce } from '@/lib/utils';
 
 interface Customer {
   id: string;
@@ -51,6 +55,134 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
   const [notes, setNotes] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
   
+  // حالة ماسح الباركود
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState<any>(null);
+  
+  // حالة البحث عن المنتج
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
+  
+  // بيانات المنتجات للبحث (ستكون من API في التطبيق الحقيقي)
+  const mockProducts = [
+    {
+      id: 'p1',
+      name: 'هاتف سامسونج جالكسي S21',
+      barcode: '8801643992941',
+      code: 'SM-G991',
+      sellingPrice: 12999.99,
+      category: 'الإلكترونيات'
+    },
+    {
+      id: 'p2',
+      name: 'ايفون 13 برو',
+      barcode: '194252705841',
+      code: 'IP-13PRO',
+      sellingPrice: 16999.99,
+      category: 'الإلكترونيات'
+    },
+    {
+      id: 'p3',
+      name: 'لابتوب لينوفو ثينكباد',
+      barcode: '195713147532',
+      code: 'LT-T14',
+      sellingPrice: 11499.99,
+      category: 'الإلكترونيات'
+    },
+    {
+      id: 'p4',
+      name: 'ساعة أبل الذكية',
+      barcode: '190199269033',
+      code: 'AW-S7',
+      sellingPrice: 3999.99,
+      category: 'الإلكترونيات'
+    },
+    {
+      id: 'p5',
+      name: 'سماعات سوني اللاسلكية',
+      barcode: '027242916852',
+      code: 'SH-WH1000',
+      sellingPrice: 1899.99,
+      category: 'الإلكترونيات'
+    }
+  ];
+  
+  // البحث عن المنتجات
+  const searchProducts = (term: string) => {
+    if (!term.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    
+    setIsSearching(true);
+    
+    // محاكاة طلب البحث
+    setTimeout(() => {
+      const results = mockProducts.filter(product => 
+        product.name.toLowerCase().includes(term.toLowerCase()) || 
+        product.code?.toLowerCase().includes(term.toLowerCase()) || 
+        product.barcode?.includes(term)
+      );
+      
+      setSearchResults(results);
+      setIsSearching(false);
+    }, 300);
+  };
+  
+  // معالجة تغيير مصطلح البحث
+  const handleProductSearchChange = (term: string) => {
+    setSearchTerm(term);
+    searchProducts(term);
+  };
+  
+  // معالجة تحديد منتج من نتائج البحث
+  const handleSelectSearchResult = (product: any, index: number) => {
+    const updatedProducts = [...products];
+    updatedProducts[index] = {
+      ...updatedProducts[index],
+      id: product.id,
+      name: product.name,
+      barcode: product.barcode,
+      sellingPrice: product.sellingPrice,
+    };
+    setProducts(updatedProducts);
+    setSearchTerm('');
+    setSearchResults([]);
+    setEditingProductIndex(null);
+  };
+  
+  // معالجة المنتج الممسوح ضوئيًا
+  const handleProductScanned = (scannedProd: any) => {
+    // البحث عن المنتج بالباركود
+    const foundProduct = mockProducts.find(p => p.barcode === scannedProd.barcode);
+    
+    if (foundProduct) {
+      const newProduct = {
+        id: foundProduct.id,
+        name: foundProduct.name,
+        barcode: foundProduct.barcode,
+        sellingPrice: foundProduct.sellingPrice,
+        quantity: 1,
+        discount: 0
+      };
+      setProducts([...products, newProduct]);
+    } else {
+      // إنشاء منتج جديد إذا لم يتم العثور عليه
+      const newProduct = {
+        id: 'new-' + Date.now(),
+        name: scannedProd.name || 'منتج جديد',
+        barcode: scannedProd.barcode,
+        sellingPrice: scannedProd.sellingPrice || 0,
+        quantity: 1,
+        discount: 0
+      };
+      setProducts([...products, newProduct]);
+    }
+    setShowBarcodeScanner(false);
+  };
+  
   const addProduct = () => {
     const newProduct: Product = {
       id: `prod-${Date.now()}`,
@@ -70,6 +202,13 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
         : value 
     };
     setProducts(updatedProducts);
+    
+    // إذا كان الحقل هو اسم المنتج وليس هناك تحرير حالي
+    // قم بعرض البحث فقط إذا كان هناك قيمة مدخلة
+    if (field === 'name' && typeof value === 'string' && value.trim()) {
+      setEditingProductIndex(index);
+      handleProductSearchChange(value);
+    }
   };
   
   const removeProduct = (index: number) => {
@@ -112,6 +251,23 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
   
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* ماسح الباركود */}
+      {showBarcodeScanner && (
+        <Dialog open={showBarcodeScanner} onOpenChange={setShowBarcodeScanner}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Scan className="h-5 w-5 text-primary" />
+                {t('scan_barcode')}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <BarcodeScanner onProductScanned={handleProductScanned} />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+      
       {/* معلومات الفاتورة */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between mb-4">
         <div className="space-y-2 flex-1">
@@ -171,7 +327,7 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
               type="button" 
               size="sm" 
               variant="outline"
-              onClick={onAddProduct}
+              onClick={() => setShowBarcodeScanner(true)}
             >
               <Scan className="mr-1 h-4 w-4" />
               {t('scan_barcode')}
@@ -207,12 +363,52 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
               <Card key={product.id} className="overflow-hidden">
                 <CardContent className="p-3">
                   <div className="grid grid-cols-12 gap-2 items-center">
-                    <div className="col-span-5">
-                      <Input
-                        value={product.name}
-                        onChange={(e) => updateProduct(index, 'name', e.target.value)}
-                        placeholder={t('product_name')}
-                      />
+                    <div className="col-span-5 relative">
+                      <Popover open={editingProductIndex === index && searchResults.length > 0}>
+                        <PopoverTrigger asChild>
+                          <div className="relative">
+                            <Input
+                              value={product.name}
+                              onChange={(e) => updateProduct(index, 'name', e.target.value)}
+                              placeholder={t('product_name')}
+                              onClick={() => {
+                                if (product.name.trim()) {
+                                  setEditingProductIndex(index);
+                                  searchProducts(product.name);
+                                } else {
+                                  // إظهار كل المنتجات عند النقر على الحقل الفارغ
+                                  setEditingProductIndex(index);
+                                  setSearchResults(mockProducts);
+                                }
+                              }}
+                            />
+                            <ChevronsUpDown className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-0 w-[300px] max-h-[200px] overflow-y-auto">
+                          <Command>
+                            <CommandInput placeholder={t('search_products')} value={searchTerm} onValueChange={handleProductSearchChange} />
+                            <CommandEmpty>{t('no_products_found')}</CommandEmpty>
+                            <CommandGroup>
+                              {searchResults.map((item) => (
+                                <CommandItem
+                                  key={item.id}
+                                  value={item.name}
+                                  onSelect={() => handleSelectSearchResult(item, index)}
+                                >
+                                  <div className="flex flex-col w-full">
+                                    <div className="font-medium">{item.name}</div>
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                      {item.barcode && <span><Tag className="h-3 w-3 mr-1 inline" />{item.barcode}</span>}
+                                      <span>{formatCurrency(item.sellingPrice)}</span>
+                                    </div>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <div className="col-span-2">
                       <Input
