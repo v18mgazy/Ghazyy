@@ -96,5 +96,16 @@
   "add_to_invoice": "Add to Invoice",
   "click_to_scan_barcode": "Click to start scanning barcode",
   "system_settings": "System Settings",
-  "profile": "Profile"
+  "profile": "Profile",
+  
+  "complete_sale": "Complete Sale",
+  "processing": "Processing...",
+  "deferred": "Deferred",
+  "share": "Share",
+  "visa": "Visa",
+  "e_wallet": "E-Wallet",
+  "amount": "Amount",
+  "customer": "Customer",
+  "phone": "Phone",
+  "not_provided": "Not provided"
 }

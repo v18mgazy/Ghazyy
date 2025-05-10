@@ -203,5 +203,16 @@
   "activate_camera": "تشغيل الكاميرا",
   "use_test_barcode": "استخدام باركود للاختبار",
   "add_to_invoice": "إضافة للفاتورة",
-  "click_to_scan_barcode": "اضغط للبدء في مسح الباركود"
+  "click_to_scan_barcode": "اضغط للبدء في مسح الباركود",
+  
+  "complete_sale": "إتمام عملية البيع",
+  "processing": "جاري المعالجة...",
+  "deferred": "آجل",
+  "share": "مشاركة",
+  "visa": "فيزا",
+  "e_wallet": "محفظة إلكترونية",
+  "amount": "المبلغ",
+  "customer": "العميل",
+  "phone": "الهاتف",
+  "not_provided": "غير متوفر"
 }

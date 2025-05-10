@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Receipt, Search, Trash2, Plus, Minus, Printer, ScanBarcode, 
-  MessageSquareShare 
+  MessageSquareShare, Loader2
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
