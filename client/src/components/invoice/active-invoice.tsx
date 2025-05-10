@@ -9,13 +9,13 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
-import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import BarcodeScanner from '@/components/barcode-scanner';
 import InvoicePreview from '@/components/invoice/invoice-preview';
 import { 
   Plus, Trash2, Save, FileCheck, Banknote, CreditCard, Scan, 
   ReceiptText, CheckSquare, X, Calendar, Tag, Search, ChevronsUpDown,
-  Printer, Share2
+  Printer, Share2, AlertTriangle, LockKeyhole, Check
 } from 'lucide-react';
 import { formatCurrency, debounce } from '@/lib/utils';
 
@@ -69,6 +69,10 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
   
   // حالة عرض الفاتورة المنسقة
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  
+  // حالة الموافقة على الدفع الآجل
+  const [isLaterPaymentApproved, setIsLaterPaymentApproved] = useState(false);
+  const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   
   // بيانات المنتجات للبحث (ستكون من API في التطبيق الحقيقي)
   const mockProducts = [
@@ -245,6 +249,13 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
       return;
     }
     
+    // التحقق من الدفع الآجل - يتطلب موافقة مدير النظام
+    if (paymentMethod === 'later' && !isLaterPaymentApproved) {
+      // عرض نافذة حوار طلب الموافقة
+      setShowApprovalDialog(true);
+      return;
+    }
+    
     // هنا يمكنك إرسال الفاتورة إلى الخادم
     console.log({
       invoiceNumber,
@@ -255,7 +266,8 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
       total,
       notes,
       paymentMethod,
-      date: invoiceDate
+      date: invoiceDate,
+      isLaterPaymentApproved: paymentMethod === 'later' ? isLaterPaymentApproved : null
     });
     
     // إظهار معاينة الفاتورة بعد الضغط على زر "تأكيد" بدلاً من إغلاق النافذة
@@ -282,6 +294,30 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
     } else {
       alert(t('share_not_supported'));
     }
+  };
+  
+  // التحقق من موافقة المدير على الدفع الآجل
+  const handleAdminApproval = () => {
+    // هنا سيتم التحقق من بيانات اعتماد المدير في التطبيق الحقيقي
+    // ولكن الآن سنفترض أن المدير وافق
+    setIsLaterPaymentApproved(true);
+    setShowApprovalDialog(false);
+    
+    // بعد الموافقة، نقوم بتقديم النموذج
+    console.log({
+      invoiceNumber,
+      customer,
+      products,
+      subtotal,
+      totalDiscount,
+      total,
+      notes,
+      paymentMethod,
+      date: invoiceDate,
+      isLaterPaymentApproved: true
+    });
+    
+    setShowInvoicePreview(true);
   };
   
   return (
@@ -314,6 +350,58 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
           </DialogContent>
         </Dialog>
       )}
+      
+      {/* نافذة موافقة المدير على الدفع الآجل */}
+      <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-500">
+              <AlertTriangle className="h-5 w-5" />
+              {t('admin_approval_required')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('later_payment_needs_approval')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-2 text-sm">
+              <LockKeyhole className="h-4 w-4 text-muted-foreground" />
+              <span>{t('admin_approval_description')}</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                type="text"
+                placeholder={t('admin_username')}
+                className="col-span-2"
+              />
+              <Input
+                type="password"
+                placeholder={t('admin_password')}
+                className="col-span-2"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowApprovalDialog(false)}
+            >
+              <X className="mr-1 h-4 w-4" />
+              {t('cancel')}
+            </Button>
+            <Button 
+              onClick={handleAdminApproval}
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              <Check className="mr-1 h-4 w-4" />
+              {t('approve')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* معلومات الفاتورة */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between mb-4">
@@ -375,15 +463,6 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
         <div className="flex items-center justify-between">
           <h3 className="font-medium text-lg">{t('products')}</h3>
           <div className="flex gap-2">
-            <Button 
-              type="button" 
-              size="sm" 
-              variant="outline"
-              onClick={() => setShowBarcodeScanner(true)}
-            >
-              <Scan className="mr-1 h-4 w-4" />
-              {t('scan_barcode')}
-            </Button>
             <Button 
               type="button" 
               size="sm" 
