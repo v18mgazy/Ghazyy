@@ -349,7 +349,9 @@ export default function InvoicePreview({
                   <th className="py-2 px-4 text-start border">{t('product')}</th>
                   <th className="py-2 px-4 text-center border">{t('price')}</th>
                   <th className="py-2 px-4 text-center border">{t('quantity')}</th>
-                  <th className="py-2 px-4 text-center border">{t('discount')} %</th>
+                  {products.some(p => p.discount && p.discount > 0) && (
+                    <th className="py-2 px-4 text-center border">{t('discount')} %</th>
+                  )}
                   <th className="py-2 px-4 text-end border">{t('total')}</th>
                 </tr>
               </thead>
@@ -371,7 +373,9 @@ export default function InvoicePreview({
                       </td>
                       <td className="py-3 px-4 text-center border">{formatCurrency(product.sellingPrice)}</td>
                       <td className="py-3 px-4 text-center border">{product.quantity}</td>
-                      <td className="py-3 px-4 text-center border">{product.discount || 0}%</td>
+                      {products.some(p => p.discount && p.discount > 0) && (
+                        <td className="py-3 px-4 text-center border">{product.discount || 0}%</td>
+                      )}
                       <td className="py-3 px-4 text-end border">{formatCurrency(productNetTotal)}</td>
                     </tr>
                   );
