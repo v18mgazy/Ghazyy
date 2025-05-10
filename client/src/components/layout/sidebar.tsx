@@ -56,13 +56,6 @@ export default function Sidebar({ isOpen, onClose, isAdmin }: SidebarProps) {
       adminOnly: false
     },
     {
-      title: t('products'),
-      icon: <PackageSearch className="h-5 w-5" />,
-      description: t('manage_products'),
-      href: '/management?tab=products',
-      adminOnly: false
-    },
-    {
       title: t('customers'),
       icon: <Users className="h-5 w-5" />,
       description: t('customer_management'),
