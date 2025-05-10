@@ -149,6 +149,16 @@ export default function ProductList({
               <Printer className="mr-1 h-4 w-4" />
               {t('print_barcodes')} {selectedProductIds.size > 0 && `(${selectedProductIds.size})`}
             </Button>
+            {onPrintInventory && (
+              <Button 
+                variant="outline" 
+                onClick={onPrintInventory}
+                className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+              >
+                <Printer className="mr-1 h-4 w-4" />
+                {t('print_inventory')}
+              </Button>
+            )}
           </div>
           
           {isLoading ? (

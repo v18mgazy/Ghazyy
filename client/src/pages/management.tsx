@@ -581,6 +581,7 @@ export default function ManagementPage() {
             onEditProduct={(product) => editProductMutation.mutate(product)}
             onDeleteProduct={(id) => deleteProductMutation.mutate(id)}
             onPrintBarcodes={(ids) => printBarcodesMutation.mutate(ids)}
+            onPrintInventory={() => printInventoryMutation.mutate()}
           />
         </TabsContent>
         
