@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
 import BarcodeScanner from '@/components/barcode-scanner';
+import InvoicePreview from '@/components/invoice/invoice-preview';
 import { 
   Plus, Trash2, Save, FileCheck, Banknote, CreditCard, Scan, 
   ReceiptText, CheckSquare, X, Calendar, Tag, Search, ChevronsUpDown,
@@ -65,6 +66,9 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
+  
+  // حالة عرض الفاتورة المنسقة
+  const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   
   // بيانات المنتجات للبحث (ستكون من API في التطبيق الحقيقي)
   const mockProducts = [
@@ -234,6 +238,13 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // التحقق من وجود منتجات
+    if (products.length === 0) {
+      alert(t('please_add_products'));
+      return;
+    }
+    
     // هنا يمكنك إرسال الفاتورة إلى الخادم
     console.log({
       invoiceNumber,
@@ -247,7 +258,8 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
       date: invoiceDate
     });
     
-    onClose();
+    // إظهار معاينة الفاتورة بعد الضغط على زر "تأكيد" بدلاً من إغلاق النافذة
+    setShowInvoicePreview(true);
   };
   
   // طباعة الفاتورة
@@ -274,6 +286,18 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
   
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* معاينة الفاتورة المنسقة */}
+      <InvoicePreview 
+        open={showInvoicePreview} 
+        onOpenChange={setShowInvoicePreview}
+        customer={customer}
+        invoiceNumber={invoiceNumber}
+        invoiceDate={invoiceDate}
+        products={products}
+        notes={notes}
+        paymentMethod={paymentMethod}
+      />
+      
       {/* ماسح الباركود */}
       {showBarcodeScanner && (
         <Dialog open={showBarcodeScanner} onOpenChange={setShowBarcodeScanner}>
@@ -634,8 +658,8 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
             type="submit"
             className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
           >
-            <ReceiptText className="mr-1 h-4 w-4" />
-            {t('create_invoice')}
+            <FileCheck className="mr-1 h-4 w-4" />
+            {t('confirm_invoice')}
           </Button>
         </div>
       </div>
