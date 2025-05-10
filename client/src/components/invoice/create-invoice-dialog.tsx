@@ -1,15 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ReceiptText, Search, X, ChevronRight, Users, Tag, Scan } from 'lucide-react';
+import { ReceiptText, Search, X, ChevronRight, Users } from 'lucide-react';
 import { useLocale } from '@/hooks/use-locale';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatCurrency } from '@/lib/utils';
-import BarcodeScanner from '@/components/barcode-scanner';
 import ActiveInvoice from '@/components/invoice/active-invoice';
 
 // نوع بيانات العميل
@@ -56,17 +53,20 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(true);  // افتح مربع حوار العملاء افتراضيًا
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   
-  // حالة البحث عن المنتج وإضافته
-  const [productSearchTerm, setProductSearchTerm] = useState('');
+  // حالة المنتجات
   const [productSearchResults, setProductSearchResults] = useState<ProductSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductSearchResult | null>(null);
   const [productQuantity, setProductQuantity] = useState(1);
   const [productDiscount, setProductDiscount] = useState(0);
   
-  // حالة ماسح الباركود
-  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
-  const [scannedProduct, setScannedProduct] = useState<ProductSearchResult | null>(null);
+  // عرض جميع المنتجات تلقائيا عند فتح نافذة الفاتورة
+  useEffect(() => {
+    if (!isCustomerDialogOpen) {
+      // تعيين جميع المنتجات لعرضها مباشرة بدون حاجة للبحث
+      setProductSearchResults(mockProducts);
+    }
+  }, [isCustomerDialogOpen]);
   
   // قائمة بالعملاء للاختيار (ستكون من API في التطبيق الحقيقي)
   const mockCustomers: Customer[] = [
@@ -177,40 +177,9 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
     }
   ];
   
-  // البحث عن المنتجات
-  const searchProducts = (term: string) => {
-    if (!term.trim()) {
-      setProductSearchResults([]);
-      return;
-    }
-    
-    setIsSearching(true);
-    
-    // محاكاة طلب البحث
-    setTimeout(() => {
-      const results = mockProducts.filter(product => 
-        product.name.includes(term) || 
-        product.code?.includes(term) || 
-        product.barcode?.includes(term)
-      );
-      
-      setProductSearchResults(results);
-      setIsSearching(false);
-    }, 300);
-  };
-  
-  // معالجة تغيير مصطلح البحث
-  const handleProductSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const term = e.target.value;
-    setProductSearchTerm(term);
-    searchProducts(term);
-  };
-  
   // اختيار منتج من نتائج البحث
   const handleSelectProduct = (product: ProductSearchResult) => {
     setSelectedProduct(product);
-    setProductSearchTerm('');
-    setProductSearchResults([]);
   };
   
   // إضافة المنتج المحدد إلى الفاتورة
@@ -231,52 +200,15 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
       setProductDiscount(0);
     }
   };
-  
-  // تعامل مع المنتج الممسوح ضوئيًا
+
+  // مع المنتج الممسوح ضوئيًا (للتوافق مع الواجهات الأخرى)
   const handleProductScanned = (scannedProd: any) => {
     // البحث عن المنتج بالباركود
     const foundProduct = mockProducts.find(p => p.barcode === scannedProd.barcode);
     
     if (foundProduct) {
-      setScannedProduct(foundProduct);
-      setShowBarcodeScanner(false);
-    } else {
-      // إنشاء منتج جديد إذا لم يتم العثور عليه
-      const newProduct: ProductSearchResult = {
-        id: 'new-' + Date.now(),
-        name: scannedProd.name || 'منتج جديد',
-        barcode: scannedProd.barcode,
-        sellingPrice: scannedProd.sellingPrice || 0,
-      };
-      setScannedProduct(newProduct);
-      setShowBarcodeScanner(false);
+      setSelectedProduct(foundProduct);
     }
-  };
-  
-  // إضافة المنتج الممسوح إلى الفاتورة
-  const addScannedProductToInvoice = () => {
-    if (scannedProduct) {
-      const newProduct: Product = {
-        id: scannedProduct.id,
-        name: scannedProduct.name,
-        barcode: scannedProduct.barcode,
-        sellingPrice: scannedProduct.sellingPrice,
-        quantity: productQuantity,
-        discount: productDiscount
-      };
-      
-      // إضافة المنتج إلى الفاتورة النشطة
-      setScannedProduct(null);
-      setProductQuantity(1);
-      setProductDiscount(0);
-      setShowBarcodeScanner(false);
-      // onAddProduct(newProduct) يجب تنفيذ هذا في الفاتورة النشطة
-    }
-  };
-  
-  // فتح ماسح الباركود
-  const handleScanBarcode = () => {
-    setShowBarcodeScanner(true);
   };
   
   // إظهار الشاشة الصحيحة بناءً على الحالة الحالية
@@ -377,90 +309,8 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
           </DialogFooter>
         </>
       );
-    } else if (showBarcodeScanner) {
-      // واجهة ماسح الباركود
-      return (
-        <>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Scan className="h-5 w-5 text-primary" />
-              {t('scan_barcode')}
-            </DialogTitle>
-            <DialogDescription>
-              {t('position_barcode_in_frame')}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <BarcodeScanner onProductScanned={handleProductScanned} />
-            
-            {scannedProduct && (
-              <div className="mt-4 border rounded-md p-4 bg-muted/20">
-                <h3 className="font-medium text-lg mb-2">{t('scanned_product')}</h3>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="product-name">{t('product_name')}</Label>
-                      <Input 
-                        id="product-name"
-                        value={scannedProduct.name}
-                        onChange={(e) => setScannedProduct({...scannedProduct, name: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="product-price">{t('price')}</Label>
-                      <Input 
-                        id="product-price"
-                        type="number"
-                        value={scannedProduct.sellingPrice}
-                        onChange={(e) => setScannedProduct({...scannedProduct, sellingPrice: Number(e.target.value)})}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="product-quantity">{t('quantity')}</Label>
-                      <Input 
-                        id="product-quantity"
-                        type="number"
-                        min="1"
-                        value={productQuantity}
-                        onChange={(e) => setProductQuantity(Number(e.target.value))}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="product-discount">{t('discount')} (%)</Label>
-                      <Input 
-                        id="product-discount"
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={productDiscount}
-                        onChange={(e) => setProductDiscount(Number(e.target.value))}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setScannedProduct(null)}>
-                      {t('cancel')}
-                    </Button>
-                    <Button onClick={addScannedProductToInvoice}>
-                      {t('add_to_invoice')}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBarcodeScanner(false)}>
-              {t('back')}
-            </Button>
-          </DialogFooter>
-        </>
-      );
     } else {
-      // شاشة إنشاء الفاتورة بعد اختيار العميل
+      // شاشة إنشاء الفاتورة بعد اختيار العميل (تم إزالة واجهة المسح الضوئي تماماً)
       return (
         <>
           <DialogHeader>
@@ -476,153 +326,53 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
           <div className="py-4">
             {selectedCustomer && (
               <>
-                {/* حذف عناوين التبويبات والاكتفاء بعرض المحتوى مباشرة */}
+                {/* عرض المنتجات مباشرة بدون حقل البحث أو زر الباركود */}
                 <div className="space-y-4 mb-6">
-                  {/* أزرار المسح الضوئي */}
-                  <div className="flex justify-end gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setShowBarcodeScanner(true)}
-                    >
-                      <Scan className="mr-2 h-4 w-4" />
-                      {t('scan_barcode')}
-                    </Button>
-                  </div>
+                  <h3 className="font-medium text-base">{t('available_products')}</h3>
                   
-                  {/* البحث عن المنتجات */}
-                  <div className="space-y-4 mt-4">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
-                      <Input
-                        placeholder={t('select_product')}
-                        value={productSearchTerm}
-                        onChange={handleProductSearchChange}
-                        className="pl-10 w-full"
-                      />
-                      {productSearchTerm && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-1 top-1/2 transform -translate-y-1/2 text-muted-foreground"
-                          onClick={() => setProductSearchTerm('')}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
+                  {isSearching ? (
+                    <div className="text-center py-8">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
                     </div>
-                    
-                    {/* نتائج البحث */}
-                    {isSearching ? (
-                      <div className="text-center py-8">
-                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
-                      </div>
-                    ) : productSearchResults.length > 0 ? (
-                      <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
-                        {productSearchResults.map(product => (
-                          <Card key={product.id} className="overflow-hidden cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleSelectProduct(product)}>
-                            <CardContent className="p-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                  <div className="font-medium">{product.name}</div>
-                                  <div className="flex items-center text-sm text-muted-foreground mt-1">
-                                    {product.code && (
-                                      <span className="mr-3">{t('code')}: {product.code}</span>
-                                    )}
-                                    {product.barcode && (
-                                      <span>
-                                        <Tag className="h-3 w-3 mr-1 inline-block" />
-                                        {product.barcode}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-lg font-semibold text-primary">
-                                    {formatCurrency(product.sellingPrice)}
-                                  </div>
-                                  {product.category && (
-                                    <div className="text-xs text-muted-foreground">
-                                      {product.category}
-                                    </div>
-                                  )}
+                  ) : productSearchResults.length > 0 ? (
+                    <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
+                      {productSearchResults.map(product => (
+                        <Card key={product.id} className="overflow-hidden cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleSelectProduct(product)}>
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="font-medium">{product.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {product.code && <span className="mr-2">{t('code')}: {product.code}</span>}
+                                  {product.category && <span>{t('category')}: {product.category}</span>}
                                 </div>
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : productSearchTerm ? (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground">{t('no_products_found')}</p>
-                      </div>
-                    ) : null}
-                    
-                    {/* نموذج المنتج المحدد */}
-                    {selectedProduct && (
-                      <div className="border rounded-md p-4 bg-muted/20">
-                        <h3 className="font-medium text-lg mb-2">{t('selected_product')}</h3>
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="selected-product-name">{t('product_name')}</Label>
-                              <div className="font-medium pt-2">{selectedProduct.name}</div>
+                              <div className="text-right">
+                                <div className="font-medium text-primary">
+                                  {formatCurrency(product.sellingPrice)}
+                                </div>
+                              </div>
                             </div>
-                            <div>
-                              <Label htmlFor="selected-product-price">{t('price')}</Label>
-                              <div className="font-medium pt-2">{formatCurrency(selectedProduct.sellingPrice)}</div>
-                            </div>
-                            <div>
-                              <Label htmlFor="selected-product-quantity">{t('quantity')}</Label>
-                              <Input 
-                                id="selected-product-quantity"
-                                type="number"
-                                min="1"
-                                value={productQuantity}
-                                onChange={(e) => setProductQuantity(Number(e.target.value))}
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="selected-product-discount">{t('discount')} (%)</Label>
-                              <Input 
-                                id="selected-product-discount"
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={productDiscount}
-                                onChange={(e) => setProductDiscount(Number(e.target.value))}
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => setSelectedProduct(null)}>
-                              {t('cancel')}
-                            </Button>
-                            <Button onClick={addSelectedProductToInvoice}>
-                              {t('add_to_invoice')}
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">{t('no_products_found')}</p>
+                    </div>
+                  )}
                 </div>
                 
                 <ActiveInvoice
                   customer={selectedCustomer}
                   onClose={handleCloseInvoice}
-                  onAddProduct={handleScanBarcode}
+                  onAddProduct={selectedProduct ? addSelectedProductToInvoice : undefined}
+                  onProductScanned={handleProductScanned}
                 />
               </>
             )}
           </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCustomerDialogOpen(true)}>
-              {t('change_customer')}
-            </Button>
-          </DialogFooter>
         </>
       );
     }
@@ -630,7 +380,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`max-w-4xl ${selectedCustomer && !isCustomerDialogOpen ? 'max-h-[90vh] overflow-y-auto' : ''}`}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {renderDialogContent()}
       </DialogContent>
     </Dialog>
