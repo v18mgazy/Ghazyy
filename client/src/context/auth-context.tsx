@@ -15,16 +15,14 @@ export interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  isAdmin: false,
-  loading: false,
-  login: async () => false,
-  logout: async () => {}
-});
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export function useAuthContext() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuthContext must be used within an AuthProvider");
+  }
+  return context;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -34,37 +32,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Simple direct authentication for testing
   const login = async (username: string, password: string) => {
     setLoading(true);
+    console.log("تسجيل الدخول باستخدام:", username, password);
+    
     try {
-      console.log("Auth Context: محاولة تسجيل الدخول باستخدام:", { username, password });
-      
-      // التحقق من صحة بيانات تسجيل الدخول
+      // التحقق من بيانات تسجيل الدخول
       if (username === 'admin' && password === '503050') {
-        console.log("Auth Context: البيانات صحيحة، إعداد المستخدم...");
+        console.log("بيانات المستخدم صحيحة - تسجيل دخول ادمن");
         
-        // تعيين بيانات المستخدم بعد نجاح تسجيل الدخول
         setUser({
           id: '1',
           email: 'admin@example.com',
-          name: 'Admin User',
+          name: 'مدير النظام',
           role: 'admin'
         });
         
-        console.log("Auth Context: تم تعيين المستخدم بنجاح، إرجاع true");
         return true;
-      } else if (username === 'cashier' && password === '123456') {
-        console.log("Auth Context: بيانات الكاشير صحيحة");
+      } 
+      else if (username === 'cashier' && password === '123456') {
+        console.log("بيانات المستخدم صحيحة - تسجيل دخول كاشير");
         
         setUser({
           id: '2',
           email: 'cashier@example.com',
-          name: 'Cashier User',
+          name: 'كاشير',
           role: 'cashier'
         });
         
         return true;
       }
       
-      console.log("Auth Context: البيانات غير صحيحة، إرجاع false");
+      console.log("بيانات المستخدم غير صحيحة");
       return false;
     } finally {
       setLoading(false);

@@ -10,10 +10,10 @@ import ManagementPage from "@/pages/management";
 import ReportsPage from "@/pages/reports";
 import CustomersPage from "@/pages/customers";
 import AppLayout from "./components/layout/app-layout";
-import { useEffect } from "react";
-import { useAuthContext } from "@/context/auth-context";
+import { useEffect, useContext } from "react";
+import { AuthProvider, useAuthContext } from "@/context/auth-context";
 
-function Router() {
+function ProtectedRoutes() {
   const { user, loading, isAdmin } = useAuthContext();
   const [location, setLocation] = useLocation();
 
@@ -75,8 +75,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <AuthProvider>
+          <Toaster />
+          <ProtectedRoutes />
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
