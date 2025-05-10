@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/u
 import BarcodeScanner from '@/components/barcode-scanner';
 import { 
   Plus, Trash2, Save, FileCheck, Banknote, CreditCard, Scan, 
-  ReceiptText, CheckSquare, X, Calendar, Tag, Search, ChevronsUpDown
+  ReceiptText, CheckSquare, X, Calendar, Tag, Search, ChevronsUpDown,
+  Printer, Share2
 } from 'lucide-react';
 import { formatCurrency, debounce } from '@/lib/utils';
 
@@ -249,6 +250,28 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
     onClose();
   };
   
+  // طباعة الفاتورة
+  const handlePrintInvoice = () => {
+    // استخدام jsPDF لإنشاء وثيقة PDF
+    window.print();
+  };
+
+  // مشاركة الفاتورة
+  const handleShareInvoice = () => {
+    // محاكاة مشاركة الفاتورة
+    if (navigator.share) {
+      navigator.share({
+        title: `فاتورة ${invoiceNumber}`,
+        text: `فاتورة ${invoiceNumber} لـ ${customer.name}`,
+        url: window.location.href,
+      }).catch(err => {
+        console.error('Error sharing: ', err);
+      });
+    } else {
+      alert(t('share_not_supported'));
+    }
+  };
+  
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* ماسح الباركود */}
@@ -285,7 +308,7 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
           )}
         </div>
         
-        <div className="space-y-3 min-w-[200px]">
+        <div className="flex flex-col space-y-3 min-w-[200px]">
           <div className="flex items-center gap-2">
             <Label htmlFor="invoice-number" className="w-24 text-muted-foreground">
               {t('invoice_number')}:
@@ -312,6 +335,30 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
                 className="pl-8"
               />
             </div>
+          </div>
+          
+          {/* أزرار الطباعة والمشاركة */}
+          <div className="flex gap-2 justify-end pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handlePrintInvoice}
+              className="flex items-center gap-1"
+            >
+              <Printer className="h-4 w-4" />
+              {t('print')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleShareInvoice}
+              className="flex items-center gap-1"
+            >
+              <Share2 className="h-4 w-4" />
+              {t('share')}
+            </Button>
           </div>
         </div>
       </div>
@@ -543,7 +590,7 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
       </div>
       
       {/* أزرار التحكم */}
-      <div className="flex justify-end gap-2 pt-4">
+      <div className="flex flex-wrap justify-between gap-2 pt-4">
         <Button
           type="button"
           variant="outline"
@@ -553,22 +600,44 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
           {t('cancel')}
         </Button>
         
-        <Button
-          type="button"
-          variant="outline"
-          className="border-primary text-primary hover:bg-primary/10"
-        >
-          <Save className="mr-1 h-4 w-4" />
-          {t('save_draft')}
-        </Button>
-        
-        <Button
-          type="submit"
-          className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
-        >
-          <ReceiptText className="mr-1 h-4 w-4" />
-          {t('create_invoice')}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handlePrintInvoice}
+            className="flex items-center gap-1"
+          >
+            <Printer className="h-4 w-4" />
+            {t('print')}
+          </Button>
+          
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleShareInvoice}
+            className="flex items-center gap-1"
+          >
+            <Share2 className="h-4 w-4" />
+            {t('share')}
+          </Button>
+          
+          <Button
+            type="button"
+            variant="outline"
+            className="border-primary text-primary hover:bg-primary/10"
+          >
+            <Save className="mr-1 h-4 w-4" />
+            {t('save_draft')}
+          </Button>
+          
+          <Button
+            type="submit"
+            className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
+          >
+            <ReceiptText className="mr-1 h-4 w-4" />
+            {t('create_invoice')}
+          </Button>
+        </div>
       </div>
     </form>
   );
