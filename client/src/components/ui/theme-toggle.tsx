@@ -6,40 +6,48 @@ import { useTranslation } from "react-i18next";
 
 export function ThemeToggle() {
   const { t } = useTranslation();
-  const { theme, setTheme } = useTheme();
-
+  
+  // تطبيق آلية مباشرة لتبديل السمة بدلاً من استخدام useTheme
   const toggleTheme = () => {
-    // أولاً قم بتطبيق الكلاس على العنصر الجذري للمستند
     const root = window.document.documentElement;
-    if (theme === "light") {
-      root.classList.remove("light");
-      root.classList.add("dark");
-      setTheme("dark");
-    } else {
+    const isDark = root.classList.contains("dark");
+    
+    // القيام بالتبديل
+    if (isDark) {
       root.classList.remove("dark");
       root.classList.add("light");
-      setTheme("light");
+      localStorage.setItem("theme", "light");
+    } else {
+      root.classList.remove("light");
+      root.classList.add("dark");
+      localStorage.setItem("theme", "dark");
     }
-    // قم بتحديث التخزين المحلي
-    localStorage.setItem("theme", theme === "light" ? "dark" : "light");
+  };
+
+  // التحقق من الحالة الحالية
+  const isDarkMode = () => {
+    if (typeof window !== 'undefined') {
+      return document.documentElement.classList.contains('dark');
+    }
+    return false;
   };
 
   return (
     <Button
       variant="ghost"
       size="sm"
-      className="w-full justify-start flex items-center text-sm"
+      className="text-sm"
       onClick={toggleTheme}
     >
-      {theme === "light" ? (
-        <>
-          <Moon className="mr-2 h-4 w-4" />
-          <span>{t('dark_mode')}</span>
-        </>
-      ) : (
+      {isDarkMode() ? (
         <>
           <Sun className="mr-2 h-4 w-4" />
           <span>{t('light_mode')}</span>
+        </>
+      ) : (
+        <>
+          <Moon className="mr-2 h-4 w-4" />
+          <span>{t('dark_mode')}</span>
         </>
       )}
     </Button>

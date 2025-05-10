@@ -22,7 +22,9 @@ import {
   PieChart,
   UserCog,
   Store,
-  Tag
+  Tag,
+  Moon,
+  Sun
 } from 'lucide-react';
 
 interface SidebarProps {
