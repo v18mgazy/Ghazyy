@@ -9,6 +9,7 @@ import SalesPage from "@/pages/index";
 import ManagementPage from "@/pages/management";
 import ReportsPage from "@/pages/reports";
 import CustomersPage from "@/pages/customers";
+import InvoiceManagementPage from "@/pages/invoice-management";
 import AppLayout from "./components/layout/app-layout";
 import { useEffect, useContext } from "react";
 import { AuthProvider, useAuthContext } from "@/context/auth-context";
@@ -65,6 +66,9 @@ function ProtectedRoutes() {
       </Route>
       <Route path="/customers">
         {() => <ProtectedRoute component={CustomersPage} adminOnly={true} />}
+      </Route>
+      <Route path="/invoices">
+        {() => <ProtectedRoute component={InvoiceManagementPage} />}
       </Route>
       <Route component={NotFound} />
     </Switch>
