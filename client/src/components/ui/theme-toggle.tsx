@@ -8,12 +8,28 @@ export function ThemeToggle() {
   const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
 
+  const toggleTheme = () => {
+    // أولاً قم بتطبيق الكلاس على العنصر الجذري للمستند
+    const root = window.document.documentElement;
+    if (theme === "light") {
+      root.classList.remove("light");
+      root.classList.add("dark");
+      setTheme("dark");
+    } else {
+      root.classList.remove("dark");
+      root.classList.add("light");
+      setTheme("light");
+    }
+    // قم بتحديث التخزين المحلي
+    localStorage.setItem("theme", theme === "light" ? "dark" : "light");
+  };
+
   return (
     <Button
       variant="ghost"
       size="sm"
       className="w-full justify-start flex items-center text-sm"
-      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+      onClick={toggleTheme}
     >
       {theme === "light" ? (
         <>
