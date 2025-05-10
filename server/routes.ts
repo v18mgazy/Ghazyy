@@ -1,7 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { WebSocketServer } from "ws";
 import { 
   insertUserSchema, insertProductSchema, insertCustomerSchema, 
   insertInvoiceSchema, insertInvoiceItemSchema, insertDamagedItemSchema,
@@ -12,28 +11,6 @@ import { type ZodError } from "zod-validation-error";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
-
-  // Setup WebSocket server for real-time notifications
-  const wss = new WebSocketServer({ server: httpServer });
-  
-  // Store connected admin clients for notifications
-  const adminClients = new Set<any>();
-  
-  wss.on('connection', (ws, req) => {
-    // Store client information (like user role)
-    ws.on('message', (message) => {
-      try {
-        const data = JSON.parse(message.toString());
-        if (data.type === 'auth' && data.role === 'admin') {
-          // Add admin to special group for approval notifications
-          adminClients.add(ws);
-          ws.on('close', () => adminClients.delete(ws));
-        }
-      } catch (err) {
-        console.error('WebSocket message error:', err);
-      }
-    });
-  });
 
   // Authentication routes
   app.post('/api/auth/login', async (req, res) => {
