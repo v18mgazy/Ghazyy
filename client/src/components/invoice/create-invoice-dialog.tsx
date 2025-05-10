@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatCurrency } from '@/lib/utils';
 import BarcodeScanner from '@/components/barcode-scanner';
 import ActiveInvoice from '@/components/invoice/active-invoice';
@@ -56,7 +57,6 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   
   // حالة البحث عن المنتج وإضافته
-  const [activeTab, setActiveTab] = useState<'search' | 'barcode'>('search');
   const [productSearchTerm, setProductSearchTerm] = useState('');
   const [productSearchResults, setProductSearchResults] = useState<ProductSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -277,7 +277,6 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   // فتح ماسح الباركود
   const handleScanBarcode = () => {
     setShowBarcodeScanner(true);
-    setActiveTab('barcode');
   };
   
   // إظهار الشاشة الصحيحة بناءً على الحالة الحالية
@@ -477,20 +476,22 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
           <div className="py-4">
             {selectedCustomer && (
               <>
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'search' | 'barcode')} className="mb-6">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="search" className="flex items-center gap-2">
-                      <Search className="h-4 w-4" />
-                      {t('select_product')}
-                    </TabsTrigger>
-                    <TabsTrigger value="barcode" className="flex items-center gap-2">
-                      <Scan className="h-4 w-4" />
+                {/* حذف عناوين التبويبات والاكتفاء بعرض المحتوى مباشرة */}
+                <div className="space-y-4 mb-6">
+                  {/* أزرار المسح الضوئي */}
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowBarcodeScanner(true)}
+                    >
+                      <Scan className="mr-2 h-4 w-4" />
                       {t('scan_barcode')}
-                    </TabsTrigger>
-                  </TabsList>
+                    </Button>
+                  </div>
                   
                   {/* البحث عن المنتجات */}
-                  <TabsContent value="search" className="space-y-4 mt-4">
+                  <div className="space-y-4 mt-4">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
                       <Input
@@ -605,20 +606,8 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
                         </div>
                       </div>
                     )}
-                  </TabsContent>
-                  
-                  {/* ماسح الباركود */}
-                  <TabsContent value="barcode" className="mt-4">
-                    <Button 
-                      onClick={() => setShowBarcodeScanner(true)} 
-                      variant="outline" 
-                      className="w-full h-16"
-                    >
-                      <Scan className="mr-2 h-5 w-5" />
-                      {t('open_barcode_scanner')}
-                    </Button>
-                  </TabsContent>
-                </Tabs>
+                  </div>
+                </div>
                 
                 <ActiveInvoice
                   customer={selectedCustomer}
