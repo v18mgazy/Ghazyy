@@ -141,10 +141,97 @@ export default function ManagementPage() {
   });
   
   const printBarcodesMutation = useMutation({
-    mutationFn: (productIds: string[]) => Promise.resolve(productIds),
+    mutationFn: (productIds: string[]) => {
+      // استرجاع المنتجات المحددة
+      const selectedProducts = products.filter(p => productIds.includes(p.id));
+      
+      // إنشاء صفحة طباعة جديدة
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        throw new Error(t('popup_blocked'));
+      }
+      
+      // إنشاء محتوى HTML للطباعة
+      let printContent = `
+        <html>
+        <head>
+          <title>${t('product_barcodes')}</title>
+          <style>
+            body { font-family: Arial, sans-serif; }
+            .barcode-container { 
+              display: flex;
+              flex-wrap: wrap;
+              gap: 10px;
+              justify-content: center;
+            }
+            .barcode-item {
+              border: 1px solid #ccc;
+              padding: 10px;
+              text-align: center;
+              width: 220px;
+              margin-bottom: 20px;
+            }
+            .product-name {
+              font-weight: bold;
+              margin-bottom: 5px;
+            }
+            .product-price {
+              font-size: 14px;
+              margin-bottom: 10px;
+            }
+            @media print {
+              @page { margin: 0.5cm; }
+              .barcode-item { break-inside: avoid; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="text-align: center; margin: 20px 0;">
+            <button onclick="window.print()">${t('print')}</button>
+          </div>
+          <div class="barcode-container">
+      `;
+      
+      // إضافة بركود لكل منتج محدد
+      selectedProducts.forEach(product => {
+        const { generateBarcodeSVG } = require('@/lib/utils');
+        const barcodeSvg = generateBarcodeSVG(product.barcode);
+        
+        printContent += `
+          <div class="barcode-item">
+            <div class="product-name">${product.name}</div>
+            <div class="product-price">${formatCurrency(product.sellingPrice)}</div>
+            ${barcodeSvg}
+            <div>${product.barcode}</div>
+          </div>
+        `;
+      });
+      
+      printContent += `
+          </div>
+          <script>
+            // طباعة تلقائية بعد تحميل الصفحة
+            window.onload = function() {
+              setTimeout(() => window.print(), 500);
+            }
+          </script>
+        </body>
+        </html>
+      `;
+      
+      // كتابة المحتوى إلى نافذة الطباعة
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      
+      return Promise.resolve(productIds);
+    },
     onSuccess: () => {
-      // In a real app, generate barcodes
-      console.log('Print barcodes');
+      console.log('Barcodes printed successfully');
+    },
+    onError: (error) => {
+      console.error('Error printing barcodes:', error);
+      alert(error instanceof Error ? error.message : t('print_error'));
     }
   });
   
