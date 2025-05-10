@@ -5,11 +5,12 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { Printer, Share2, X, Download } from 'lucide-react';
+import { Printer, Share2, X, Download, Phone } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -183,8 +184,24 @@ export default function InvoicePreview({
     }
   };
   
-  // مشاركة الفاتورة
+  // مشاركة الفاتورة عبر رقم هاتف العميل
   const handleShare = async () => {
+    // إذا لم يكن هناك رقم هاتف للعميل، نستخدم مشاركة الفاتورة العادية
+    if (!customer.phone) {
+      alert(t('customer_has_no_phone'));
+      return;
+    }
+    
+    // مشاركة عبر WhatsApp (الخيار المفضل إن كان متاحاً)
+    const invoiceText = `${t('invoice')} #${invoiceNumber}\n${t('total')}: ${formatCurrency(total)}`;
+    const whatsappUrl = `https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(invoiceText)}`;
+    
+    // فتح نافذة جديدة لـ WhatsApp
+    window.open(whatsappUrl, '_blank');
+  };
+  
+  // مشاركة عامة للفاتورة
+  const handleGeneralShare = async () => {
     if (!navigator.share) {
       alert(t('share_not_supported'));
       return;
@@ -275,8 +292,8 @@ export default function InvoicePreview({
                 className="flex items-center gap-1"
                 onClick={handleShare}
               >
-                <Share2 className="h-4 w-4" />
-                {t('share')}
+                <Phone className="h-4 w-4" />
+                {t('send_to_customer')}
               </Button>
               
               <Button 
@@ -369,10 +386,12 @@ export default function InvoicePreview({
                   <span className="text-gray-600">{t('subtotal')}:</span>
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
-                <div className="flex justify-between border-b pb-2">
-                  <span className="text-gray-600">{t('total_discount')}:</span>
-                  <span>{formatCurrency(totalDiscount)}</span>
-                </div>
+                {totalDiscount > 0 && (
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-gray-600">{t('total_discount')}:</span>
+                    <span>{formatCurrency(totalDiscount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-bold text-lg pt-2">
                   <span>{t('total')}:</span>
                   <span className="text-primary">{formatCurrency(total)}</span>
