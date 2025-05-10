@@ -136,5 +136,15 @@
   "invoice_info": "Invoice Info",
   "invoice_items": "Invoice Items",
   "price": "Price",
-  "no_invoices_found": "No invoices found"
+  "no_invoices_found": "No invoices found",
+  "invoice_summary": "Invoice Summary",
+  "contact": "Contact",
+  "add_product_message": "Add products by code or scan barcode",
+  "percentage": "Percentage",
+  "fixed_amount": "Fixed Amount",
+  "invoice_whatsapp_message": "Your invoice #${invoiceNumber} for ${total} dated ${date}",
+  "enter_product_code_or_scan": "Enter product code or scan barcode",
+  "code": "Code",
+  "no_items_added": "No items added",
+  "no_items": "No items"
 }

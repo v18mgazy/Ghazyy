@@ -286,101 +286,126 @@ export default function ActiveInvoice({
   };
 
   return (
-    <Card ref={invoiceRef} className="mt-6">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle className="flex items-center">
-            <Receipt className="mr-2 h-5 w-5" />
+    <Card ref={invoiceRef} className="mt-6 overflow-hidden border-2 border-primary/10">
+      <CardHeader className="bg-primary/5 border-b border-primary/10">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+          <CardTitle className="flex items-center bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            <Receipt className="mr-2 h-6 w-6 text-primary" />
             {t('active_invoice')}
           </CardTitle>
-          <div>
-            <span className="text-sm text-neutral-600 dark:text-neutral-400">
-              {t('date')}: {formatDate(invoiceDate, 'PP', language)}
-            </span>
-            <span className="text-sm text-neutral-600 dark:text-neutral-400 ml-4">
-              {t('invoice_number')}: {invoiceNumber}
-            </span>
+          <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 text-sm">
+            <div className="flex items-center gap-1 bg-primary/10 px-3 py-1 rounded-full">
+              <span className="font-medium">{t('date')}:</span>
+              <span>{formatDate(invoiceDate, 'PPP', language)}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-primary/10 px-3 py-1 rounded-full">
+              <span className="font-medium">{t('invoice_number')}:</span>
+              <span className="font-mono">{invoiceNumber}</span>
+            </div>
           </div>
         </div>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="p-5">
         {/* Customer info */}
-        <div className="mb-4 p-3 bg-neutral-100 dark:bg-neutral-700 rounded-md">
-          <div className="flex justify-between">
-            <div>
-              <span className="text-sm font-medium">{t('customer')}:</span>
-              <span className="text-sm ml-1">{customer.name}</span>
+        <div className="mb-5 p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg border border-primary/10 shadow-sm">
+          <div className="flex flex-col md:flex-row md:justify-between gap-2">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center text-primary">
+                {customer.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="ml-3">
+                <div className="text-sm font-semibold">{t('customer')}</div>
+                <div className="font-medium">{customer.name}</div>
+              </div>
             </div>
-            <div>
-              <span className="text-sm font-medium">{t('phone')}:</span>
-              <span className="text-sm ml-1">{customer.phone || t('not_provided')}</span>
+            <div className="flex flex-col md:items-end">
+              <div className="text-sm font-semibold">{t('contact')}</div>
+              <div className="flex items-center">
+                <span className="font-medium">{customer.phone || t('not_provided')}</span>
+              </div>
+              {customer.address && (
+                <div className="text-xs text-muted-foreground mt-1">{customer.address}</div>
+              )}
             </div>
           </div>
         </div>
         
-        {/* Add product */}
-        <div className="mb-4">
-          <div className="flex items-center mb-2">
-            <Label htmlFor="product-code" className="mr-2">{t('add_product')}</Label>
+        {/* Add product - with enhanced UI */}
+        <div className="mb-5">
+          <div className="flex flex-col md:flex-row md:items-center gap-3">
+            <Label htmlFor="product-code" className="md:w-32 font-semibold text-primary">
+              {t('add_product')}
+            </Label>
             <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary/60" size={16} />
               <Input
                 id="product-code"
+                type="text"
                 value={productCode}
                 onChange={(e) => setProductCode(e.target.value)}
                 placeholder={t('enter_product_code_or_scan')}
-                className="w-full pr-10"
+                className="pl-10 pr-10 border-primary/20 focus-visible:ring-primary/30"
               />
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-2 top-2 text-neutral-500"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-primary/60 hover:text-primary hover:bg-primary/5"
                 onClick={onAddProduct}
               >
                 <ScanBarcode className="h-5 w-5" />
               </Button>
             </div>
-            <Button variant="default" size="icon" className="ml-2" onClick={handleAddProduct}>
+            <Button 
+              variant="default" 
+              size="icon" 
+              className="bg-primary hover:bg-primary/90" 
+              onClick={handleAddProduct}
+            >
               <Plus className="h-5 w-5" />
             </Button>
           </div>
         </div>
         
-        {/* Invoice items */}
-        <div className="overflow-x-auto mb-6">
+        {/* Invoice items - enhanced with better styling */}
+        <div className="mb-6 overflow-hidden rounded-lg border border-primary/20">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-primary/5">
               <TableRow>
-                <TableHead>{t('product')}</TableHead>
-                <TableHead>{t('price')}</TableHead>
-                <TableHead>{t('quantity')}</TableHead>
-                <TableHead>{t('total')}</TableHead>
-                <TableHead></TableHead>
+                <TableHead className="font-bold">{t('product')}</TableHead>
+                <TableHead className="font-bold">{t('price')}</TableHead>
+                <TableHead className="font-bold">{t('quantity')}</TableHead>
+                <TableHead className="font-bold">{t('total')}</TableHead>
+                <TableHead className="text-right"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4 text-neutral-500">
-                    {t('no_items_added')}
+                  <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                    <div className="flex flex-col items-center">
+                      <Receipt className="h-12 w-12 mb-3 text-primary/20" />
+                      <span>{t('no_items_added')}</span>
+                      <span className="text-xs mt-1 text-muted-foreground">{t('add_product_message')}</span>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                items.map((item) => (
-                  <TableRow key={item.id}>
+                items.map((item, index) => (
+                  <TableRow key={item.id} className={index % 2 === 0 ? 'bg-primary/5' : ''}>
                     <TableCell>
                       <div className="font-medium">{item.product.name}</div>
-                      <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                        {t('code')}: {item.product.code || item.product.barcode}
+                      <div className="text-xs text-muted-foreground">
+                        {item.product.code || item.product.barcode}
                       </div>
                     </TableCell>
                     <TableCell>{formatCurrency(item.price)}</TableCell>
                     <TableCell>
-                      <div className="flex items-center">
+                      <div className="flex items-center border rounded-md overflow-hidden bg-background">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-8 w-8 rounded-none border-r"
                           onClick={() => updateItemQuantity(item.id, -1)}
                         >
                           <Minus className="h-3 w-3" />
@@ -392,27 +417,27 @@ export default function ActiveInvoice({
                             const qty = parseInt(e.target.value) || 1;
                             updateItemQuantity(item.id, qty - item.quantity);
                           }}
-                          className="w-14 mx-1 p-1 text-center"
+                          className="w-12 border-none text-center focus-visible:ring-0 focus-visible:ring-offset-0"
                           min="1"
                         />
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-8 w-8 rounded-none border-l"
                           onClick={() => updateItemQuantity(item.id, 1)}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-bold">
                       {formatCurrency(item.total)}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="text-destructive hover:text-destructive/90"
+                        className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                         onClick={() => removeItem(item.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -426,10 +451,13 @@ export default function ActiveInvoice({
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Discount and payment options */}
-          <div>
-            <div className="mb-4">
-              <Label htmlFor="discount">{t('discount')} ({t('optional')})</Label>
+          {/* Discount and payment options with improved styling */}
+          <div className="space-y-5">
+            <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg border border-primary/10 p-4">
+              <h3 className="text-md font-semibold mb-3 flex items-center">
+                <span className="inline-block w-5 h-5 bg-primary/20 rounded-full text-primary text-xs font-bold flex items-center justify-center mr-2">%</span>
+                {t('discount')}
+              </h3>
               <div className="flex">
                 <Input
                   id="discount"
@@ -437,119 +465,135 @@ export default function ActiveInvoice({
                   value={discount || ''}
                   onChange={(e) => handleDiscountChange(e.target.value)}
                   placeholder={t('amount')}
-                  className="w-1/2 rounded-r-none"
+                  className="w-2/3 rounded-r-none border-primary/20 focus-visible:ring-primary/20"
                   min="0"
                 />
                 <select
-                  className="w-1/2 p-2 border border-neutral-300 dark:border-neutral-600 dark:bg-neutral-700 rounded-l-none rounded-r-md border-l-0 focus:ring-2 focus:ring-primary focus:border-primary"
+                  className="w-1/3 border border-primary/20 rounded-l-none rounded-r-md border-l-0 focus:ring-2 focus:ring-primary/30"
                   value={discountType}
                   onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
                 >
-                  <option value="percentage">{t('percentage')} (%)</option>
-                  <option value="fixed">{t('fixed_amount')}</option>
+                  <option value="percentage">%</option>
+                  <option value="fixed">{formatCurrency(0).replace(/[0-9]/g, '')}</option>
                 </select>
               </div>
             </div>
             
-            <div className="mb-4">
-              <Label>{t('payment_method')}</Label>
-              <div className="grid grid-cols-2 gap-2 mt-1">
+            <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg border border-primary/10 p-4">
+              <h3 className="text-md font-semibold mb-3 flex items-center">
+                <span className="inline-block w-5 h-5 bg-primary/20 rounded-full text-primary text-xs font-bold flex items-center justify-center mr-2">$</span>
+                {t('payment_method')}
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
                 <Button
                   type="button"
-                  variant={paymentMethod === 'cash' ? 'outline' : 'ghost'}
-                  className={`p-2 flex items-center justify-center ${
-                    paymentMethod === 'cash' ? 'border-primary text-primary' : ''
-                  }`}
+                  variant={paymentMethod === 'cash' ? 'default' : 'outline'}
+                  className={`p-3 flex items-center justify-center ${
+                    paymentMethod === 'cash' ? 'bg-green-600 hover:bg-green-700' : 'border-green-200 hover:border-green-300 hover:bg-green-50 hover:text-green-600'
+                  } transition-all duration-200`}
                   onClick={() => setPaymentMethod('cash')}
                 >
-                  <div className="mr-1">💵</div>
+                  <div className="mr-2">💵</div>
                   {t('cash')}
                 </Button>
                 <Button
                   type="button"
-                  variant={paymentMethod === 'visa' ? 'outline' : 'ghost'}
-                  className={`p-2 flex items-center justify-center ${
-                    paymentMethod === 'visa' ? 'border-primary text-primary' : ''
-                  }`}
+                  variant={paymentMethod === 'visa' ? 'default' : 'outline'}
+                  className={`p-3 flex items-center justify-center ${
+                    paymentMethod === 'visa' ? 'bg-blue-600 hover:bg-blue-700' : 'border-blue-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600'
+                  } transition-all duration-200`}
                   onClick={() => setPaymentMethod('visa')}
                 >
-                  <div className="mr-1">💳</div>
+                  <div className="mr-2">💳</div>
                   {t('visa')}
                 </Button>
                 <Button
                   type="button"
-                  variant={paymentMethod === 'ewallet' ? 'outline' : 'ghost'}
-                  className={`p-2 flex items-center justify-center ${
-                    paymentMethod === 'ewallet' ? 'border-primary text-primary' : ''
-                  }`}
+                  variant={paymentMethod === 'ewallet' ? 'default' : 'outline'}
+                  className={`p-3 flex items-center justify-center ${
+                    paymentMethod === 'ewallet' ? 'bg-purple-600 hover:bg-purple-700' : 'border-purple-200 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-600'
+                  } transition-all duration-200`}
                   onClick={() => setPaymentMethod('ewallet')}
                 >
-                  <div className="mr-1">📱</div>
+                  <div className="mr-2">📱</div>
                   {t('e_wallet')}
                 </Button>
                 <Button
                   type="button"
-                  variant={paymentMethod === 'deferred' ? 'outline' : 'ghost'}
-                  className={`p-2 flex items-center justify-center ${
-                    paymentMethod === 'deferred' ? 'border-primary text-primary' : ''
-                  }`}
+                  variant={paymentMethod === 'deferred' ? 'default' : 'outline'}
+                  className={`p-3 flex items-center justify-center ${
+                    paymentMethod === 'deferred' ? 'bg-amber-600 hover:bg-amber-700' : 'border-amber-200 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600'
+                  } transition-all duration-200`}
                   onClick={() => setPaymentMethod('deferred')}
                 >
-                  <div className="mr-1">📅</div>
+                  <div className="mr-2">📅</div>
                   {t('deferred')}
                 </Button>
               </div>
             </div>
           </div>
           
-          {/* Totals and actions */}
-          <div className="bg-neutral-100 dark:bg-neutral-700 p-4 rounded-lg">
-            <div className="flex justify-between mb-2">
-              <span className="text-neutral-600 dark:text-neutral-400">{t('subtotal')}:</span>
-              <span className="font-medium">{formatCurrency(subtotal)}</span>
-            </div>
-            <div className="flex justify-between mb-2">
-              <span className="text-neutral-600 dark:text-neutral-400">{t('discount')}:</span>
-              <span className="font-medium text-destructive">
-                -{formatCurrency(discountType === 'percentage' ? (subtotal * discount) / 100 : discount)}
-              </span>
-            </div>
-            <Separator className="my-2 bg-neutral-200 dark:bg-neutral-600" />
-            <div className="flex justify-between pt-2">
-              <span className="font-medium">{t('total')}:</span>
-              <span className="font-bold text-lg">{formatCurrency(total)}</span>
+          {/* Totals and actions with gradient and shadows */}
+          <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/90 dark:to-slate-800/80 p-5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-md">
+            <h3 className="text-lg font-bold mb-4 pb-2 border-b border-slate-200 dark:border-slate-700 flex items-center">
+              <Receipt className="mr-2 h-5 w-5 text-primary" />
+              {t('invoice_summary')}
+            </h3>
+            
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{t('subtotal')}:</span>
+                <span className="font-medium">{formatCurrency(subtotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{t('discount')}:</span>
+                <span className="font-medium text-destructive">
+                  -{formatCurrency(discountType === 'percentage' ? (subtotal * discount) / 100 : discount)}
+                </span>
+              </div>
+              <Separator className="my-3" />
+              <div className="flex justify-between pt-1">
+                <span className="font-semibold text-lg">{t('total')}:</span>
+                <span className="font-bold text-xl bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                  {formatCurrency(total)}
+                </span>
+              </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-2 mt-6">
+            <div className="grid grid-cols-2 gap-3 mt-8">
               <Button
                 variant="outline"
-                className="flex items-center justify-center"
+                className="flex items-center gap-2 justify-center p-5 hover:bg-primary/5 transition-all"
                 onClick={handlePrint}
                 disabled={items.length === 0 || isProcessing}
               >
-                <Printer className="mr-1 h-4 w-4" /> {t('print')}
+                <Printer className="h-5 w-5" /> 
+                <span className="font-medium">{t('print')}</span>
               </Button>
               <Button
                 variant="outline"
-                className="flex items-center justify-center"
+                className="flex items-center gap-2 justify-center p-5 hover:bg-green-50 hover:text-green-600 hover:border-green-200 transition-all"
                 onClick={handleShareWhatsApp}
                 disabled={!customer.phone || items.length === 0 || isProcessing}
               >
-                <MessageSquareShare className="mr-1 h-4 w-4" /> {t('share')}
+                <MessageSquareShare className="h-5 w-5" /> 
+                <span className="font-medium">{t('share')}</span>
               </Button>
               <Button
-                className="col-span-2 mt-2"
-                variant="secondary"
+                className="col-span-2 mt-3 p-6 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-md transition-all"
                 onClick={handleCompleteSale}
                 disabled={items.length === 0 || isProcessing}
               >
                 {isProcessing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t('processing')}
-                  </>
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span className="font-medium">{t('processing')}</span>
+                  </div>
                 ) : (
-                  t('complete_sale')
+                  <div className="flex items-center justify-center gap-2">
+                    <Receipt className="h-5 w-5" />
+                    <span className="font-medium">{t('complete_sale')}</span>
+                  </div>
                 )}
               </Button>
             </div>

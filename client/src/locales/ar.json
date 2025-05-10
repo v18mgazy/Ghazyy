@@ -243,5 +243,15 @@
   "invoice_info": "معلومات الفاتورة",
   "invoice_items": "عناصر الفاتورة",
   "price": "السعر", 
-  "no_invoices_found": "لا توجد فواتير"
+  "no_invoices_found": "لا توجد فواتير",
+  "invoice_summary": "ملخص الفاتورة",
+  "contact": "بيانات الاتصال",
+  "add_product_message": "أضف منتجات عن طريق الكود أو مسح الباركود",
+  "percentage": "نسبة مئوية",
+  "fixed_amount": "مبلغ ثابت",
+  "invoice_whatsapp_message": "فاتورتك رقم ${invoiceNumber} بقيمة ${total} بتاريخ ${date}",
+  "enter_product_code_or_scan": "أدخل كود المنتج أو امسح الباركود",
+  "code": "الكود",
+  "no_items_added": "لم يتم إضافة أي عناصر",
+  "no_items": "لا توجد عناصر"
 }
