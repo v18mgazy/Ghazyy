@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ReceiptText, Search, X, ChevronRight, Users } from 'lucide-react';
+import { ReceiptText, Search, X, ChevronRight, Users, PlusCircle, Scan } from 'lucide-react';
 import { useLocale } from '@/hooks/use-locale';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
+import BarcodeScanner from '@/components/barcode-scanner';
 import ActiveInvoice from '@/components/invoice/active-invoice';
 
 // نوع بيانات العميل
@@ -59,14 +60,10 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   const [selectedProduct, setSelectedProduct] = useState<ProductSearchResult | null>(null);
   const [productQuantity, setProductQuantity] = useState(1);
   const [productDiscount, setProductDiscount] = useState(0);
-  
-  // عرض جميع المنتجات تلقائيا عند فتح نافذة الفاتورة
-  useEffect(() => {
-    if (!isCustomerDialogOpen) {
-      // تعيين جميع المنتجات لعرضها مباشرة بدون حاجة للبحث
-      setProductSearchResults(mockProducts);
-    }
-  }, [isCustomerDialogOpen]);
+  const [productSearchTerm, setProductSearchTerm] = useState('');
+  const [showProductSearch, setShowProductSearch] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState<ProductSearchResult | null>(null);
   
   // قائمة بالعملاء للاختيار (ستكون من API في التطبيق الحقيقي)
   const mockCustomers: Customer[] = [
@@ -201,13 +198,70 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
     }
   };
 
-  // مع المنتج الممسوح ضوئيًا (للتوافق مع الواجهات الأخرى)
+  // البحث عن المنتجات
+  const searchProducts = (term: string) => {
+    setIsSearching(true);
+    
+    // محاكاة طلب البحث
+    setTimeout(() => {
+      const results = mockProducts.filter(product => 
+        product.name.toLowerCase().includes(term.toLowerCase()) || 
+        product.code?.toLowerCase().includes(term.toLowerCase()) || 
+        product.barcode?.includes(term)
+      );
+      
+      setProductSearchResults(results);
+      setIsSearching(false);
+    }, 300);
+  };
+  
+  // معالجة تغيير مصطلح البحث
+  const handleProductSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value;
+    setProductSearchTerm(term);
+    searchProducts(term);
+  };
+  
+  // فتح واجهة البحث عن المنتجات
+  const handleShowProductSearch = () => {
+    setShowProductSearch(true);
+    setShowBarcodeScanner(false);
+    setProductSearchResults(mockProducts); // عرض جميع المنتجات مبدئيًا
+  };
+  
+  // فتح ماسح الباركود
+  const handleShowBarcodeScanner = () => {
+    setShowBarcodeScanner(true);
+    setShowProductSearch(false);
+  };
+  
+  // مع المنتج الممسوح ضوئيًا
   const handleProductScanned = (scannedProd: any) => {
     // البحث عن المنتج بالباركود
     const foundProduct = mockProducts.find(p => p.barcode === scannedProd.barcode);
     
     if (foundProduct) {
-      setSelectedProduct(foundProduct);
+      // إضافة المنتج مباشرة إلى الفاتورة
+      const newProduct: Product = {
+        id: foundProduct.id,
+        name: foundProduct.name,
+        barcode: foundProduct.barcode,
+        sellingPrice: foundProduct.sellingPrice,
+        quantity: 1,
+        discount: 0
+      };
+      
+      // هنا تتم إضافة المنتج إلى الفاتورة مباشرة
+      setScannedProduct(null);
+      setShowBarcodeScanner(false);
+    } else {
+      // إنشاء منتج جديد إذا لم يتم العثور عليه
+      setScannedProduct({
+        id: 'new-' + Date.now(),
+        name: scannedProd.name || 'منتج جديد',
+        barcode: scannedProd.barcode,
+        sellingPrice: scannedProd.sellingPrice || 0,
+      });
     }
   };
   
@@ -309,8 +363,100 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
           </DialogFooter>
         </>
       );
+    } else if (showBarcodeScanner) {
+      // واجهة ماسح الباركود
+      return (
+        <>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Scan className="h-5 w-5 text-primary" />
+              {t('scan_barcode')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('position_barcode_in_frame')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <BarcodeScanner onProductScanned={handleProductScanned} />
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBarcodeScanner(false)}>
+              {t('back')}
+            </Button>
+          </DialogFooter>
+        </>
+      );
+    } else if (showProductSearch) {
+      // واجهة البحث عن المنتجات
+      return (
+        <>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5 text-primary" />
+              {t('search_products')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('select_product_to_add')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                placeholder={t('search_products')}
+                value={productSearchTerm}
+                onChange={handleProductSearchChange}
+                className="pl-10"
+                autoFocus
+              />
+            </div>
+            
+            {isSearching ? (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+              </div>
+            ) : productSearchResults.length > 0 ? (
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
+                {productSearchResults.map(product => (
+                  <Card key={product.id} className="overflow-hidden cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleSelectProduct(product)}>
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium">{product.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {product.code && <span className="mr-2">{t('code')}: {product.code}</span>}
+                            {product.category && <span>{t('category')}: {product.category}</span>}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium text-primary">
+                            {formatCurrency(product.sellingPrice)}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">{t('no_products_found')}</p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProductSearch(false)}>
+              {t('back')}
+            </Button>
+          </DialogFooter>
+        </>
+      );
     } else {
-      // شاشة إنشاء الفاتورة بعد اختيار العميل (تم إزالة واجهة المسح الضوئي تماماً)
+      // شاشة إنشاء الفاتورة بعد اختيار العميل
       return (
         <>
           <DialogHeader>
@@ -326,42 +472,23 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
           <div className="py-4">
             {selectedCustomer && (
               <>
-                {/* عرض المنتجات مباشرة بدون حقل البحث أو زر الباركود */}
-                <div className="space-y-4 mb-6">
-                  <h3 className="font-medium text-base">{t('available_products')}</h3>
-                  
-                  {isSearching ? (
-                    <div className="text-center py-8">
-                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
-                    </div>
-                  ) : productSearchResults.length > 0 ? (
-                    <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
-                      {productSearchResults.map(product => (
-                        <Card key={product.id} className="overflow-hidden cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleSelectProduct(product)}>
-                          <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <div className="font-medium">{product.name}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  {product.code && <span className="mr-2">{t('code')}: {product.code}</span>}
-                                  {product.category && <span>{t('category')}: {product.category}</span>}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="font-medium text-primary">
-                                  {formatCurrency(product.sellingPrice)}
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">{t('no_products_found')}</p>
-                    </div>
-                  )}
+                {/* أزرار إضافة المنتج وماسح الباركود */}
+                <div className="flex gap-2 mb-6">
+                  <Button 
+                    onClick={handleShowProductSearch}
+                    className="flex-1 gap-2"
+                  >
+                    <PlusCircle className="h-5 w-5" />
+                    {t('add_product')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleShowBarcodeScanner}
+                    className="flex gap-2"
+                  >
+                    <Scan className="h-5 w-5" />
+                    {t('scan_barcode')}
+                  </Button>
                 </div>
                 
                 <ActiveInvoice
