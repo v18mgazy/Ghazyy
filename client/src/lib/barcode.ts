@@ -147,15 +147,20 @@ export const stopBarcodeScanner = () => {
 };
 
 export const isValidBarcode = (barcode: string): boolean => {
-  // Simple validation: check if it's a string of numbers
-  // This should be extended based on specific barcode format requirements
-  return /^\d{8,13}$/.test(barcode);
+  // Validate either EAN-13 format or our new C128 format
+  if (barcode.startsWith('C128-')) {
+    // Check if it's our custom Code 128 format
+    return /^C128-\d{5}$/.test(barcode);
+  } else {
+    // For EAN-13 and similar numeric barcodes
+    return /^\d{8,13}$/.test(barcode);
+  }
 };
 
 // Generate barcode SVG for displaying or printing
 export const generateBarcodeSVG = (barcode: string): string => {
   // Check if it's a Code 128 barcode
-  if (barcode.startsWith('CODE128')) {
+  if (barcode.startsWith('C128-')) {
     return generateCode128SVG(barcode);
   } else {
     // Assume it's an EAN-13 or other numeric barcode
@@ -180,7 +185,7 @@ const generateCode128SVG = (barcode: string): string => {
   
   // Draw a more visible barcode for Code 128
   // This is a simplified version that creates a barcode-like visual representation
-  const codeText = barcode.replace('CODE128', ''); // Extract the numeric part
+  const codeText = barcode.replace('C128-', ''); // Extract the numeric part using the new prefix
   
   // Draw start pattern
   svg += `<rect x="${x}" y="20" width="${moduleWidth*2}" height="${barHeight}" fill="black"/>`;

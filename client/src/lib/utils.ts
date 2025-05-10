@@ -38,10 +38,10 @@ export function generateInvoiceNumber() {
 
 export function generateBarcodeNumber(type: 'ean13' | 'code128' = 'ean13') {
   if (type === 'code128') {
-    // For Code128, generate a more flexible code that can include letters
-    // Can include uppercase letters, numbers, and sometimes special characters
-    const prefix = 'CODE128';
-    const randomDigits = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    // For Code128, generate a shorter code (5 digits only as requested)
+    // This makes it easier to scan and process
+    const prefix = 'C128-';
+    const randomDigits = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
     return prefix + randomDigits;
   } else {
     // Generate a 13-digit barcode number (similar to EAN-13)
