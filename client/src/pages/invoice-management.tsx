@@ -363,17 +363,17 @@ export default function InvoiceManagement() {
             </div>
           </div>
           
-          <div className="rounded-md border">
+          <div className="rounded-lg border shadow-sm overflow-hidden bg-card">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>{t('invoice_number')}</TableHead>
-                  <TableHead>{t('date')}</TableHead>
-                  <TableHead>{t('customer')}</TableHead>
-                  <TableHead>{t('status')}</TableHead>
-                  <TableHead>{t('payment_method')}</TableHead>
-                  <TableHead className="text-right">{t('total')}</TableHead>
-                  <TableHead className="text-right">{t('actions')}</TableHead>
+                  <TableHead className="font-semibold text-primary-800 dark:text-primary-100 py-4">{t('invoice_number')}</TableHead>
+                  <TableHead className="font-semibold text-primary-800 dark:text-primary-100">{t('date')}</TableHead>
+                  <TableHead className="font-semibold text-primary-800 dark:text-primary-100">{t('customer')}</TableHead>
+                  <TableHead className="font-semibold text-primary-800 dark:text-primary-100">{t('status')}</TableHead>
+                  <TableHead className="font-semibold text-primary-800 dark:text-primary-100">{t('payment_method')}</TableHead>
+                  <TableHead className="font-semibold text-primary-800 dark:text-primary-100 text-right">{t('total')}</TableHead>
+                  <TableHead className="font-semibold text-primary-800 dark:text-primary-100 text-right">{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
