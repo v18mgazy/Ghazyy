@@ -35,8 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // For demo purposes
-      if (email === 'admin@example.com' && password === 'password') {
+      // Accept any password for demo purposes
+      if (email === 'admin@example.com') {
         setUser({
           id: '1',
           email: 'admin@example.com',
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: 'admin'
         });
         return true;
-      } else if (email === 'cashier@example.com' && password === 'password') {
+      } else if (email === 'cashier@example.com') {
         setUser({
           id: '2',
           email: 'cashier@example.com',

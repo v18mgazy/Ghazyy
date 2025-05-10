@@ -320,22 +320,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const approval = await storage.createPaymentApproval(approvalData);
         
-        // Send real-time notification to admin clients
-        const notification = {
-          type: 'approval_request',
-          data: {
-            approvalId: approval.id,
-            invoiceId: invoice.id,
-            invoiceNumber: invoice.invoiceNumber,
-            requestedBy: req.session.userId,
-            timestamp: new Date()
-          }
-        };
-        
-        adminClients.forEach(client => {
-          if (client.readyState === 1) { // OPEN
-            client.send(JSON.stringify(notification));
-          }
+        // Real-time notifications are disabled in this version
+        console.log('Approval request created:', {
+          approvalId: approval.id,
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          requestedBy: req.session?.userId,
+          timestamp: new Date()
         });
       }
       
