@@ -253,5 +253,10 @@
   "enter_product_code_or_scan": "أدخل كود المنتج أو امسح الباركود",
   "code": "الكود",
   "no_items_added": "لم يتم إضافة أي عناصر",
-  "no_items": "لا توجد عناصر"
+  "no_items": "لا توجد عناصر",
+  "select_customer_to_create_invoice": "الرجاء اختيار عميل لإنشاء فاتورة جديدة",
+  "search_customer_or_create_new": "ابحث عن عميل موجود أو قم بإنشاء عميل جديد",
+  "no_customer_found": "لم يتم العثور على عميل بهذا الاسم",
+  "create_new_customer_with_name": "إنشاء عميل جديد: {{name}}",
+  "no_phone_number": "لا يوجد رقم هاتف"
 }

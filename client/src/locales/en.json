@@ -146,5 +146,10 @@
   "enter_product_code_or_scan": "Enter product code or scan barcode",
   "code": "Code",
   "no_items_added": "No items added",
-  "no_items": "No items"
+  "no_items": "No items",
+  "select_customer_to_create_invoice": "Please select a customer to create a new invoice",
+  "search_customer_or_create_new": "Search for an existing customer or create a new one",
+  "no_customer_found": "No customer found with this name",
+  "create_new_customer_with_name": "Create new customer: {{name}}",
+  "no_phone_number": "No phone number"
 }

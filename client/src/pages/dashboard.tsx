@@ -4,8 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
-import { BarChart3, ShoppingBag, Users, FileText, Loader2 } from 'lucide-react';
+import { 
+  BarChart3, ShoppingBag, Users, FileText, Loader2, 
+  ReceiptText, Plus, ArrowRight 
+} from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { useLocale } from '@/hooks/use-locale';
 
 interface DashboardStats {
   totalSales: number;
@@ -186,9 +190,48 @@ export default function Dashboard() {
     );
   };
 
+  const { language } = useLocale();
+  const isRtl = language === 'ar';
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">{t('dashboard')}</h1>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold tracking-tight">{t('dashboard')}</h1>
+        
+        {/* زر إنشاء فاتورة جديدة بتصميم جذاب */}
+        <Button
+          asChild
+          size="lg"
+          className={`group relative overflow-hidden bg-gradient-to-r from-primary to-primary/80 hover:from-primary-600 hover:to-primary-500 transition-all shadow-md hover:shadow-lg ${isRtl ? 'flex-row-reverse' : ''}`}
+        >
+          <Link href="/invoice/new" className={`flex items-center gap-2 ${isRtl ? 'flex-row-reverse' : ''}`}>
+            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+              <ReceiptText className="h-4 w-4 text-white" />
+            </div>
+            <span className="font-semibold">{t('create_invoice')}</span>
+            <div className={`absolute top-0 bottom-0 ${isRtl ? 'left-0' : 'right-0'} w-8 bg-white/10 flex items-center justify-center transition-transform group-hover:${isRtl ? '-translate-x-1' : 'translate-x-1'}`}>
+              <ArrowRight className={`h-4 w-4 text-white ${isRtl ? 'rotate-180' : ''}`} />
+            </div>
+          </Link>
+        </Button>
+      </div>
+      
+      {/* زر طافي لإنشاء فاتورة جديدة */}
+      <div className="fixed bottom-6 right-6 z-50 md:hidden">
+        <Button
+          asChild
+          size="icon"
+          className="h-16 w-16 rounded-full bg-gradient-to-r from-primary to-primary-600 shadow-lg hover:shadow-xl"
+        >
+          <Link href="/invoice/new">
+            <div className="relative">
+              <ReceiptText className="h-7 w-7 text-white absolute opacity-100 transition-all group-hover:opacity-0" />
+              <Plus className="h-7 w-7 text-white absolute opacity-0 transition-all group-hover:opacity-100" />
+            </div>
+          </Link>
+        </Button>
+      </div>
+      
       {renderStats()}
     </div>
   );
