@@ -625,35 +625,7 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
         </Button>
         
         <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handlePrintInvoice}
-            className="flex items-center gap-1"
-          >
-            <Printer className="h-4 w-4" />
-            {t('print')}
-          </Button>
-          
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleShareInvoice}
-            className="flex items-center gap-1"
-          >
-            <Share2 className="h-4 w-4" />
-            {t('share')}
-          </Button>
-          
-          <Button
-            type="button"
-            variant="outline"
-            className="border-primary text-primary hover:bg-primary/10"
-          >
-            <Save className="mr-1 h-4 w-4" />
-            {t('save_draft')}
-          </Button>
-          
+
           <Button
             type="submit"
             className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
