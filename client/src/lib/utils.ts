@@ -112,40 +112,128 @@ export function createWhatsAppLink(phoneNumber: string, message: string = "") {
   return `https://wa.me/${phoneWithCountryCode}?text=${encodedMessage}`;
 }
 
-// Implementation of the barcode SVG generator
+// Implementation of the barcode SVG generator (EAN-13 standard)
 export function generateBarcodeSVG(barcodeValue: string): string {
+  // EAN-13 requires exactly 13 digits
+  if (!/^\d{13}$/.test(barcodeValue)) {
+    // Pad to 13 digits if needed or generate a valid EAN-13
+    barcodeValue = barcodeValue.padEnd(12, '0');
+    
+    // Calculate check digit (13th digit)
+    const digits = barcodeValue.split('').map(Number);
+    let sum = 0;
+    for (let i = 0; i < 12; i++) {
+      sum += digits[i] * (i % 2 === 0 ? 1 : 3);
+    }
+    const checkDigit = (10 - (sum % 10)) % 10;
+    barcodeValue = barcodeValue + checkDigit;
+  }
+  
+  // EAN-13 encoding patterns
+  const leftOddPatterns = [
+    "0001101", "0011001", "0010011", "0111101", "0100011", 
+    "0110001", "0101111", "0111011", "0110111", "0001011"
+  ];
+  
+  const leftEvenPatterns = [
+    "0100111", "0110011", "0011011", "0100001", "0011101", 
+    "0111001", "0000101", "0010001", "0001001", "0010111"
+  ];
+  
+  const rightPatterns = [
+    "1110010", "1100110", "1101100", "1000010", "1011100", 
+    "1001110", "1010000", "1000100", "1001000", "1110100"
+  ];
+  
+  // First digit encoding patterns for the left side (which determines odd/even pattern)
+  const firstDigitEncoding = [
+    "LLLLLL", "LLGLGG", "LLGGLG", "LLGGGL", "LGLLGG", 
+    "LGGLLG", "LGGGLL", "LGLGLG", "LGLGGL", "LGGLGL"
+  ];
+  
   // Constants for the barcode
   const height = 80;
-  const width = 200;
-  const barWidth = 2;
+  const width = 220;
+  const moduleWidth = 2; // Width of the thinnest bar
   const fontSize = 14;
-  const padding = 10;
+  const padding = { top: 10, left: 10, bottom: 20, right: 10 };
+  const guardBarHeight = height - padding.top - (padding.bottom / 2); // Guard bars are taller
+  const normalBarHeight = height - padding.top - padding.bottom;
+
+  // Generate SVG for the EAN-13 barcode
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
   
-  // Generate the barcode pattern (simplified)
-  const generateBars = (code: string): string => {
-    // This is a simple implementation. In a real app, you'd use a proper barcode algorithm
-    let bars = '';
-    let x = padding;
+  // Add white background
+  svg += `<rect x="0" y="0" width="${width}" height="${height}" fill="white" />`;
+  
+  // Start building the actual barcode
+  let x = padding.left;
+  
+  // First digit of EAN-13 (encoded in the parity pattern of the left side)
+  const firstDigit = parseInt(barcodeValue[0], 10);
+  const parityPattern = firstDigitEncoding[firstDigit];
+  
+  // Add text for first digit
+  svg += `<text x="${x}" y="${height - 5}" font-family="Arial" font-size="${fontSize}">${firstDigit}</text>`;
+  x += moduleWidth * 10; // Space for first digit text
+  
+  // Left guard bars (101)
+  svg += `<rect x="${x}" y="${padding.top}" width="${moduleWidth}" height="${guardBarHeight}" fill="black" />`;
+  x += moduleWidth * 2; // Skip the white space
+  svg += `<rect x="${x}" y="${padding.top}" width="${moduleWidth}" height="${guardBarHeight}" fill="black" />`;
+  x += moduleWidth * 2; // Space after guard
+  
+  // Left side of the barcode (6 digits, each 7 modules wide)
+  for (let i = 1; i <= 6; i++) {
+    const digit = parseInt(barcodeValue[i], 10);
+    const pattern = parityPattern[i-1] === 'L' ? leftOddPatterns[digit] : leftEvenPatterns[digit];
     
-    for (let i = 0; i < code.length; i++) {
-      const digit = parseInt(code[i], 10);
-      const barLength = 10 + (digit * 3); // Vary bar length based on digit
-      
-      // Draw bar
-      bars += `<rect x="${x}" y="${padding}" width="${barWidth}" height="${barLength}" fill="black" />`;
-      x += barWidth * 2;
+    // Add text for digit below the barcode
+    const digitX = x + (moduleWidth * 3); // Center digit under its barcode pattern
+    svg += `<text x="${digitX}" y="${height - 5}" text-anchor="middle" font-family="Arial" font-size="${fontSize}">${digit}</text>`;
+    
+    // Add barcode pattern for digit
+    for (let j = 0; j < pattern.length; j++) {
+      if (pattern[j] === '1') {
+        svg += `<rect x="${x}" y="${padding.top}" width="${moduleWidth}" height="${normalBarHeight}" fill="black" />`;
+      }
+      x += moduleWidth;
     }
-    
-    return bars;
-  };
+  }
   
-  // Create the full SVG
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-      ${generateBars(barcodeValue)}
-      <text x="${width / 2}" y="${height - padding}" text-anchor="middle" font-family="Arial" font-size="${fontSize}">${barcodeValue}</text>
-    </svg>
-  `;
+  // Middle guard bars (01010)
+  svg += `<rect x="${x}" y="${padding.top}" width="${moduleWidth}" height="${guardBarHeight}" fill="black" />`;
+  x += moduleWidth * 2;
+  svg += `<rect x="${x}" y="${padding.top}" width="${moduleWidth}" height="${guardBarHeight}" fill="black" />`;
+  x += moduleWidth * 2;
+  svg += `<rect x="${x}" y="${padding.top}" width="${moduleWidth}" height="${guardBarHeight}" fill="black" />`;
+  x += moduleWidth * 2;
+  
+  // Right side of the barcode (6 digits, each 7 modules wide)
+  for (let i = 7; i < 13; i++) {
+    const digit = parseInt(barcodeValue[i], 10);
+    const pattern = rightPatterns[digit];
+    
+    // Add text for digit below the barcode
+    const digitX = x + (moduleWidth * 3); // Center digit under its barcode pattern
+    svg += `<text x="${digitX}" y="${height - 5}" text-anchor="middle" font-family="Arial" font-size="${fontSize}">${digit}</text>`;
+    
+    // Add barcode pattern for digit
+    for (let j = 0; j < pattern.length; j++) {
+      if (pattern[j] === '1') {
+        svg += `<rect x="${x}" y="${padding.top}" width="${moduleWidth}" height="${normalBarHeight}" fill="black" />`;
+      }
+      x += moduleWidth;
+    }
+  }
+  
+  // Right guard bars (101)
+  svg += `<rect x="${x}" y="${padding.top}" width="${moduleWidth}" height="${guardBarHeight}" fill="black" />`;
+  x += moduleWidth * 2; // Skip the white space
+  svg += `<rect x="${x}" y="${padding.top}" width="${moduleWidth}" height="${guardBarHeight}" fill="black" />`;
+  
+  // Close the SVG
+  svg += `</svg>`;
   
   return svg;
 }
