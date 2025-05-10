@@ -152,6 +152,9 @@ export default function ManagementPage() {
         throw new Error(t('popup_blocked'));
       }
       
+      // تضمين وظيفة توليد الباركود في النافذة المنبثقة
+      const generateBarcodeSVGFunc = generateBarcodeSVG.toString();
+      
       // إنشاء محتوى HTML للطباعة
       let printContent = `
         <html>
@@ -186,6 +189,10 @@ export default function ManagementPage() {
               .no-print { display: none; }
             }
           </style>
+          <script>
+            // تضمين وظائف توليد الباركود في النافذة الجديدة
+            ${generateBarcodeSVGFunc}
+          </script>
         </head>
         <body>
           <div class="no-print" style="text-align: center; margin: 20px 0;">
@@ -196,13 +203,12 @@ export default function ManagementPage() {
       
       // إضافة بركود لكل منتج محدد
       selectedProducts.forEach(product => {
-        const barcodeSvg = generateBarcodeSVG(product.barcode);
-        
+        // بدلاً من توليد الباركود هنا، سنضيف عنصر div وسنوّلد الباركود في النافذة المنبثقة
         printContent += `
           <div class="barcode-item">
             <div class="product-name">${product.name}</div>
             <div class="product-price">${formatCurrency(product.sellingPrice)}</div>
-            ${barcodeSvg}
+            <div class="barcode-container-${product.id}"></div>
             <div>${product.barcode}</div>
           </div>
         `;
@@ -211,9 +217,15 @@ export default function ManagementPage() {
       printContent += `
           </div>
           <script>
-            // طباعة تلقائية بعد تحميل الصفحة
+            // توليد الباركود في النافذة المنبثقة بعد تحميل الصفحة
             window.onload = function() {
-              setTimeout(() => window.print(), 500);
+              // توليد الباركودات
+              ${selectedProducts.map(product => `
+                document.querySelector('.barcode-container-${product.id}').innerHTML = generateBarcodeSVG('${product.barcode}');
+              `).join('\n')}
+              
+              // طباعة تلقائية بعد توليد الباركودات
+              setTimeout(() => window.print(), 1000);
             }
           </script>
         </body>
