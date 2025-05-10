@@ -82,6 +82,7 @@
   "no_data": "لا توجد بيانات",
   "loading": "جار التحميل...",
   "search_products": "البحث في المنتجات",
+  "select_product": "اختر منتج",
   "search_customers": "البحث في العملاء",
   "search_invoices": "البحث في الفواتير",
   "search_employees": "البحث في الموظفين",

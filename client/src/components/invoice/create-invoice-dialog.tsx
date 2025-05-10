@@ -481,7 +481,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="search" className="flex items-center gap-2">
                       <Search className="h-4 w-4" />
-                      {t('search_products')}
+                      {t('select_product')}
                     </TabsTrigger>
                     <TabsTrigger value="barcode" className="flex items-center gap-2">
                       <Scan className="h-4 w-4" />
@@ -494,7 +494,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
                       <Input
-                        placeholder={t('search_products')}
+                        placeholder={t('select_product')}
                         value={productSearchTerm}
                         onChange={handleProductSearchChange}
                         className="pl-10 w-full"

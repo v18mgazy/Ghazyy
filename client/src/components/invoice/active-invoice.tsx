@@ -535,7 +535,7 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
                         </PopoverTrigger>
                         <PopoverContent className="p-0 w-[300px] max-h-[200px] overflow-y-auto">
                           <Command>
-                            <CommandInput placeholder={t('search_products')} value={searchTerm} onValueChange={handleProductSearchChange} />
+                            <CommandInput placeholder={t('select_product')} value={searchTerm} onValueChange={handleProductSearchChange} />
                             <CommandEmpty>{t('no_products_found')}</CommandEmpty>
                             <CommandGroup>
                               {searchResults.map((item) => (

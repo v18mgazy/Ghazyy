@@ -129,7 +129,7 @@ export default function ProductList({
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={t('search_products')}
+                placeholder={t('search')}
                 className="pr-8"
               />
               <div className="absolute right-2 top-2 text-neutral-500">
