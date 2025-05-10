@@ -466,6 +466,15 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct }: Activ
             <Button 
               type="button" 
               size="sm" 
+              variant="outline"
+              onClick={() => setShowBarcodeScanner(true)}
+            >
+              <Scan className="mr-1 h-4 w-4" />
+              {t('scan_barcode')}
+            </Button>
+            <Button 
+              type="button" 
+              size="sm" 
               onClick={addProduct}
             >
               <Plus className="mr-1 h-4 w-4" />
