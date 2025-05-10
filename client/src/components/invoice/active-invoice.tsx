@@ -39,10 +39,11 @@ interface Product {
 interface ActiveInvoiceProps {
   customer: Customer;
   onClose: () => void;
-  onAddProduct: () => void;
+  onAddProduct?: () => void;
+  onProductScanned?: (product: any) => void;
 }
 
-export default function ActiveInvoice({ customer, onClose, onAddProduct }: ActiveInvoiceProps) {
+export default function ActiveInvoice({ customer, onClose, onAddProduct, onProductScanned }: ActiveInvoiceProps) {
   const { t } = useTranslation();
   const { language } = useLocale();
   const isRtl = language === 'ar';
