@@ -69,12 +69,51 @@ export default function CustomersPage() {
   
   // Export customers to Excel
   const exportToExcel = () => {
-    console.log('Export customers to Excel');
-    // In a real app, this would generate and download an Excel file of customers
-    toast({
-      title: t('export_successful'),
-      description: t('customers_exported_to_excel'),
-    });
+    try {
+      console.log('Exporting customers to Excel');
+      
+      // استيراد مكتبة xlsx
+      import('xlsx').then(XLSX => {
+        // تحويل البيانات إلى النموذج المناسب للتصدير
+        const customersForExport = customers.map(customer => ({
+          [t('customer_name')]: customer.name,
+          [t('phone')]: customer.phone,
+          [t('address')]: customer.address,
+          [t('potential_customer')]: customer.isPotential ? t('yes') : t('no')
+        }));
+        
+        // إنشاء كتاب عمل جديد
+        const workbook = XLSX.utils.book_new();
+        
+        // إنشاء ورقة عمل جديدة
+        const worksheet = XLSX.utils.json_to_sheet(customersForExport);
+        
+        // إضافة الورقة إلى الكتاب
+        XLSX.utils.book_append_sheet(workbook, worksheet, t('customers'));
+        
+        // تحميل الملف
+        XLSX.writeFile(workbook, 'customers.xlsx');
+        
+        toast({
+          title: t('export_successful'),
+          description: t('customers_exported_to_excel'),
+        });
+      }).catch(error => {
+        console.error('Error loading XLSX library:', error);
+        toast({
+          title: t('export_failed'),
+          description: t('error_exporting_customers'),
+          variant: 'destructive'
+        });
+      });
+    } catch (error) {
+      console.error('Error exporting customers to Excel:', error);
+      toast({
+        title: t('export_failed'),
+        description: t('error_exporting_customers'),
+        variant: 'destructive'
+      });
+    }
   };
   
   // دالة إضافة عميل جديد - mutation

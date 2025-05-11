@@ -104,7 +104,13 @@ export default function CustomerList({
         
         const data = await response.json();
         console.log('Raw API response:', data);
-        return data;
+        
+        // إذا كان هناك بيانات، نقوم بإرجاعها مباشرة
+        if (data && Array.isArray(data) && data.length > 0) {
+          return data;
+        }
+        
+        return [];
       } catch (error) {
         console.error('Error in API request:', error);
         return [];
@@ -115,48 +121,52 @@ export default function CustomerList({
 
   // عند طلب عرض تاريخ مشتريات العميل
   const viewHistory = async (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setShowHistory(true);
-    setPurchaseHistory([]); // إعادة ضبط تاريخ المشتريات قبل جلب البيانات الجديدة
-    
-    // جلب تاريخ مشتريات العميل من قاعدة البيانات
     try {
-      console.log('Fetching purchase history for customer:', customer.id);
-      const result = await fetchCustomerHistory();
-      console.log('Received purchase history result:', result);
+      console.log('Viewing history for customer:', customer);
+      setSelectedCustomer(customer);
+      setShowHistory(true);
+      setPurchaseHistory([]); // إعادة ضبط تاريخ المشتريات قبل جلب البيانات الجديدة
       
-      // تصحيح: API تعيد المصفوفة مباشرة وليس داخل حقل data
-      if (result && Array.isArray(result)) {
-        // تحويل البيانات إلى النموذج المطلوب
-        const formattedHistory = result.map((invoice: any) => {
-          console.log('Processing invoice:', invoice);
-          
-          // استخراج الفاتورة بالشكل المناسب مع التعامل مع أي فروق في هيكل البيانات
-          return {
-            id: invoice.id.toString(),
-            date: new Date(invoice.date || invoice.createdAt || Date.now()).toLocaleDateString(),
-            invoiceNumber: invoice.invoiceNumber || `INV-${invoice.id.toString().padStart(5, '0')}`,
-            total: typeof invoice.total === 'number' ? invoice.total : 
-                  (typeof invoice.total === 'string' ? parseFloat(invoice.total) : 0)
-          };
-        });
-        
-        console.log('Formatted history:', formattedHistory);
-        
-        // ترتيب البيانات حسب التاريخ من الأحدث إلى الأقدم
-        formattedHistory.sort((a, b) => {
-          const dateA = new Date(a.date).getTime();
-          const dateB = new Date(b.date).getTime();
-          return dateB - dateA;
-        });
-        
-        setPurchaseHistory(formattedHistory);
-      } else {
-        console.log('No valid history data found');
-        setPurchaseHistory([]);
+      // استخدام fetch مباشرة بدلاً من استعلام React Query
+      const response = await fetch(`/api/customer-invoices/${customer.id}`);
+      
+      if (!response.ok) {
+        console.error('API returned error status:', response.status);
+        return;
       }
+      
+      const invoices = await response.json();
+      console.log('Raw customer invoices:', invoices);
+      
+      if (!Array.isArray(invoices) || invoices.length === 0) {
+        console.log('No invoices found for customer');
+        return;
+      }
+      
+      // تحويل البيانات إلى النموذج المطلوب
+      const formattedHistory = invoices.map((invoice: any) => {
+        console.log('Processing invoice for display:', invoice);
+        return {
+          id: invoice.id.toString(),
+          date: new Date(invoice.date || invoice.createdAt || Date.now()).toLocaleDateString(),
+          invoiceNumber: invoice.invoiceNumber || `INV-${invoice.id.toString().padStart(5, '0')}`,
+          total: typeof invoice.total === 'number' ? invoice.total : 
+                (typeof invoice.total === 'string' ? parseFloat(invoice.total) : 0)
+        };
+      });
+      
+      console.log('Formatted history for display:', formattedHistory);
+      
+      // ترتيب البيانات حسب التاريخ من الأحدث إلى الأقدم
+      formattedHistory.sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        return dateB - dateA;
+      });
+      
+      setPurchaseHistory(formattedHistory);
     } catch (error) {
-      console.error('Error fetching customer history:', error);
+      console.error('Error viewing customer history:', error);
       setPurchaseHistory([]);
     }
   };
