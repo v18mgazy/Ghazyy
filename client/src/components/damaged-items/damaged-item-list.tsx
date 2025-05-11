@@ -23,6 +23,9 @@ interface Product {
   name: string;
   purchasePrice: number;
   stock: number;
+  barcode: string;
+  alternativeCode: string | null;
+  sellingPrice: number;
 }
 
 interface DamagedItem {

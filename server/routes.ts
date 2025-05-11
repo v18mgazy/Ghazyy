@@ -1211,7 +1211,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const product = products.find(p => p.id === Number(item.productId));
         return {
           ...item,
-          product: product ? { name: product.name } : { name: 'منتج غير معروف' }
+          product: product ? {
+            id: product.id,
+            name: product.name,
+            purchasePrice: product.purchasePrice,
+            sellingPrice: product.sellingPrice,
+            stock: product.stock,
+            barcode: product.barcode,
+            alternativeCode: product.alternativeCode
+          } : { 
+            id: 0,
+            name: 'منتج غير معروف',
+            purchasePrice: 0,
+            sellingPrice: 0,
+            stock: 0,
+            barcode: '',
+            alternativeCode: null
+          }
         };
       });
       
