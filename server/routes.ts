@@ -434,9 +434,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 2. تعليم الفاتورة كمحذوفة (نحن لا نحذف البيانات فعليًا للاحتفاظ بسجل المبيعات)
       try {
-        await storage.updateInvoice(invoiceId, { 
-          isDeleted: true,
-          updatedAt: new Date().toISOString()
+        const updateResult = await storage.updateInvoice(invoiceId, { 
+          isDeleted: true 
+          // لا داعي لتحديث updatedAt لأن storage.updateInvoice يقوم بذلك تلقائيًا
         });
         console.log(`Successfully marked invoice ${invoiceId} as deleted`);
       } catch (updateError) {
@@ -444,9 +444,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // حاول مرة أخرى بطريقة بديلة إذا فشلت الطريقة الأولى
         try {
           // استخدم طريقة بديلة للتعليم كمحذوف
-          await storage.updateInvoice(invoiceId, { 
-            paymentStatus: 'deleted', 
-            updatedAt: new Date().toISOString()
+          const fallbackResult = await storage.updateInvoice(invoiceId, { 
+            paymentStatus: 'deleted'
+            // لا داعي لتحديث updatedAt لأن storage.updateInvoice يقوم بذلك تلقائيًا
           });
           console.log(`Used alternative method to mark invoice ${invoiceId} as deleted`);
         } catch (alternativeError) {
