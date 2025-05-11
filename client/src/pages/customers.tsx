@@ -5,7 +5,7 @@ import { PlusCircle, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import CustomerList from '@/components/customers/customer-list';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -34,44 +34,7 @@ export default function CustomersPage() {
   
   // Fetch customers
   const { data: customers = [], isLoading: isLoadingCustomers } = useQuery({
-    queryKey: ['/api/customers'],
-    queryFn: async () => {
-      // Mock data for demo
-      return [
-        {
-          id: '1',
-          name: 'Ahmed Mohamed',
-          phone: '+20 123 456 7890',
-          address: '123 El-Nasr St., Cairo',
-          isPotential: false,
-          totalPurchases: 1899.97
-        },
-        {
-          id: '2',
-          name: 'Sara Ali',
-          phone: '+20 111 222 3333',
-          address: '45 El-Haram St., Giza',
-          isPotential: true,
-          totalPurchases: 0
-        },
-        {
-          id: '3',
-          name: 'Mahmoud Hassan',
-          phone: '+20 123 123 1234',
-          address: '789 Alexandria Road, Alexandria',
-          isPotential: false,
-          totalPurchases: 2499.99
-        },
-        {
-          id: '4',
-          name: 'Fatima Ibrahim',
-          phone: '+20 109 876 5432',
-          address: '56 Luxor Street, Luxor',
-          isPotential: false,
-          totalPurchases: 3299.97
-        }
-      ];
-    }
+    queryKey: ['/api/customers']
   });
   
   // Export customers to Excel
@@ -87,13 +50,14 @@ export default function CustomersPage() {
   // Add customer mutation
   const addCustomerMutation = useMutation({
     mutationFn: async (customer: Omit<Customer, 'id' | 'totalPurchases'>) => {
-      // In a real app, this would make an API call to add the customer
+      // استخدام واجهة برمجة التطبيقات لإضافة العميل
       console.log('Adding customer:', customer);
-      return { ...customer, id: Date.now().toString(), totalPurchases: 0 };
+      const response = await apiRequest('POST', '/api/customers', customer);
+      return await response.json();
     },
     onSuccess: () => {
-      // In a real app, invalidate customers query
-      // queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      // تحديث استعلام العملاء لجلب البيانات الجديدة
+      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
       toast({
         title: t('customer_added'),
         description: t('customer_added_successfully'),
@@ -107,6 +71,7 @@ export default function CustomersPage() {
       });
     },
     onError: (error) => {
+      console.error('Error adding customer:', error);
       toast({
         title: t('error'),
         description: t('error_adding_customer'),
