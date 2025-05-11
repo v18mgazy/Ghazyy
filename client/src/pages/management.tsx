@@ -36,63 +36,67 @@ export default function ManagementPage() {
   // تعريف الميوتيشن للعمليات على المنتجات
   const addProductMutation = useMutation({
     mutationFn: async (product: any) => {
-      const response = await fetch('/api/products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(product),
-      });
-      
-      if (!response.ok) {
-        throw new Error(t('add_product_error'));
-      }
-      
+      const response = await apiRequest('POST', '/api/products', product);
       return await response.json();
     },
     onSuccess: () => {
       // تحديث قائمة المنتجات بعد الإضافة
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      toast({
+        title: t('success'),
+        description: t('product_added_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('add_product_error'),
+        variant: 'destructive',
+      });
     }
   });
   
   const editProductMutation = useMutation({
     mutationFn: async (product: any) => {
-      const response = await fetch(`/api/products/${product.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(product),
-      });
-      
-      if (!response.ok) {
-        throw new Error(t('edit_product_error'));
-      }
-      
+      const response = await apiRequest('PATCH', `/api/products/${product.id}`, product);
       return await response.json();
     },
     onSuccess: () => {
       // تحديث قائمة المنتجات بعد التعديل
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      toast({
+        title: t('success'),
+        description: t('product_updated_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('edit_product_error'),
+        variant: 'destructive',
+      });
     }
   });
   
   const deleteProductMutation = useMutation({
     mutationFn: async (productId: string) => {
-      const response = await fetch(`/api/products/${productId}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        throw new Error(t('delete_product_error'));
-      }
-      
+      const response = await apiRequest('DELETE', `/api/products/${productId}`);
       return productId;
     },
     onSuccess: () => {
       // تحديث قائمة المنتجات بعد الحذف
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      toast({
+        title: t('success'),
+        description: t('product_deleted_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('delete_product_error'),
+        variant: 'destructive',
+      });
     }
   });
   
