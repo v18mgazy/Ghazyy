@@ -355,9 +355,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Found customer:', customer);
       
+      // سجل معلومات العميل المفصلة إذا كانت متوفرة في الطلب
+      console.log('Customer details from request:', req.body.customerDetails);
+      
+      // تخزين معلومات العميل المفصلة في الفاتورة إذا كانت متوفرة
+      let customerInfo = {};
+      if (req.body.customerDetails) {
+        customerInfo = {
+          customerName: req.body.customerDetails.name || customer.name,
+          customerPhone: req.body.customerDetails.phone || customer.phone,
+          customerAddress: req.body.customerDetails.address || customer.address,
+          // تم إبعاد حقل البريد الإلكتروني مؤقتًا حيث أنه ليس ضمن نموذج العميل الحالي
+          // customerEmail: req.body.customerDetails.email || '',
+        };
+      }
+      
       // إعداد بيانات الفاتورة مع التحقق من صحة البيانات
       const invoiceData = insertInvoiceSchema.parse({
         ...req.body,
+        ...customerInfo, // إضافة معلومات العميل المفصلة
         customerId: customerId, // استخدام معرف العميل المحول
         userId: userId
       });

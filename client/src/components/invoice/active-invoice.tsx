@@ -271,23 +271,41 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
     // تحويل معرف العميل بطريقة آمنة مع التأكد من أنه رقم صالح
     let customerIdValue;
     try {
-      // الحد من قيمة معرف العميل للتأكد من أنه ضمن الحدود المسموح بها
       if (typeof customer.id === 'string') {
         customerIdValue = parseInt(customer.id);
-        if (isNaN(customerIdValue) || customerIdValue > 2147483647) {
-          customerIdValue = 1; // استخدام قيمة افتراضية آمنة
-        }
+      } else if (typeof customer.id === 'number') {
+        customerIdValue = customer.id;
       } else {
         customerIdValue = 1;
+      }
+      
+      if (isNaN(customerIdValue) || customerIdValue > 2147483647) {
+        customerIdValue = 1; // استخدام قيمة افتراضية آمنة
       }
     } catch (error) {
       console.error('Error parsing customer ID:', error);
       customerIdValue = 1;
     }
     
+    // سجل معلومات العميل للتأكد من أنها كاملة
+    console.log('Customer for invoice:', {
+      id: customerIdValue,
+      name: customer.name,
+      phone: customer.phone,
+      address: customer.address
+    });
+    
+    // إنشاء كائن بيانات الفاتورة بمعلومات العميل الكاملة
     const invoiceData = {
       invoiceNumber,
       customerId: customerIdValue,
+      // تضمين معلومات العميل مباشرة في بيانات الفاتورة لضمان الاحتفاظ بها
+      customerDetails: {
+        name: customer.name,
+        phone: customer.phone,
+        address: customer.address,
+        email: ''
+      },
       subtotal,
       discount: totalDiscount,
       total,
@@ -295,8 +313,11 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
       paymentStatus: paymentMethod === 'later' ? 'pending' : 'paid',
       date: invoiceDate,
       notes,
+      userId: 1, // معرف المستخدم الذي ينشئ الفاتورة - سيتم تعيينه في الخادم
+      userRole: 'cashier', // دور المستخدم - سيتم تعيينه في الخادم
       products: products.map(product => ({
         productId: parseInt(product.id),
+        productName: product.name, // تضمين اسم المنتج
         quantity: product.quantity,
         price: product.sellingPrice,
         total: product.quantity * product.sellingPrice * (1 - (product.discount || 0) / 100),
