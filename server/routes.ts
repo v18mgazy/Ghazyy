@@ -1169,7 +1169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const chartData = createChartData(invoices, type as string, date as string);
       
       // حساب أفضل المنتجات مبيعًا
-      const topProducts = calculateTopProducts(invoices, products);
+      const topProducts = calculateTopProducts(invoices, products, type as string, date as string);
       
       // إنشاء تقارير مفصلة
       const detailedReports = createDetailedReports(invoices, damagedItems, type as string, date as string);

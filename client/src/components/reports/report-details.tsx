@@ -274,9 +274,15 @@ export default function ReportDetails({
                           {formatCurrency(report.amount)}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={report.paymentStatus === 'paid' ? 'success' : report.paymentStatus === 'pending' ? 'warning' : 'outline'}>
+                          <span className={
+                            report.paymentStatus === 'paid' 
+                              ? 'bg-green-100 text-green-800 py-1 px-2 rounded text-xs font-medium' 
+                              : report.paymentStatus === 'pending' 
+                                ? 'bg-amber-100 text-amber-800 py-1 px-2 rounded text-xs font-medium'
+                                : 'bg-gray-100 text-gray-800 py-1 px-2 rounded text-xs font-medium'
+                          }>
                             {t(report.paymentStatus)}
-                          </Badge>
+                          </span>
                         </TableCell>
                         <TableCell>
                           <div className="bg-green-50 text-green-700 px-2 py-1 rounded-md font-medium inline-block">
