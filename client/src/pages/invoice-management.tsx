@@ -239,89 +239,70 @@ export default function InvoiceManagement() {
     setCurrentPage(page);
   };
   
-  // Function to fetch invoice items
-  const fetchInvoiceItems = async (invoiceId: number) => {
+  // Function to get invoice products from the invoice object itself
+  const getInvoiceProducts = (invoice: any) => {
     try {
-      const response = await fetch(`/api/invoices/${invoiceId}/items`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch invoice items');
+      // Check if the invoice has products array
+      if (invoice.products && Array.isArray(invoice.products)) {
+        console.log('Using products directly from invoice:', invoice.products);
+        return invoice.products;
       }
-      const data = await response.json();
-      return data;
+      
+      // If not, create a mock product from total for display
+      console.log('No products array found in invoice, creating placeholder');
+      return [
+        {
+          id: `item-${invoice.id}-1`,
+          productId: 0,
+          productName: t('products_total'),
+          quantity: 1,
+          price: invoice.total,
+          total: invoice.total,
+          discount: invoice.discount || 0
+        }
+      ];
     } catch (error) {
-      console.error('Error fetching invoice items:', error);
-      toast({
-        title: t('error'),
-        description: t('invoice_items_fetch_error'),
-        variant: 'destructive',
-      });
+      console.error('Error processing invoice products:', error);
       return [];
     }
   };
 
   // Open invoice details dialog with items
-  const openInvoiceDetails = async (invoice: any) => {
+  const openInvoiceDetails = (invoice: any) => {
     console.log('Opening invoice details:', invoice);
-    
-    // First set invoice with empty items to show loading state
-    setSelectedInvoice({
-      ...invoice,
-      items: [],
-      isLoadingItems: true
-    });
-    
+
     try {
-      // Fetch items for this invoice
-      console.log('Fetching items for invoice ID:', invoice.dbId);
-      const items = await fetchInvoiceItems(invoice.dbId);
-      console.log('Fetched items:', items);
+      // Get invoice products directly from the invoice object
+      const products = getInvoiceProducts(invoice);
+      console.log('Using products from invoice:', products);
       
-      if (!items || !Array.isArray(items)) {
-        console.error('Invalid items data received:', items);
-        throw new Error('Invalid items data');
-      }
-      
-      // Format items for display - with improved product details handling
-      const formattedItems = items.map((item: any) => {
-        if (!item) {
-          console.warn('Null or undefined item in results');
+      // Format products for display
+      const formattedItems = products.map((product: any) => {
+        if (!product) {
+          console.warn('Null or undefined product in results');
           return null;
         }
         
-        console.log('Processing item with product:', item);
+        console.log('Processing product:', product);
         
-        // إضافة المزيد من سجلات التشخيص لفهم البيانات الواردة
-        console.log('Item product ID:', item.productId);
-        console.log('Item product object:', item.product);
-        
-        // التحقق من وجود تفاصيل المنتج
-        if (!item.product) {
-          console.warn('No product details found for item:', item);
-        }
-        
-        // استخدام تفاصيل المنتج المعززة من الخادم بطريقة أكثر قوة
-        const productName = item.product?.name || `منتج رقم ${item.productId}`;
-        const productCode = item.product?.barcode || '';
-        const productPrice = item.price || item.product?.sellingPrice || 0;
-        
-        console.log('Enhanced product info:', {
-          name: productName,
-          code: productCode,
-          price: productPrice,
-          quantity: item.quantity
-        });
+        // Check product fields
+        const productId = product.productId || 0;
+        const productName = product.productName || t('unknown_product');
+        const productPrice = product.price || 0;
+        const quantity = product.quantity || 1;
+        const total = product.total || (quantity * productPrice);
         
         return {
-          id: `item-${item.id}`,
+          id: `item-${productId}-${Math.random().toString(36).substr(2, 5)}`,
           product: {
-            id: item.productId,
+            id: productId,
             name: productName,
-            code: productCode,
+            code: product.barcode || '',
             price: productPrice
           },
-          quantity: item.quantity,
+          quantity: quantity,
           price: productPrice,
-          total: item.total || (item.quantity * productPrice)
+          total: total
         };
       }).filter(Boolean); // Remove any null items
       
@@ -334,7 +315,7 @@ export default function InvoiceManagement() {
         isLoadingItems: false
       });
     } catch (error) {
-      console.error('Error loading invoice details:', error);
+      console.error('Error processing invoice details:', error);
       setSelectedInvoice({
         ...invoice,
         items: [],
@@ -375,7 +356,8 @@ export default function InvoiceManagement() {
       
       // جلب عناصر الفاتورة
       console.log('Fetching invoice items for edit');
-      const items = await fetchInvoiceItems(invoice.id);
+      // استخدام المنتجات مباشرة من الفاتورة
+      const items = getInvoiceProducts(invoice);
       
       if (items && Array.isArray(items)) {
         invoiceWithItems = {
