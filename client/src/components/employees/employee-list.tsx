@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  Search, Plus, Edit, Trash2, Loader2
+  Search, Plus, Edit, Trash2, Loader2, MinusCircle, History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,18 @@ import {
 } from '@/components/ui/alert-dialog';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import EmployeeForm from './employee-form';
+import DeductionForm from './deduction-form';
+import DeductionHistory from './deduction-history';
 import { useLocale } from '@/hooks/use-locale';
+import { useToast } from '@/hooks/use-toast';
+
+interface Deduction {
+  id: string;
+  employeeId: string;
+  amount: number;
+  reason: string;
+  date: string;
+}
 
 interface Employee {
   id: string;
@@ -32,6 +43,9 @@ interface EmployeeListProps {
   onAddEmployee: (employee: Employee) => void;
   onEditEmployee: (employee: Employee) => void;
   onDeleteEmployee: (employeeId: string) => void;
+  onAddDeduction: (employeeId: string, deduction: { amount: number; reason: string }) => void;
+  deductionHistory: Deduction[];
+  isLoadingDeductions: boolean;
 }
 
 export default function EmployeeList({
@@ -39,14 +53,21 @@ export default function EmployeeList({
   isLoading,
   onAddEmployee,
   onEditEmployee,
-  onDeleteEmployee
+  onDeleteEmployee,
+  onAddDeduction,
+  deductionHistory,
+  isLoadingDeductions
 }: EmployeeListProps) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const { language } = useLocale();
   const [searchTerm, setSearchTerm] = useState('');
   const [employeeFormOpen, setEmployeeFormOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>();
   const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
+  const [deductionFormOpen, setDeductionFormOpen] = useState(false);
+  const [deductionHistoryOpen, setDeductionHistoryOpen] = useState(false);
+  const [selectedEmployeeForDeduction, setSelectedEmployeeForDeduction] = useState<Employee | null>(null);
 
   const filteredEmployees = employees.filter(employee => 
     employee.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -80,6 +101,27 @@ export default function EmployeeList({
       onDeleteEmployee(employeeToDelete);
       setEmployeeToDelete(null);
     }
+  };
+  
+  const handleAddDeduction = (employee: Employee) => {
+    setSelectedEmployeeForDeduction(employee);
+    setDeductionFormOpen(true);
+  };
+  
+  const handleSaveDeduction = (deduction: { amount: number; reason: string }) => {
+    if (selectedEmployeeForDeduction) {
+      onAddDeduction(selectedEmployeeForDeduction.id, deduction);
+      toast({
+        title: t('deduction_added'),
+        description: t('deduction_added_success'),
+      });
+      setDeductionFormOpen(false);
+    }
+  };
+  
+  const handleViewDeductionHistory = (employee: Employee) => {
+    setSelectedEmployeeForDeduction(employee);
+    setDeductionHistoryOpen(true);
   };
 
   return (
@@ -163,6 +205,25 @@ export default function EmployeeList({
                             <Button
                               variant="ghost"
                               size="icon"
+                              title={t('add_deduction')}
+                              className="text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50"
+                              onClick={() => handleAddDeduction(employee)}
+                            >
+                              <MinusCircle className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title={t('view_deduction_history')}
+                              className="text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                              onClick={() => handleViewDeductionHistory(employee)}
+                            >
+                              <History className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title={t('edit_employee')}
                               className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                               onClick={() => handleEditEmployee(employee)}
                             >
@@ -171,6 +232,7 @@ export default function EmployeeList({
                             <Button
                               variant="ghost"
                               size="icon"
+                              title={t('delete_employee')}
                               className="text-red-600 hover:text-red-800 hover:bg-red-50"
                               onClick={() => handleDeleteEmployee(employee.id)}
                             >
@@ -216,6 +278,26 @@ export default function EmployeeList({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* نموذج إضافة خصم */}
+      {selectedEmployeeForDeduction && (
+        <DeductionForm
+          open={deductionFormOpen}
+          onClose={() => setDeductionFormOpen(false)}
+          onSave={handleSaveDeduction}
+          employeeName={selectedEmployeeForDeduction.name}
+        />
+      )}
+      
+      {/* عرض تاريخ الخصومات */}
+      {selectedEmployeeForDeduction && (
+        <DeductionHistory
+          open={deductionHistoryOpen}
+          onClose={() => setDeductionHistoryOpen(false)}
+          deductions={deductionHistory.filter(d => d.employeeId === selectedEmployeeForDeduction.id)}
+          employeeName={selectedEmployeeForDeduction.name}
+        />
+      )}
     </>
   );
 }
