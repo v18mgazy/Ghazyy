@@ -829,6 +829,58 @@ export default function InvoiceManagement() {
         return <Badge variant="outline">{method}</Badge>;
     }
   };
+  
+  // مشاركة الفاتورة عبر WhatsApp
+  const shareInvoiceViaWhatsApp = (invoice: any) => {
+    // نتأكد من وجود رقم هاتف العميل
+    const customerPhone = invoice.customer?.phone;
+    if (!customerPhone) {
+      toast({
+        title: t('share_error'),
+        description: t('customer_phone_missing'),
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // تنظيف رقم الهاتف من أي رموز إضافية
+    let phoneNumber = customerPhone.replace(/\s+/g, '').replace(/\+/g, '');
+    
+    // التأكد من عدم وجود صفر في بداية الرقم (بالنسبة لمصر)
+    if (phoneNumber.startsWith('0')) {
+      phoneNumber = phoneNumber.substring(1);
+    }
+    
+    // إضافة كود الدولة إذا لم يكن موجودًا (مصر 20)
+    if (!phoneNumber.startsWith('20')) {
+      phoneNumber = '20' + phoneNumber;
+    }
+    
+    console.log('تنسيق رقم الهاتف للواتساب:', phoneNumber);
+    
+    // إنشاء نص الرسالة
+    const invoiceDate = formatDate(invoice.date, 'PPP', language);
+    let message = `*${t('invoice')}* #${invoice.invoiceNumber || invoice.id}\n`;
+    message += `*${t('date')}:* ${invoiceDate}\n`;
+    message += `*${t('total')}:* ${formatCurrency(invoice.total)}\n\n`;
+    
+    message += `*${t('items')}:*\n`;
+    
+    // إضافة تفاصيل المنتجات
+    if (invoice.items && invoice.items.length > 0) {
+      invoice.items.forEach((item: any, index: number) => {
+        message += `${index + 1}. ${item.product.name} x${item.quantity} = ${formatCurrency(item.total)}\n`;
+      });
+    }
+    
+    message += `\n*${t('thank_you_for_your_business')}*`;
+    
+    // إنشاء رابط WhatsApp
+    const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    
+    // فتح الرابط في نافذة جديدة
+    window.open(whatsappURL, '_blank');
+  };
 
   const renderInvoiceDetails = () => {
     if (!selectedInvoice) return null;
@@ -938,6 +990,14 @@ export default function InvoiceManagement() {
             <div className="space-x-2">
               <Button variant="outline" size="sm" className="flex items-center">
                 <Printer className="mr-1 h-4 w-4" /> {t('print')}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center"
+                onClick={() => shareInvoiceViaWhatsApp(selectedInvoice)}
+              >
+                <Share className="mr-1 h-4 w-4" /> {t('share')}
               </Button>
               <Button variant="outline" size="sm" className="flex items-center">
                 <Download className="mr-1 h-4 w-4" /> {t('export')}

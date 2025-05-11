@@ -382,5 +382,10 @@
   "edit_invoice_success": "تم تعديل الفاتورة بنجاح",
   "edit_invoice_prepare_success": "تم تحضير بيانات الفاتورة للتعديل",
   "popup_blocked_description": "يرجى السماح بالنوافذ المنبثقة لمحرر الفاتورة",
-  "invoice_edit_error": "حدث خطأ أثناء تعديل الفاتورة"
+  "invoice_edit_error": "حدث خطأ أثناء تعديل الفاتورة",
+  "share": "مشاركة",
+  "share_error": "خطأ في المشاركة",
+  "customer_phone_missing": "رقم هاتف العميل غير موجود",
+  "thank_you_for_your_business": "شكرًا لتعاملكم معنا",
+  "items": "الأصناف"
 }
