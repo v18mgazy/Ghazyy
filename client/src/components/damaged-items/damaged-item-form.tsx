@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Search, QrCode, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
@@ -10,8 +10,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  SelectGroup
 } from '@/components/ui/select';
+import { 
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList 
+} from '@/components/ui/command';
+import {
+  Popover, PopoverContent, PopoverTrigger
+} from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import BarcodeScanner from '@/components/barcode-scanner';
 import { formatCurrency } from '@/lib/utils';
 
 interface Product {
@@ -19,6 +28,8 @@ interface Product {
   name: string;
   purchasePrice: number;
   stock: number;
+  barcode: string;
+  alternativeCode: string | null;
 }
 
 interface DamagedItem {
@@ -59,6 +70,9 @@ export default function DamagedItemForm({
   });
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productSearchTerm, setProductSearchTerm] = useState('');
+  const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const [isBarcodeOpen, setIsBarcodeOpen] = useState(false);
 
   useEffect(() => {
     if (damagedItem) {
@@ -112,7 +126,38 @@ export default function DamagedItemForm({
       ...formData,
       productId
     });
+    setIsSelectOpen(false);
   };
+
+  const handleBarcodeDetected = (barcode: string) => {
+    // البحث عن المنتج باستخدام الباركود
+    const product = products.find(p => 
+      p.barcode === barcode || 
+      p.alternativeCode === barcode
+    );
+    
+    if (product) {
+      setSelectedProduct(product);
+      setFormData(prev => ({
+        ...prev,
+        productId: product.id
+      }));
+      setIsBarcodeOpen(false); // إغلاق نافذة الماسح
+    } else {
+      // إذا لم يتم العثور على المنتج، أعرض رسالة خطأ
+      console.log('No product found with barcode:', barcode);
+      // يمكن هنا إضافة toast أو رسالة خطأ للمستخدم
+    }
+  };
+
+  const filteredProducts = products.filter(product => {
+    const searchLower = productSearchTerm.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(searchLower) ||
+      product.barcode.toLowerCase().includes(searchLower) ||
+      (product.alternativeCode && product.alternativeCode.toLowerCase().includes(searchLower))
+    );
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,22 +179,69 @@ export default function DamagedItemForm({
             <Label htmlFor="productId" className="text-sm font-medium">
               {t('product')} <span className="text-destructive">*</span>
             </Label>
-            <Select
-              value={formData.productId}
-              onValueChange={handleProductChange}
-              disabled={isEditing}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t('select_product')} />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map(product => (
-                  <SelectItem key={product.id} value={product.id}>
-                    {product.name} ({t('stock')}: {product.stock})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            
+            <div className="relative">
+              <Popover open={isSelectOpen} onOpenChange={setIsSelectOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={isSelectOpen}
+                    className="w-full justify-between"
+                    disabled={isEditing}
+                  >
+                    {selectedProduct ? (
+                      <span>{selectedProduct.name}</span>
+                    ) : (
+                      <span className="text-muted-foreground">{t('select_product')}</span>
+                    )}
+                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0" align="start">
+                  <Command>
+                    <CommandInput 
+                      placeholder={t('search_products_placeholder')} 
+                      value={productSearchTerm}
+                      onValueChange={setProductSearchTerm}
+                    />
+                    <CommandList>
+                      <CommandEmpty>{t('no_products_found')}</CommandEmpty>
+                      <CommandGroup>
+                        <ScrollArea className="h-60">
+                          {filteredProducts.map(product => (
+                            <CommandItem
+                              key={product.id}
+                              value={product.id}
+                              onSelect={() => handleProductChange(product.id)}
+                            >
+                              <div className="flex flex-col w-full">
+                                <span>{product.name}</span>
+                                <span className="text-xs text-muted-foreground mt-1">
+                                  {t('barcode')}: {product.barcode} | {t('stock')}: {product.stock}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </ScrollArea>
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              
+              {!isEditing && (
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="absolute right-1 top-1"
+                  onClick={() => setIsBarcodeOpen(true)}
+                >
+                  <QrCode className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
           
           <div>
