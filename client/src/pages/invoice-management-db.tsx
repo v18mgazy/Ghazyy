@@ -150,7 +150,11 @@ export default function InvoiceManagementDB() {
       return []; // لن نعرض فواتير مزيفة، فقط الفواتير الحقيقية من قاعدة البيانات
     }
     
-    return dbInvoices.map((invoice: Invoice) => {
+    // تصفية الفواتير لاستبعاد الفواتير المحذوفة
+    const activeInvoices = dbInvoices.filter(invoice => !invoice.isDeleted);
+    console.log(`Showing ${activeInvoices.length} active invoices out of ${dbInvoices.length} total`);
+    
+    return activeInvoices.map((invoice: Invoice) => {
       // البحث عن بيانات العميل المرتبط بالفاتورة
       const customer = invoice.customerId ? customersMap[invoice.customerId] : null;
       
