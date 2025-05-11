@@ -230,14 +230,6 @@ export default function CustomerList({
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>{t('customer_management')}</CardTitle>
-            <Button 
-              variant="outline" 
-              className="flex items-center" 
-              onClick={onExportToExcel}
-            >
-              <FileSpreadsheet className="mr-1 h-4 w-4" />
-              {t('export_to_excel')}
-            </Button>
           </div>
         </CardHeader>
         
