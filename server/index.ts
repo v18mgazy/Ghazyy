@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { testFirebaseConnection } from "./firebase-init";
+import { testRealtimeDBConnection } from "./firebase-rtdb";
 
 const app = express();
 app.use(express.json());
@@ -38,8 +38,8 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // اختبار الاتصال بـ Firebase
-  await testFirebaseConnection();
+  // اختبار الاتصال بـ Firebase Realtime Database
+  await testRealtimeDBConnection();
   
   const server = await registerRoutes(app);
 

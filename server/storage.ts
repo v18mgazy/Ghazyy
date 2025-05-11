@@ -1620,6 +1620,8 @@ export class MemStorage implements IStorage {
   }
 }
 
+import { RealtimeDBStorage } from "./realtime-db-storage";
+
 // Choose which storage implementation to use
-// Temporarily using MemStorage until Firestore API is enabled in the Google Cloud Console
-export const storage = new MemStorage(); // Temporarily using memory storage until Firestore API is enabled
+// Using RealtimeDBStorage as requested for persistent data storage
+export const storage = new RealtimeDBStorage(); // Using Firebase Realtime Database for data storage
