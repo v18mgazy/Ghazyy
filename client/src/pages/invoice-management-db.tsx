@@ -128,7 +128,7 @@ export default function InvoiceManagementDB() {
   // معالجة وتحويل بيانات الفواتير القادمة من قاعدة البيانات
   const processedInvoices = React.useMemo(() => {
     if (!dbInvoices || dbInvoices.length === 0) {
-      return fallbackInvoices;
+      return []; // لن نعرض فواتير مزيفة، فقط الفواتير الحقيقية من قاعدة البيانات
     }
     
     return dbInvoices.map((invoice: Invoice) => {
