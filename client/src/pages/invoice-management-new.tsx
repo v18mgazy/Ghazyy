@@ -823,11 +823,6 @@ export default function InvoiceManagement() {
   // طباعة الفاتورة
   const printInvoice = (invoice: any) => {
     try {
-      console.log('Printing invoice:', invoice);
-
-      // إنشاء عنصر HTML مؤقت للفاتورة
-      const invoiceElement = document.createElement('div');
-      
       // تجهيز بيانات الفاتورة
       const customerName = invoice.customer?.name || 'عميل';
       const customerPhone = invoice.customer?.phone || '';
@@ -835,156 +830,144 @@ export default function InvoiceManagement() {
       const invoiceDate = formatDate(invoice.date);
       const invoiceNumber = invoice.id || '';
       const invoiceItems = invoice.items || [];
+      const paymentMethod = invoice.paymentMethod || '';
       
-      // إعداد عنوان المتجر ومعلوماته
-      const storeInfo = {
-        name: storeData?.name || 'Sales Ghazy',
-        address: storeData?.address || '',
-        phone: storeData?.phone || ''
-      };
+      // إعداد معلومات المتجر
+      const storeName = storeData?.name || 'Sales Ghazy';
+      const storeAddress = storeData?.address || '';
+      const storePhone = storeData?.phone || '';
       
-      // تعيين محتوى HTML للفاتورة
-      invoiceElement.innerHTML = `
-        <div style="max-width: 800px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #ddd;">
-            <div>
-              <h2 style="margin: 0 0 5px 0;">${storeInfo.name}</h2>
-              <p style="margin: 0 0 5px 0;">${storeInfo.address}</p>
-              <p style="margin: 0;">${storeInfo.phone}</p>
-            </div>
-            <div style="text-align: ${isRtl ? 'left' : 'right'};">
-              <h1 style="margin: 0 0 10px 0;">${t('invoice')}</h1>
-              <p style="margin: 0 0 5px 0;">${t('invoice_number')}: ${invoiceNumber}</p>
-              <p style="margin: 0;">${t('date')}: ${invoiceDate}</p>
-            </div>
-          </div>
-          
-          <div style="margin-bottom: 20px;">
-            <h3 style="margin: 0 0 10px 0;">${t('customer_information')}</h3>
-            <p style="margin: 0 0 5px 0;">${t('name')}: ${customerName}</p>
-            ${customerPhone ? `<p style="margin: 0 0 5px 0;">${t('phone')}: ${customerPhone}</p>` : ''}
-            ${customerAddress ? `<p style="margin: 0;">${t('address')}: ${customerAddress}</p>` : ''}
-          </div>
-          
-          <div style="margin-bottom: 20px;">
-            <h3 style="margin: 0 0 10px 0;">${t('invoice_items')}</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              <thead>
-                <tr>
-                  <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd; background-color: #f8f9fa;">#</th>
-                  <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd; background-color: #f8f9fa;">${t('product_name')}</th>
-                  <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd; background-color: #f8f9fa;">${t('quantity')}</th>
-                  <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd; background-color: #f8f9fa;">${t('price')}</th>
-                  <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd; background-color: #f8f9fa;">${t('total')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${invoiceItems.map((item: any, index: number) => `
-                  <tr>
-                    <td style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">${index + 1}</td>
-                    <td style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">${item.productName || 'منتج'}</td>
-                    <td style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">${item.quantity}</td>
-                    <td style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">${formatCurrency(item.price)}</td>
-                    <td style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">${formatCurrency(item.total || item.price * item.quantity)}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-          
-          <div style="margin-left: auto; width: 300px;">
-            <table style="width: 100%;">
-              <tr>
-                <td style="padding: 5px 0;">${t('subtotal')}</td>
-                <td style="padding: 5px 0; text-align: ${isRtl ? 'left' : 'right'};">${formatCurrency(invoice.subtotal || invoice.total)}</td>
-              </tr>
-              ${invoice.discount > 0 ? `
-                <tr>
-                  <td style="padding: 5px 0;">${t('discount')}</td>
-                  <td style="padding: 5px 0; text-align: ${isRtl ? 'left' : 'right'};">${formatCurrency(invoice.discount)}</td>
-                </tr>
-              ` : ''}
-              <tr>
-                <td style="padding: 5px 0; font-weight: bold;">${t('total')}</td>
-                <td style="padding: 5px 0; text-align: ${isRtl ? 'left' : 'right'}; font-weight: bold;">${formatCurrency(invoice.total)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0;">${t('payment_method')}</td>
-                <td style="padding: 5px 0; text-align: ${isRtl ? 'left' : 'right'};">${t(invoice.paymentMethod)}</td>
-              </tr>
-            </table>
-          </div>
-          
-          ${invoice.notes ? `
-            <div style="margin-top: 20px;">
-              <h4 style="margin: 0 0 5px 0;">${t('notes')}</h4>
-              <p style="margin: 0;">${invoice.notes}</p>
-            </div>
-          ` : ''}
-          
-          <div style="margin-top: 30px; text-align: center; font-size: 14px; color: #666;">
-            <p>${t('thank_you_message')}</p>
-          </div>
-        </div>
-      `;
-      
-      // إضافة العنصر مؤقتًا للصفحة (مخفي)
-      Object.assign(invoiceElement.style, {
-        position: 'absolute',
-        left: '-9999px',
-        top: '-9999px'
-      });
-      document.body.appendChild(invoiceElement);
-      
-      // إنشاء نافذة الطباعة
-      const printWindow = window.open('about:blank', '_blank');
-      if (!printWindow) {
-        document.body.removeChild(invoiceElement);
-        throw new Error('Cannot open print window - popup blocked');
+      // استخدام مكتبة jsPDF لإنشاء ملف PDF
+      try {
+        // إنشاء مستند PDF بحجم A4
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        // تعيين خط للغة العربية (إذا كان متاحًا)
+        // إضافة رأس الصفحة - بيانات المتجر
+        pdf.setFontSize(18);
+        pdf.text(storeName, 105, 15, { align: 'center' });
+        pdf.setFontSize(10);
+        pdf.text(storeAddress, 105, 22, { align: 'center' });
+        pdf.text(storePhone, 105, 27, { align: 'center' });
+        
+        // خط فاصل بعد بيانات المتجر
+        pdf.setDrawColor(200, 200, 200);
+        pdf.line(20, 32, 190, 32);
+        
+        // عنوان الفاتورة
+        pdf.setFontSize(16);
+        pdf.setTextColor(50, 50, 50);
+        pdf.text(`${t('invoice')} #${invoiceNumber}`, 20, 40);
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(`${t('date')}: ${invoiceDate}`, 20, 46);
+        
+        // معلومات العميل
+        pdf.setFontSize(12);
+        pdf.setTextColor(50, 50, 50);
+        pdf.text(`${t('customer_information')}`, 20, 55);
+        pdf.setFontSize(10);
+        pdf.setTextColor(80, 80, 80);
+        pdf.text(`${t('name')}: ${customerName}`, 20, 62);
+        if (customerPhone) pdf.text(`${t('phone')}: ${customerPhone}`, 20, 67);
+        if (customerAddress) pdf.text(`${t('address')}: ${customerAddress}`, 20, 72);
+        
+        // جدول المنتجات
+        pdf.setFontSize(12);
+        pdf.setTextColor(50, 50, 50);
+        pdf.text(`${t('invoice_items')}`, 20, 82);
+        
+        // إنشاء مصفوفة لبيانات الجدول
+        const tableColumn = ["#", t('product_name'), t('quantity'), t('price'), t('total')];
+        let tableRows: any[] = [];
+        
+        // إضافة بيانات المنتجات
+        invoiceItems.forEach((item: any, index) => {
+          const itemData = [
+            index + 1,
+            item.productName || 'منتج',
+            item.quantity,
+            formatCurrency(item.price),
+            formatCurrency(item.total || item.price * item.quantity)
+          ];
+          tableRows.push(itemData);
+        });
+        
+        // إنشاء الجدول باستخدام jspdf-autotable
+        (pdf as any).autoTable({
+          head: [tableColumn],
+          body: tableRows,
+          startY: 85,
+          theme: 'grid',
+          styles: { 
+            fontSize: 9,
+            cellPadding: 3,
+            lineColor: [200, 200, 200],
+            lineWidth: 0.1,
+          },
+          headStyles: {
+            fillColor: [240, 240, 240],
+            textColor: [50, 50, 50],
+            fontStyle: 'bold'
+          }
+        });
+        
+        // الحصول على Y للصف الأخير
+        const finalY = (pdf as any).lastAutoTable.finalY + 10;
+        
+        // إضافة معلومات الإجمالي
+        pdf.setFontSize(10);
+        pdf.setTextColor(80, 80, 80);
+        pdf.text(`${t('subtotal')}:`, 140, finalY);
+        pdf.text(formatCurrency(invoice.subtotal || invoice.total), 180, finalY, { align: 'right' });
+        
+        // إضافة الخصم إذا وجد
+        let yOffset = 0;
+        if (invoice.discount && invoice.discount > 0) {
+          yOffset = 5;
+          pdf.text(`${t('discount')}:`, 140, finalY + yOffset);
+          pdf.text(formatCurrency(invoice.discount), 180, finalY + yOffset, { align: 'right' });
+        }
+        
+        // إجمالي الفاتورة
+        pdf.setFontSize(11);
+        pdf.setTextColor(50, 50, 50);
+        pdf.text(`${t('total')}:`, 140, finalY + yOffset + 7);
+        pdf.text(formatCurrency(invoice.total), 180, finalY + yOffset + 7, { align: 'right' });
+        
+        // طريقة الدفع
+        pdf.setFontSize(10);
+        pdf.setTextColor(80, 80, 80);
+        pdf.text(`${t('payment_method')}:`, 140, finalY + yOffset + 13);
+        pdf.text(t(paymentMethod), 180, finalY + yOffset + 13, { align: 'right' });
+        
+        // ملاحظات إذا وجدت
+        if (invoice.notes) {
+          pdf.setFontSize(11);
+          pdf.setTextColor(50, 50, 50);
+          pdf.text(`${t('notes')}:`, 20, finalY + yOffset + 20);
+          pdf.setFontSize(10);
+          pdf.setTextColor(80, 80, 80);
+          pdf.text(invoice.notes, 20, finalY + yOffset + 26);
+        }
+        
+        // رسالة الشكر
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(t('thank_you_message'), 105, finalY + yOffset + 35, { align: 'center' });
+        
+        // فتح PDF في نافذة جديدة
+        const pdfBlob = pdf.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        window.open(pdfUrl, '_blank');
+      } catch (pdfError) {
+        console.error('Error creating PDF:', pdfError);
+        throw pdfError;
       }
-      
-      // كتابة محتوى HTML للنافذة الجديدة
-      printWindow.document.open();
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html dir="${isRtl ? 'rtl' : 'ltr'}" lang="${language}">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Invoice #${invoiceNumber}</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              margin: 0;
-              padding: 20px;
-              direction: ${isRtl ? 'rtl' : 'ltr'};
-            }
-            @media print {
-              body {
-                padding: 0;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          ${invoiceElement.innerHTML}
-          <script>
-            // طباعة الصفحة تلقائياً بعد تحميلها
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-                // window.close(); // اختياري: إغلاق النافذة بعد الطباعة
-              }, 1000);
-            };
-          </script>
-        </body>
-        </html>
-      `);
-      printWindow.document.close();
-      
-      // إزالة العنصر المؤقت
-      document.body.removeChild(invoiceElement);
-      
     } catch (error) {
       console.error('Error printing invoice:', error);
       toast({
