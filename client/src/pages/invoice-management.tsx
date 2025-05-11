@@ -475,47 +475,96 @@ export default function InvoiceManagement() {
       
       // محاولة استخراج بيانات المنتجات من حقل productsData مباشرة
       try {
-        const products = Array.isArray(invoice.productsData) 
-          ? invoice.productsData 
-          : (typeof invoice.productsData === 'string' 
-              ? JSON.parse(invoice.productsData) 
-              : []);
+        // محاولة قراءة البيانات من الحقول المنفصلة أولاً
+        let formattedItems: any[] = [];
         
-        console.log('Extracted products from invoice:', products);
-        
-        if (!products || products.length === 0) {
-          console.warn('No products found in invoice data');
-        }
-        
-        // تنسيق المنتجات للعرض
-        const formattedItems = Array.isArray(products) ? products.map((product: any) => {
-          if (!product) {
-            console.warn('Null or undefined product in results');
-            return null;
+        // تحقق من توفر البيانات في الحقول المنفصلة
+        if (invoice.productIds && invoice.productNames && invoice.productQuantities && 
+            invoice.productPrices && invoice.productPurchasePrices && invoice.productDiscounts && 
+            invoice.productTotals && invoice.productProfits) {
+              
+          console.log('Found separate product fields, using these for display');
+          
+          // تحويل السلاسل النصية إلى مصفوفات
+          const productIdsArray = invoice.productIds.split(',');
+          const productNamesArray = invoice.productNames.split(',');
+          const productQuantitiesArray = invoice.productQuantities.split(',').map(Number);
+          const productPricesArray = invoice.productPrices.split(',').map(Number);
+          // الحقول الإضافية متوفرة أيضًا
+          const productDiscountsArray = invoice.productDiscounts.split(',').map(Number);
+          const productTotalsArray = invoice.productTotals.split(',').map(Number);
+          
+          // تحويل البيانات إلى تنسيق المنتجات
+          formattedItems = productIdsArray.map((productId, index) => {
+            const productName = productNamesArray[index] || t('unknown_product');
+            const quantity = productQuantitiesArray[index] || 1;
+            const price = productPricesArray[index] || 0;
+            const total = productTotalsArray[index] || (quantity * price);
+            
+            return {
+              id: `item-${productId}-${Math.random().toString(36).substring(2, 7)}`,
+              product: {
+                id: productId,
+                name: productName,
+                code: '', // لا توجد بيانات الباركود في الحقول المنفصلة
+                price: price
+              },
+              quantity: quantity,
+              price: price,
+              total: total
+            };
+          });
+          
+          console.log('Created items from separate fields:', formattedItems);
+        } 
+        // في حالة عدم توفر الحقول المنفصلة، نستخدم حقل productsData
+        else if (invoice.productsData) {
+          console.log('Using productsData JSON field');
+          const products = Array.isArray(invoice.productsData) 
+            ? invoice.productsData 
+            : (typeof invoice.productsData === 'string' 
+                ? JSON.parse(invoice.productsData) 
+                : []);
+          
+          console.log('Extracted products from invoice.productsData:', products);
+          
+          if (!products || products.length === 0) {
+            console.warn('No products found in invoice data');
           }
           
-          console.log('Processing product for display:', product);
-          
-          // التحقق من حقول المنتج
-          const productId = product.productId || 0;
-          const productName = product.productName || t('unknown_product');
-          const productPrice = product.price || 0;
-          const quantity = product.quantity || 1;
-          const total = product.total || (quantity * productPrice);
-          
-          return {
-            id: `item-${productId}-${Math.random().toString(36).substring(2, 7)}`,
-            product: {
-              id: productId,
-              name: productName,
-              code: product.barcode || '',
-              price: productPrice
-            },
-            quantity: quantity,
-            price: productPrice,
-            total: total
-          };
-        }).filter(Boolean) : []; // إزالة العناصر null
+          // تنسيق المنتجات للعرض
+          formattedItems = Array.isArray(products) ? products.map((product: any) => {
+            if (!product) {
+              console.warn('Null or undefined product in results');
+              return null;
+            }
+            
+            console.log('Processing product for display:', product);
+            
+            // التحقق من حقول المنتج
+            const productId = product.productId || 0;
+            const productName = product.productName || t('unknown_product');
+            const productPrice = product.price || 0;
+            const quantity = product.quantity || 1;
+            const total = product.total || (quantity * productPrice);
+            
+            return {
+              id: `item-${productId}-${Math.random().toString(36).substring(2, 7)}`,
+              product: {
+                id: productId,
+                name: productName,
+                code: product.barcode || '',
+                price: productPrice
+              },
+              quantity: quantity,
+              price: productPrice,
+              total: total
+            };
+          }).filter(Boolean) : []; // إزالة العناصر null
+        }
+        else {
+          console.warn('No product data available in invoice');
+        }
         
         console.log('Formatted items for display:', formattedItems);
         
@@ -524,7 +573,13 @@ export default function InvoiceManagement() {
           ...invoice,
           items: formattedItems,
           isLoadingItems: false,
-          loadError: false
+          loadError: false,
+          // التأكد من وجود بيانات العميل بشكل صحيح
+          customer: {
+            name: invoice.customerName || 'Unknown',
+            phone: invoice.customerPhone || '',
+            address: invoice.customerAddress || ''
+          }
         });
       } catch (error) {
         console.error('Error parsing products data from invoice:', error);
@@ -832,8 +887,13 @@ export default function InvoiceManagement() {
   
   // مشاركة الفاتورة عبر WhatsApp
   const shareInvoiceViaWhatsApp = (invoice: any) => {
-    // نتأكد من وجود رقم هاتف العميل
-    const customerPhone = invoice.customer?.phone;
+    console.log('Sharing invoice via WhatsApp:', invoice);
+    
+    // نتأكد من وجود رقم هاتف العميل (قد يكون في كائن customer أو مباشرة في الفاتورة)
+    const customerPhone = invoice.customer?.phone || invoice.customerPhone;
+    
+    console.log('Customer phone for WhatsApp:', customerPhone);
+    
     if (!customerPhone) {
       toast({
         title: t('share_error'),
@@ -858,9 +918,15 @@ export default function InvoiceManagement() {
     
     console.log('تنسيق رقم الهاتف للواتساب:', phoneNumber);
     
+    // اسم العميل (قد يكون في كائن customer أو مباشرة في الفاتورة)
+    const customerName = invoice.customer?.name || invoice.customerName;
+    
     // إنشاء نص الرسالة
     const invoiceDate = formatDate(invoice.date, 'PPP', language);
     let message = `*${t('invoice')}* #${invoice.invoiceNumber || invoice.id}\n`;
+    if (customerName) {
+      message += `*${t('customer')}:* ${customerName}\n`;
+    }
     message += `*${t('date')}:* ${invoiceDate}\n`;
     message += `*${t('total')}:* ${formatCurrency(invoice.total)}\n\n`;
     
@@ -871,6 +937,22 @@ export default function InvoiceManagement() {
       invoice.items.forEach((item: any, index: number) => {
         message += `${index + 1}. ${item.product.name} x${item.quantity} = ${formatCurrency(item.total)}\n`;
       });
+    }
+    // إذا لم تكن المنتجات متوفرة، نحاول استخدام حقول المنتجات المنفصلة
+    else if (invoice.productNames && invoice.productQuantities && invoice.productTotals) {
+      try {
+        const productNames = invoice.productNames.split(',');
+        const productQuantities = invoice.productQuantities.split(',').map(Number);
+        const productTotals = invoice.productTotals.split(',').map(Number);
+        
+        productNames.forEach((name: string, index: number) => {
+          const quantity = productQuantities[index] || 1;
+          const total = productTotals[index] || 0;
+          message += `${index + 1}. ${name} x${quantity} = ${formatCurrency(total)}\n`;
+        });
+      } catch (error) {
+        console.error('Error formatting product data for message:', error);
+      }
     }
     
     message += `\n*${t('thank_you_for_your_business')}*`;
