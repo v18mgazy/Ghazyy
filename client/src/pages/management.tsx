@@ -33,9 +33,10 @@ export default function ManagementPage() {
   // Employee deduction mutation
   const addDeductionMutation = useMutation({
     mutationFn: async ({employeeId, deduction}: {employeeId: string, deduction: {amount: number, reason: string}}) => {
+      console.log('Sending deduction:', { employeeId, amount: Number(deduction.amount), reason: deduction.reason });
       const response = await apiRequest('POST', '/api/employee-deductions', {
         employeeId,
-        amount: deduction.amount,
+        amount: Number(deduction.amount),
         reason: deduction.reason,
         date: new Date()
       });

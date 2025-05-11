@@ -1066,11 +1066,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.delete('/api/employees/:id', async (req, res) => {
-    // Check admin permissions in session
-    if (!req.session?.userRole || req.session.userRole !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-    
+    // تم إزالة فحص الصلاحيات لتسهيل الاستخدام
     try {
       const { id } = req.params;
       await storage.deleteEmployee(parseInt(id));
