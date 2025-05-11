@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import { 
   insertUserSchema, insertProductSchema, insertCustomerSchema, 
   insertInvoiceSchema, insertInvoiceItemSchema, insertDamagedItemSchema,
-  insertEmployeeSchema, insertPaymentApprovalSchema, insertReportDataSchema
+  insertEmployeeSchema, insertPaymentApprovalSchema, insertReportDataSchema,
+  insertNotificationSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { type ZodError } from "zod-validation-error";
@@ -287,16 +288,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create the invoice
       const invoice = await storage.createInvoice(invoiceData);
       
+      // إرسال إشعار للمدير بإنشاء فاتورة جديدة
+      try {
+        // الحصول على معلومات العميل
+        const customer = await storage.getCustomer(invoiceData.customerId);
+        const customerName = customer ? customer.name : 'عميل غير معروف';
+        
+        // إنشاء إشعار للمدير (نفترض أن المدير له الـ ID = 1)
+        const adminUserId = 1; // يمكن تغييره إلى ID المدير الفعلي
+        
+        await storage.createNotification({
+          userId: adminUserId,
+          title: 'تم إنشاء فاتورة جديدة',
+          message: `تم إنشاء فاتورة جديدة برقم ${invoice.invoiceNumber} للعميل ${customerName} بقيمة ${invoice.total}`,
+          type: 'invoice_created',
+          referenceId: invoice.id.toString()
+        });
+      } catch (notifyError) {
+        console.error('Failed to send notification:', notifyError);
+        // نستمر في العملية حتى إذا فشل إرسال الإشعار
+      }
+      
       // If payment method is 'later', handle approval
       if (invoiceData.paymentMethod === 'later') {
-        // Create payment approval request - assuming approval is already done in frontend
+        // Create payment approval request
         const approvalData = {
           invoiceId: invoice.id,
-          requestedBy: 1, // Default user ID
-          status: invoiceData.paymentStatus === 'approved' ? 'approved' : 'pending'
+          requestedBy: invoiceData.userId, // استخدام معرف المستخدم الذي أنشأ الفاتورة
+          status: 'pending' // دائما تكون في حالة انتظار في البداية
         };
         
         const approval = await storage.createPaymentApproval(approvalData);
+        
+        // إرسال إشعار للمدير بطلب الموافقة على الدفع المؤجل
+        try {
+          // إنشاء إشعار للمدير (نفترض أن المدير له الـ ID = 1)
+          const adminUserId = 1; // يمكن تغييره إلى ID المدير الفعلي
+          
+          await storage.createNotification({
+            userId: adminUserId,
+            title: 'طلب موافقة على الدفع المؤجل',
+            message: `تم طلب موافقة على الدفع المؤجل للفاتورة رقم ${invoice.invoiceNumber} بقيمة ${invoice.total}`,
+            type: 'deferred_payment_request',
+            referenceId: approval.id.toString()
+          });
+        } catch (notifyError) {
+          console.error('Failed to send deferred payment notification:', notifyError);
+          // نستمر في العملية حتى إذا فشل إرسال الإشعار
+        }
         
         console.log('Approval status:', {
           approvalId: approval.id,
@@ -569,6 +608,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Validation error', errors: err.errors });
       }
       res.status(500).json({ message: 'Failed to create report data' });
+    }
+  });
+  
+  // Notification routes
+  app.get('/api/notifications/user/:userId', async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+      
+      const notifications = await storage.getUserNotifications(userId);
+      res.json(notifications);
+    } catch (err) {
+      console.error('Error fetching user notifications:', err);
+      res.status(500).json({ message: 'Failed to fetch notifications' });
+    }
+  });
+  
+  app.post('/api/notifications', async (req, res) => {
+    try {
+      const notificationData = insertNotificationSchema.parse(req.body);
+      const notification = await storage.createNotification(notificationData);
+      res.status(201).json(notification);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Validation error', errors: err.errors });
+      }
+      console.error('Error creating notification:', err);
+      res.status(500).json({ message: 'Failed to create notification' });
+    }
+  });
+  
+  app.patch('/api/notifications/:id/read', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid notification ID' });
+      }
+      
+      const notification = await storage.markNotificationAsRead(id);
+      if (!notification) {
+        return res.status(404).json({ message: 'Notification not found' });
+      }
+      
+      res.json(notification);
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
+      res.status(500).json({ message: 'Failed to update notification' });
+    }
+  });
+  
+  app.delete('/api/notifications/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid notification ID' });
+      }
+      
+      await storage.deleteNotification(id);
+      res.status(204).send();
+    } catch (err) {
+      console.error('Error deleting notification:', err);
+      res.status(500).json({ message: 'Failed to delete notification' });
     }
   });
 
