@@ -891,12 +891,38 @@ export class RealtimeDBStorage implements IStorage {
       // حساب البيانات الإجمالية
       const totalSales = filteredInvoices.reduce((sum, inv: any) => sum + (inv.total || 0), 0);
       const totalProfit = filteredInvoices.reduce((sum, inv: any) => {
-        const profit = (inv.items || []).reduce((itemsProfit: number, item: any) => {
-          const product = products[item.productId];
-          const itemProfit = product ? (item.price - product.purchasePrice) * item.quantity : 0;
-          return itemsProfit + itemProfit;
-        }, 0);
-        return sum + profit;
+        // إذا كانت الفاتورة تحتوي على productProfits (النموذج الجديد)، نستخدمه
+        if (inv.productProfits) {
+          try {
+            // نحاول قراءة النص كمصفوفة أو كقائمة مفصولة بفواصل
+            let profitsArray = Array.isArray(inv.productProfits) 
+              ? inv.productProfits 
+              : inv.productProfits.split(',');
+              
+            // نحول جميع القيم إلى أرقام ونجمعها
+            return sum + profitsArray.reduce((total: number, profit: any) => total + Number(profit), 0);
+          } catch (error) {
+            console.error('خطأ أثناء معالجة الأرباح:', error);
+            return sum;
+          }
+        } 
+        
+        // محاولة قراءة البيانات من productsData إذا كانت موجودة (نموذج الكائن JSON)
+        else if (inv.productsData) {
+          try {
+            const productsData = JSON.parse(inv.productsData);
+            const invoiceProfit = productsData.reduce((total: number, product: any) => {
+              return total + (product.profit || 0);
+            }, 0);
+            return sum + invoiceProfit;
+          } catch (error) {
+            console.error('خطأ أثناء تحليل productsData:', error);
+            return sum;
+          }
+        }
+        
+        // إذا لم نجد أي طريقة لحساب الربح، نعيد القيمة الحالية
+        return sum;
       }, 0);
       
       const totalDamages = filteredDamagedItems.reduce((sum, item: any) => sum + (item.valueLoss || 0), 0);
@@ -906,6 +932,7 @@ export class RealtimeDBStorage implements IStorage {
       const chartData = this.generateChartData(filteredInvoices, type);
       
       // أفضل المنتجات مبيعاً
+      console.log("Calculating top products for " + type + ": " + date);
       const topProducts = this.calculateTopProducts(filteredInvoices, products);
       
       // تفاصيل التقارير اليومية
@@ -918,12 +945,38 @@ export class RealtimeDBStorage implements IStorage {
       
       const previousTotalSales = prevFilteredInvoices.reduce((sum, inv: any) => sum + (inv.total || 0), 0);
       const previousTotalProfit = prevFilteredInvoices.reduce((sum, inv: any) => {
-        const profit = (inv.items || []).reduce((itemsProfit: number, item: any) => {
-          const product = products[item.productId];
-          const itemProfit = product ? (item.price - product.purchasePrice) * item.quantity : 0;
-          return itemsProfit + itemProfit;
-        }, 0);
-        return sum + profit;
+        // إذا كانت الفاتورة تحتوي على productProfits (النموذج الجديد)، نستخدمه
+        if (inv.productProfits) {
+          try {
+            // نحاول قراءة النص كمصفوفة أو كقائمة مفصولة بفواصل
+            let profitsArray = Array.isArray(inv.productProfits) 
+              ? inv.productProfits 
+              : inv.productProfits.split(',');
+              
+            // نحول جميع القيم إلى أرقام ونجمعها
+            return sum + profitsArray.reduce((total: number, profit: any) => total + Number(profit), 0);
+          } catch (error) {
+            console.error('خطأ أثناء معالجة الأرباح للفترة السابقة:', error);
+            return sum;
+          }
+        } 
+        
+        // محاولة قراءة البيانات من productsData إذا كانت موجودة (نموذج الكائن JSON)
+        else if (inv.productsData) {
+          try {
+            const productsData = JSON.parse(inv.productsData);
+            const invoiceProfit = productsData.reduce((total: number, product: any) => {
+              return total + (product.profit || 0);
+            }, 0);
+            return sum + invoiceProfit;
+          } catch (error) {
+            console.error('خطأ أثناء تحليل productsData للفترة السابقة:', error);
+            return sum;
+          }
+        }
+        
+        // إذا لم نجد أي طريقة لحساب الربح، نعيد القيمة الحالية
+        return sum;
       }, 0);
       
       const previousTotalDamages = prevFilteredDamagedItems.reduce((sum, item: any) => sum + (item.valueLoss || 0), 0);
@@ -1048,29 +1101,96 @@ export class RealtimeDBStorage implements IStorage {
     
     // تجميع البيانات
     invoices.forEach((invoice: any) => {
-      (invoice.items || []).forEach((item: any) => {
-        const productId = item.productId;
-        const product = products[productId];
-        
-        if (product) {
-          if (!productSales[productId]) {
-            productSales[productId] = {
-              id: productId,
-              name: product.name,
-              soldQuantity: 0,
-              revenue: 0,
-              profit: 0
-            };
-          }
+      console.log("Processing invoice for top products:", invoice.id, invoice.invoiceNumber);
+      
+      // نحاول استخراج بيانات المنتجات من productsData (JSON string)
+      if (invoice.productsData) {
+        try {
+          const productsData = JSON.parse(invoice.productsData);
           
-          const itemRevenue = item.price * item.quantity;
-          const itemProfit = (item.price - product.purchasePrice) * item.quantity;
-          
-          productSales[productId].soldQuantity += item.quantity;
-          productSales[productId].revenue += itemRevenue;
-          productSales[productId].profit += itemProfit;
+          // هذا الشكل الجديد للبيانات - مصفوفة من الكائنات
+          productsData.forEach((item: any) => {
+            const productId = item.productId;
+            
+            if (!productSales[productId]) {
+              productSales[productId] = {
+                id: productId,
+                name: item.productName || (products[productId] ? products[productId].name : "منتج غير معروف"),
+                soldQuantity: 0,
+                revenue: 0,
+                profit: 0
+              };
+            }
+            
+            productSales[productId].soldQuantity += item.quantity;
+            productSales[productId].revenue += item.total;
+            productSales[productId].profit += item.profit;
+          });
+        } catch (error) {
+          console.error("خطأ في تحليل productsData:", error);
         }
-      });
+      }
+      // إذا لم نجد productsData، نحاول استخدام الحقول المنفصلة
+      else if (invoice.productIds) {
+        try {
+          const productIds = invoice.productIds.split(',');
+          const productQuantities = invoice.productQuantities ? invoice.productQuantities.split(',') : [];
+          const productPrices = invoice.productPrices ? invoice.productPrices.split(',') : [];
+          const productProfits = invoice.productProfits ? invoice.productProfits.split(',') : [];
+          const productNames = invoice.productNames ? invoice.productNames.split(',') : [];
+          
+          productIds.forEach((productId: string, index: number) => {
+            const id = Number(productId);
+            const quantity = Number(productQuantities[index] || 0);
+            const price = Number(productPrices[index] || 0);
+            const profit = Number(productProfits[index] || 0);
+            const name = productNames[index] || (products[id] ? products[id].name : "منتج غير معروف");
+            
+            if (!productSales[id]) {
+              productSales[id] = {
+                id: id,
+                name: name,
+                soldQuantity: 0,
+                revenue: 0,
+                profit: 0
+              };
+            }
+            
+            productSales[id].soldQuantity += quantity;
+            productSales[id].revenue += price * quantity;
+            productSales[id].profit += profit;
+          });
+        } catch (error) {
+          console.error("خطأ في معالجة حقول المنتج المنفصلة:", error);
+        }
+      } 
+      // الطريقة القديمة (للتوافق) - غير مستخدمة حالياً
+      else if (invoice.items && Array.isArray(invoice.items)) {
+        invoice.items.forEach((item: any) => {
+          const productId = item.productId;
+          const product = products[productId];
+          
+          if (product) {
+            if (!productSales[productId]) {
+              productSales[productId] = {
+                id: productId,
+                name: product.name,
+                soldQuantity: 0,
+                revenue: 0,
+                profit: 0
+              };
+            }
+            
+            const itemRevenue = item.price * item.quantity;
+            const itemProfit = (item.price - product.purchasePrice) * item.quantity;
+            
+            productSales[productId].soldQuantity += item.quantity;
+            productSales[productId].revenue += itemRevenue;
+            productSales[productId].profit += itemProfit;
+          }
+        });
+      }
+    
     });
     
     // تحويل إلى مصفوفة وترتيب حسب الإيرادات
@@ -1082,10 +1202,77 @@ export class RealtimeDBStorage implements IStorage {
   // دالة مساعدة لإنشاء تقارير مفصلة
   private generateDetailedReports(invoices: any[], damagedItems: any[], type: string, date: string): any[] {
     // إنشاء تقارير مفصلة حسب اليوم أو الأسبوع أو الشهر أو السنة
-    // هذه دالة بسيطة للتوضيح
     const reports: any[] = [];
     
-    // سنستخدم الفواتير والعناصر التالفة لإنشاء تقارير تفصيلية
+    // إضافة تقارير المبيعات
+    invoices.forEach(invoice => {
+      if (!invoice.isDeleted) {
+        let profit = 0;
+        
+        // محاولة حساب الربح من productProfits
+        if (invoice.productProfits) {
+          try {
+            let profitsArray = Array.isArray(invoice.productProfits) 
+              ? invoice.productProfits 
+              : invoice.productProfits.split(',');
+              
+            profit = profitsArray.reduce((total: number, p: any) => total + Number(p), 0);
+          } catch (error) {
+            console.error('خطأ في حساب الربح من productProfits:', error);
+          }
+        }
+        // محاولة حساب الربح من productsData
+        else if (invoice.productsData) {
+          try {
+            const productsData = JSON.parse(invoice.productsData);
+            profit = productsData.reduce((total: number, product: any) => {
+              return total + (product.profit || 0);
+            }, 0);
+          } catch (error) {
+            console.error('خطأ في تحليل productsData لحساب الربح:', error);
+          }
+        }
+        
+        // إضافة البيانات إلى التقرير التفصيلي
+        reports.push({
+          id: invoice.id,
+          date: invoice.date,
+          type: 'sale',
+          amount: invoice.total,
+          profit: profit,
+          details: `Invoice #${invoice.invoiceNumber}, Payment: ${invoice.paymentMethod}`,
+          customerName: invoice.customerName,
+          paymentStatus: invoice.paymentStatus
+        });
+      }
+    });
+    
+    // إضافة تقارير العناصر التالفة
+    damagedItems.forEach(item => {
+      reports.push({
+        id: item.id,
+        date: new Date(item.createdAt).toISOString().substring(0, 10),
+        type: 'damage',
+        amount: item.valueLoss,
+        details: item.description || 'No description',
+        productName: 'منتج غير معروف', // ينبغي الحصول على اسم المنتج من قاعدة البيانات
+        quantity: item.quantity
+      });
+    });
+    
+    // إضافة إحصائية إجمالية للتوالف حسب الفترة
+    if (damagedItems.length > 0) {
+      const totalDamages = damagedItems.reduce((sum, item) => sum + (item.valueLoss || 0), 0);
+      reports.push({
+        id: `summary-damaged-${date}`,
+        date: date,
+        type: 'summary',
+        category: 'damaged',
+        amount: totalDamages,
+        details: 'إجمالي قيمة التوالف للفترة'
+      });
+    }
+    
     return reports;
   }
   
