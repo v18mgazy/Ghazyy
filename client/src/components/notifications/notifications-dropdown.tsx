@@ -71,7 +71,9 @@ export function NotificationsDropdown({ userId }: NotificationsDropdownProps) {
   const formatNotificationTime = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
-      return formatDistanceToNow(date, { addSuffix: true, locale: ar });
+      // استخدام الإعدادات العربية للتاريخ إذا كانت اللغة الحالية هي العربية
+      const locale = t('languageCode') === 'ar' ? ar : undefined;
+      return formatDistanceToNow(date, { addSuffix: true, locale });
     } catch (e) {
       return dateStr;
     }

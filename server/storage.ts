@@ -81,6 +81,7 @@ export interface IStorage {
   // Notification management
   getNotification(id: number): Promise<Notification | undefined>;
   getUserNotifications(userId: number): Promise<Notification[]>;
+  getAllNotifications(): Promise<Notification[]>;
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: number): Promise<Notification | undefined>;
   deleteNotification(id: number): Promise<void>;

@@ -1009,10 +1009,8 @@ export class RealtimeDBStorage implements IStorage {
     }
   }
 
-  async getUserNotifications(userId: number): Promise<Notification[]> {
+  async getAllNotifications(): Promise<Notification[]> {
     try {
-      // نحصل على جميع الإشعارات ثم نقوم بتصفيتها يدويا حسب معرف المستخدم
-      // هذا أبطأ ولكنه لا يتطلب تعديل قواعد الأمان في Firebase
       const notificationsRef = ref(database, 'notifications');
       const snapshot = await get(notificationsRef);
       
@@ -1022,17 +1020,27 @@ export class RealtimeDBStorage implements IStorage {
       
       const notifications: Notification[] = [];
       snapshot.forEach((childSnapshot) => {
-        const notification = childSnapshot.val() as Notification;
-        // نقوم بفلترة الإشعارات يدويا
-        if (notification.userId === userId) {
-          notifications.push(notification);
-        }
+        notifications.push(childSnapshot.val() as Notification);
       });
       
       // ترتيب الإشعارات من الأحدث إلى الأقدم
       return notifications.sort((a, b) => {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
+    } catch (error) {
+      console.error('Error getting all notifications:', error);
+      return [];
+    }
+  }
+
+  async getUserNotifications(userId: number): Promise<Notification[]> {
+    try {
+      // نحصل على جميع الإشعارات ثم نقوم بتصفيتها يدويا حسب معرف المستخدم
+      // هذا أبطأ ولكنه لا يتطلب تعديل قواعد الأمان في Firebase
+      const notifications = await this.getAllNotifications();
+      
+      // فلترة الإشعارات حسب معرف المستخدم
+      return notifications.filter(notification => notification.userId === userId);
     } catch (error) {
       console.error('Error getting user notifications:', error);
       return [];

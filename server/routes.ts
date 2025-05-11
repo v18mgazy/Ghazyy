@@ -663,6 +663,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Debugging route to get all notifications
+  app.get('/api/notifications/debug/all', async (req, res) => {
+    try {
+      const allNotifications = await storage.getAllNotifications();
+      res.json(allNotifications);
+    } catch (err) {
+      console.error('Error fetching all notifications:', err);
+      res.status(500).json({ message: 'Failed to fetch all notifications' });
+    }
+  });
+  
   app.post('/api/notifications', async (req, res) => {
     try {
       const notificationData = insertNotificationSchema.parse(req.body);
