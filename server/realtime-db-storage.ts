@@ -1473,7 +1473,8 @@ export class RealtimeDBStorage implements IStorage {
         amount: data.amount,
         details: data.details,
         createdAt: new Date(data.createdAt),
-        userId: data.userId
+        userId: data.userId,
+        expenseType: data.expenseType || 'miscellaneous'
       };
     } catch (error) {
       console.error('Error getting expense:', error);
@@ -1483,8 +1484,8 @@ export class RealtimeDBStorage implements IStorage {
 
   async getAllExpenses(): Promise<Expense[]> {
     try {
-      const ref = admin.database().ref('expenses');
-      const snapshot = await ref.once('value');
+      const expensesRef = ref(database, 'expenses');
+      const snapshot = await get(expensesRef);
       
       if (!snapshot.exists()) return [];
       
@@ -1499,7 +1500,8 @@ export class RealtimeDBStorage implements IStorage {
           amount: data.amount,
           details: data.details,
           createdAt: new Date(data.createdAt),
-          userId: data.userId
+          userId: data.userId,
+          expenseType: data.expenseType || 'miscellaneous'
         });
       });
       
@@ -1588,7 +1590,8 @@ export class RealtimeDBStorage implements IStorage {
 
   async deleteExpense(id: number): Promise<void> {
     try {
-      await admin.database().ref(`expenses/${id}`).remove();
+      const expenseRef = ref(database, `expenses/${id}`);
+      await remove(expenseRef);
     } catch (error) {
       console.error('Error deleting expense:', error);
       throw error;
