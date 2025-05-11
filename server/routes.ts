@@ -317,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const approvalData = {
           invoiceId: invoice.id,
           requestedBy: 1, // Default user ID
-          status: invoiceData.isLaterPaymentApproved ? 'approved' : 'pending'
+          status: invoiceData.paymentStatus === 'approved' ? 'approved' : 'pending'
         };
         
         const approval = await storage.createPaymentApproval(approvalData);

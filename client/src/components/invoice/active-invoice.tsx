@@ -269,18 +269,19 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
     // إعداد بيانات الفاتورة
     const invoiceData = {
       invoiceNumber,
-      customerId: customer.id,
+      customerId: parseInt(customer.id),
       subtotal,
-      totalDiscount,
+      discount: totalDiscount,
       total,
-      notes,
       paymentMethod,
+      paymentStatus: paymentMethod === 'later' ? 'pending' : 'paid',
       date: invoiceDate,
-      isLaterPaymentApproved: paymentMethod === 'later' ? isLaterPaymentApproved : false,
+      notes,
       products: products.map(product => ({
-        productId: product.id,
+        productId: parseInt(product.id),
         quantity: product.quantity,
         price: product.sellingPrice,
+        total: product.quantity * product.sellingPrice * (1 - (product.discount || 0) / 100),
         discount: product.discount || 0
       }))
     };
@@ -321,18 +322,19 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
     // إعداد بيانات الفاتورة مع الموافقة على الدفع الآجل
     const invoiceData = {
       invoiceNumber,
-      customerId: customer.id,
+      customerId: parseInt(customer.id),
       subtotal,
-      totalDiscount,
+      discount: totalDiscount,
       total,
-      notes,
       paymentMethod,
+      paymentStatus: 'approved',
       date: invoiceDate,
-      isLaterPaymentApproved: true,
+      notes,
       products: products.map(product => ({
-        productId: product.id,
+        productId: parseInt(product.id),
         quantity: product.quantity,
         price: product.sellingPrice,
+        total: product.quantity * product.sellingPrice * (1 - (product.discount || 0) / 100),
         discount: product.discount || 0
       }))
     };
