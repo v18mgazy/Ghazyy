@@ -498,25 +498,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // قد نستمر بالحذف رغم الخطأ
       }
       
-      // 2. تعليم الفاتورة كمحذوفة (نحن لا نحذف البيانات فعليًا للاحتفاظ بسجل المبيعات)
+      // 2. حذف الفاتورة نهائيًا من قاعدة البيانات
       try {
-        const updateResult = await storage.updateInvoice(invoiceId, { 
-          isDeleted: true 
-          // لا داعي لتحديث updatedAt لأن storage.updateInvoice يقوم بذلك تلقائيًا
-        });
-        console.log(`Successfully marked invoice ${invoiceId} as deleted`);
-      } catch (updateError) {
-        console.error('Error updating invoice as deleted:', updateError);
-        // حاول مرة أخرى بطريقة بديلة إذا فشلت الطريقة الأولى
+        await storage.deleteInvoice(invoiceId);
+        console.log(`Successfully deleted invoice ${invoiceId} from database`);
+      } catch (deleteError) {
+        console.error('Error deleting invoice from database:', deleteError);
+        // إذا فشل الحذف النهائي، نقوم بتعليمها كمحذوفة فقط للتأكد من استبعادها من التقارير
         try {
-          // استخدم طريقة بديلة للتعليم كمحذوف
-          const fallbackResult = await storage.updateInvoice(invoiceId, { 
-            paymentStatus: 'deleted'
-            // لا داعي لتحديث updatedAt لأن storage.updateInvoice يقوم بذلك تلقائيًا
+          await storage.updateInvoice(invoiceId, { 
+            isDeleted: true,
+            paymentStatus: 'deleted' 
           });
-          console.log(`Used alternative method to mark invoice ${invoiceId} as deleted`);
-        } catch (alternativeError) {
-          console.error('Alternative method also failed:', alternativeError);
+          console.log(`Marked invoice ${invoiceId} as deleted due to failed permanent deletion`);
+        } catch (fallbackError) {
+          console.error('Fallback method also failed:', fallbackError);
           // استمر رغم الخطأ - سنعيد الاستجابة للعميل بنجاح العملية
         }
       }
