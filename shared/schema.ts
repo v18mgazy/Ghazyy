@@ -196,18 +196,22 @@ export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type Invoice = typeof invoices.$inferSelect;
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 
-// إضافة نوع بيانات للمنتجات داخل الفاتورة مع الحقول الإضافية لحساب الأرباح
+// إضافة نوع بيانات للمنتجات داخل الفاتورة
+// بعض الحقول هنا مخصصة للتخزين في قاعدة البيانات فقط وليست للعرض في واجهة المستخدم
 export type InvoiceProduct = {
+  // حقول أساسية تُظهر في واجهة المستخدم
   productId: number;
   productName: string;
   barcode?: string;
   quantity: number;
   price: number;
-  purchasePrice: number; // سعر الشراء للاستخدام في التقارير وحساب الأرباح
-  sellingPrice: number; // سعر البيع المرجعي
   discount: number;
   total: number;
-  profit?: number; // الربح المحسوب مسبقًا
+  
+  // حقول للتخزين في قاعدة البيانات فقط (للتقارير وحساب الأرباح)
+  purchasePrice?: number; // سعر الشراء (للتقارير والأرباح فقط)
+  sellingPrice?: number;  // سعر البيع المرجعي (للتقارير فقط)
+  profit?: number;        // الربح المحسوب مسبقًا (للتقارير فقط)
 };
 
 export type DamagedItem = typeof damagedItems.$inferSelect;

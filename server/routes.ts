@@ -647,19 +647,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           console.log(`Updated product ${product.name} stock to ${newStock}`);
           
-          // إرجاع بيانات المنتج المعالجة مع إضافة سعر الشراء للتقارير وحساب الأرباح
-          return {
+          // إرجاع بيانات المنتج المعالجة
+          // نقوم بإنشاء كائنين:
+          // 1. كائن للواجهة (displayProduct): لا يحتوي على بيانات سعر الشراء والربح
+          // 2. كائن للتخزين في قاعدة البيانات (dbProduct): يحتوي على كل البيانات بما فيها سعر الشراء والربح
+          
+          // هذا الكائن سيتم استخدامه لاحقًا في createInvoice (للتخزين في قاعدة البيانات فقط)
+          const dbProduct = {
             productId: productId,
             productName: product.name,
             barcode: product.barcode,
             quantity: item.quantity,
             price: item.price,
-            purchasePrice: product.purchasePrice || 0, // إضافة سعر الشراء للاستخدام في التقارير وحساب الأرباح
-            sellingPrice: product.sellingPrice || item.price, // إضافة سعر البيع كمرجع
+            purchasePrice: product.purchasePrice || 0, // للتقارير وحساب الأرباح (لا يُظهر للمستخدم)
+            sellingPrice: product.sellingPrice || item.price, // للمرجعية في قاعدة البيانات فقط
             discount: item.discount || 0,
             total: item.total || (item.quantity * item.price * (1 - (item.discount || 0) / 100)),
-            profit: (item.price - (product.purchasePrice || 0)) * item.quantity // حساب الربح مباشرة
+            profit: (item.price - (product.purchasePrice || 0)) * item.quantity // للتقارير فقط
           };
+          
+          // نرجع الكائن الذي يحتوي على كل البيانات للتخزين في قاعدة البيانات
+          return dbProduct;
         }));
         
         // تصفية أي قيم فارغة (null)
