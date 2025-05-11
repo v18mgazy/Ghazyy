@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  Search, Plus, Edit, Trash2, Lock, Loader2
+  Search, Plus, Edit, Trash2, Lock, Loader2, Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

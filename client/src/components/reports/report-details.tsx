@@ -233,39 +233,57 @@ export default function ReportDetails({
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead>{t('date')}</TableHead>
-                    <TableHead>{t('sales_count')}</TableHead>
-                    <TableHead>{t('total_revenue')}</TableHead>
-                    <TableHead>{t('cost')}</TableHead>
-                    <TableHead>{t('discounts')}</TableHead>
-                    <TableHead>{t('damages')}</TableHead>
-                    <TableHead>{t('profit')}</TableHead>
+                    <TableHead className="font-semibold">{t('date')}</TableHead>
+                    <TableHead className="font-semibold text-center">{t('sales_count')}</TableHead>
+                    <TableHead className="font-semibold">{t('total_revenue')}</TableHead>
+                    <TableHead className="font-semibold">{t('cost')}</TableHead>
+                    <TableHead className="font-semibold">{t('discounts')}</TableHead>
+                    <TableHead className="font-semibold">{t('damages')}</TableHead>
+                    <TableHead className="font-semibold">{t('profit')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {detailedReports.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-4 text-neutral-500">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         {t('no_report_data')}
                       </TableCell>
                     </TableRow>
                   ) : (
                     detailedReports.map((report, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{formatDate(report.date, 'PP', language)}</TableCell>
-                        <TableCell className="text-center">{report.salesCount}</TableCell>
-                        <TableCell>{formatCurrency(report.revenue)}</TableCell>
-                        <TableCell>{formatCurrency(report.cost)}</TableCell>
-                        <TableCell className="text-destructive">
-                          {formatCurrency(report.discounts)}
+                      <TableRow 
+                        key={index}
+                        className={index % 2 === 0 ? 'bg-muted/20' : ''}
+                      >
+                        <TableCell className="font-medium">
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {formatDate(report.date, 'PP', language)}
+                          </div>
                         </TableCell>
-                        <TableCell className="text-destructive">
-                          {formatCurrency(report.damages)}
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            {report.salesCount}
+                          </Badge>
                         </TableCell>
-                        <TableCell className="text-success-DEFAULT font-medium">
-                          {formatCurrency(report.profit)}
+                        <TableCell className="font-medium">{formatCurrency(report.revenue)}</TableCell>
+                        <TableCell className="text-muted-foreground">{formatCurrency(report.cost)}</TableCell>
+                        <TableCell>
+                          <span className="text-amber-600 font-medium">
+                            {formatCurrency(report.discounts)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-red-600 font-medium">
+                            {formatCurrency(report.damages)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="bg-green-50 text-green-700 px-2 py-1 rounded-md font-medium inline-block">
+                            {formatCurrency(report.profit)}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
