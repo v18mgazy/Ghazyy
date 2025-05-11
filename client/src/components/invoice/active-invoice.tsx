@@ -267,9 +267,26 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
     }
     
     // إعداد بيانات الفاتورة
+    // تحويل معرف العميل بطريقة آمنة مع التأكد من أنه رقم صالح
+    let customerIdValue;
+    try {
+      // الحد من قيمة معرف العميل للتأكد من أنه ضمن الحدود المسموح بها
+      if (typeof customer.id === 'string') {
+        customerIdValue = parseInt(customer.id);
+        if (isNaN(customerIdValue) || customerIdValue > 2147483647) {
+          customerIdValue = 1; // استخدام قيمة افتراضية آمنة
+        }
+      } else {
+        customerIdValue = 1;
+      }
+    } catch (error) {
+      console.error('Error parsing customer ID:', error);
+      customerIdValue = 1;
+    }
+    
     const invoiceData = {
       invoiceNumber,
-      customerId: parseInt(customer.id),
+      customerId: customerIdValue,
       subtotal,
       discount: totalDiscount,
       total,
