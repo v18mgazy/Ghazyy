@@ -1,4 +1,4 @@
-import { database, ref, set, get, remove, update } from "./firebase-rtdb";
+import { database, ref, set, get, remove, update, query, orderByChild, equalTo } from "./firebase-rtdb";
 import type {
   User, InsertUser,
   Product, InsertProduct,
@@ -1011,9 +1011,10 @@ export class RealtimeDBStorage implements IStorage {
 
   async getUserNotifications(userId: number): Promise<Notification[]> {
     try {
+      // نحصل على جميع الإشعارات ثم نقوم بتصفيتها يدويا حسب معرف المستخدم
+      // هذا أبطأ ولكنه لا يتطلب تعديل قواعد الأمان في Firebase
       const notificationsRef = ref(database, 'notifications');
-      const userNotificationsQuery = query(notificationsRef, orderByChild('userId'), equalTo(userId));
-      const snapshot = await get(userNotificationsQuery);
+      const snapshot = await get(notificationsRef);
       
       if (!snapshot.exists()) {
         return [];
@@ -1021,7 +1022,11 @@ export class RealtimeDBStorage implements IStorage {
       
       const notifications: Notification[] = [];
       snapshot.forEach((childSnapshot) => {
-        notifications.push(childSnapshot.val() as Notification);
+        const notification = childSnapshot.val() as Notification;
+        // نقوم بفلترة الإشعارات يدويا
+        if (notification.userId === userId) {
+          notifications.push(notification);
+        }
       });
       
       // ترتيب الإشعارات من الأحدث إلى الأقدم

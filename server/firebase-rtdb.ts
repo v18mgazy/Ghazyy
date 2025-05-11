@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set, get, remove, update, child, onValue } from "firebase/database";
+import { getDatabase, ref, set, get, remove, update, child, onValue, query, equalTo, orderByChild } from "firebase/database";
 
 // Firebase configuration with the correct credentials
 const firebaseConfig = {
@@ -41,4 +41,4 @@ export async function testRealtimeDBConnection() {
   }
 }
 
-export { database, ref, set, get, remove, update, child, onValue };
+export { database, ref, set, get, remove, update, child, onValue, query, equalTo, orderByChild };
