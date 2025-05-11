@@ -247,98 +247,200 @@ export default function InvoicePreview({
     }
   };
   
-  // طباعة الفاتورة
-  const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    if (printWindow && invoiceRef.current) {
-      const content = invoiceRef.current.innerHTML;
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>فاتورة ${invoiceNumber}</title>
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                direction: ${isRtl ? 'rtl' : 'ltr'};
-                padding: 20px;
-                color: #333;
-              }
-              .invoice-container {
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 20px;
-                border: 1px solid #eee;
-              }
-              .invoice-header {
-                display: flex;
-                justify-content: space-between;
-                border-bottom: 2px solid #f0f0f0;
-                padding-bottom: 20px;
-                margin-bottom: 20px;
-              }
-              .customer-info {
-                margin-bottom: 20px;
-              }
-              .products-table {
-                width: 100%;
-                border-collapse: collapse;
-                margin: 20px 0;
-              }
-              .products-table th, .products-table td {
-                border: 1px solid #ddd;
-                padding: 8px;
-                text-align: ${isRtl ? 'right' : 'left'};
-              }
-              .products-table th {
-                background-color: #f8f8f8;
-              }
-              .totals {
-                margin-top: 20px;
-                display: flex;
-                flex-direction: column;
-                align-items: flex-end;
-              }
-              .total-row {
-                display: flex;
-                justify-content: space-between;
-                width: 250px;
-                padding: 5px 0;
-              }
-              .total-value {
-                font-weight: bold;
-              }
-              .grand-total {
-                font-size: 1.2em;
-                font-weight: bold;
-                border-top: 2px solid #ddd;
-                padding-top: 5px;
-                margin-top: 5px;
-              }
-              .notes {
-                margin-top: 30px;
-                padding-top: 10px;
-                border-top: 1px solid #eee;
-              }
-              .footer {
-                margin-top: 50px;
-                text-align: center;
-                font-size: 0.8em;
-                color: #666;
-              }
-              @media print {
-                body {
-                  -webkit-print-color-adjust: exact;
-                  print-color-adjust: exact;
+  // طباعة الفاتورة بنفس نمط ملف PDF
+  const handlePrint = async () => {
+    try {
+      // إنشاء عنصر HTML لتعيين الفاتورة
+      const invoiceElement = document.createElement('div');
+      
+      // إعداد البيانات
+      const customerName = customer.name || '';
+      const customerPhone = customer.phone || '';
+      const customerAddress = customer.address || '';
+      
+      // تنسيق التاريخ
+      const formattedDate = formatDate(invoiceDate);
+      
+      // إنشاء HTML للفاتورة باللغة الإنجليزية فقط
+      invoiceElement.innerHTML = `
+        <div style="font-family: Arial, sans-serif; width: 800px; padding: 20px; box-sizing: border-box; margin: 0 auto;">
+          <!-- Header -->
+          <div style="background-color: #2980b9; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">Sales Ghazy</h1>
+            <p style="margin: 5px 0; font-size: 14px;">Cairo - Egypt</p>
+            <p style="margin: 5px 0; font-size: 14px;">01067677607</p>
+          </div>
+          
+          <!-- Invoice Information -->
+          <div style="margin: 20px 0; overflow: hidden;">
+            <div style="float: left; text-align: left; width: 50%;">
+              <h3 style="margin: 0 0 10px; color: #333; font-size: 16px; font-weight: bold;">
+                Invoice Information:
+              </h3>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Invoice Number:</strong> ${invoiceNumber}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Date:</strong> ${formattedDate}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Payment Method:</strong> ${paymentMethod}
+              </p>
+            </div>
+            
+            <div style="float: right; text-align: right; width: 50%;">
+              <h3 style="margin: 0 0 10px; color: #333; font-size: 16px; font-weight: bold;">
+                Customer Information:
+              </h3>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Name:</strong> ${customerName}
+              </p>
+              ${customerPhone ? `
+                <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                  <strong>Phone:</strong> ${customerPhone}
+                </p>
+              ` : ''}
+              ${customerAddress ? `
+                <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                  <strong>Address:</strong> ${customerAddress}
+                </p>
+              ` : ''}
+            </div>
+          </div>
+          
+          <!-- Divider -->
+          <div style="border-top: 1px solid #ddd; margin: 15px 0;"></div>
+          
+          <!-- Products List -->
+          <h3 style="text-align: center; color: #2980b9; margin: 20px 0; font-size: 18px;">
+            Products
+          </h3>
+          
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+              <tr style="background-color: #2980b9; color: white;">
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Product</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Price</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Quantity</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${products.map((item: any, index: number) => `
+                <tr style="background-color: ${index % 2 === 0 ? '#f9f9f9' : 'white'};">
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: left;">
+                    ${item.name || 'Unknown Product'}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                    ${formatCurrency(item.sellingPrice)}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                    ${item.quantity}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">
+                    ${formatCurrency(item.sellingPrice * item.quantity)}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <!-- Payment Summary -->
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: right; width: 300px; margin-left: auto;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span style="font-weight: bold; color: #555;">Subtotal:</span>
+              <span>${formatCurrency(subtotal)}</span>
+            </div>
+            
+            ${totalDiscount > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #555;">Discount:</span>
+                <span>${formatCurrency(totalDiscount)}</span>
+              </div>
+            ` : ''}
+            
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 16px; border-top: 1px solid #ddd; padding-top: 10px;">
+              <span style="font-weight: bold; color: #333;">Total:</span>
+              <span style="font-weight: bold; color: #2980b9;">${formatCurrency(total)}</span>
+            </div>
+          </div>
+          
+          <!-- Thank You Message -->
+          <div style="text-align: center; margin-top: 30px; color: #2980b9; font-style: italic;">
+            <p>Thank you for your business! We look forward to serving you again.</p>
+          </div>
+          
+          <!-- Footer -->
+          <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #999;">
+            <p>© ${new Date().getFullYear()} Sales Ghazy - ${new Date().toLocaleDateString('en-US')}</p>
+          </div>
+        </div>
+      `;
+      
+      // إنشاء نافذة الطباعة
+      const printWindow = window.open('', '_blank');
+      
+      if (printWindow) {
+        // إضافة محتوى HTML إلى نافذة الطباعة
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Invoice #${invoiceNumber}</title>
+              <style>
+                @page {
+                  size: A4;
+                  margin: 0;
                 }
-              }
-            </style>
-          </head>
-          <body onload="window.print(); window.close();">
-            ${content}
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
+                body {
+                  font-family: Arial, sans-serif;
+                  margin: 0;
+                  padding: 0;
+                }
+                @media print {
+                  body {
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                  }
+                }
+              </style>
+            </head>
+            <body onload="window.print(); window.close();">
+              ${invoiceElement.innerHTML}
+            </body>
+          </html>
+        `);
+        
+        // إغلاق الوثيقة للطباعة
+        printWindow.document.close();
+      } else {
+        throw new Error('Cannot open print window');
+      }
+    } catch (error) {
+      console.error('Error printing invoice:', error);
+      
+      // استخدام طريقة الطباعة البسيطة في حالة الفشل
+      if (invoiceRef.current) {
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(`
+            <html>
+              <head>
+                <title>Invoice #${invoiceNumber}</title>
+                <style>
+                  body {
+                    font-family: Arial, sans-serif;
+                    padding: 20px;
+                  }
+                </style>
+              </head>
+              <body onload="window.print(); window.close();">
+                ${invoiceRef.current.innerHTML}
+              </body>
+            </html>
+          `);
+          printWindow.document.close();
+        }
+      }
     }
   };
   
