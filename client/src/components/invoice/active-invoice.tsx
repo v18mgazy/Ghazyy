@@ -233,22 +233,48 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
       return;
     }
     
-    // هنا يمكنك إرسال الفاتورة إلى الخادم
-    console.log({
+    // إعداد بيانات الفاتورة
+    const invoiceData = {
       invoiceNumber,
-      customer,
-      products,
+      customerId: customer.id,
       subtotal,
       totalDiscount,
       total,
       notes,
       paymentMethod,
       date: invoiceDate,
-      isLaterPaymentApproved: paymentMethod === 'later' ? isLaterPaymentApproved : null
-    });
+      isLaterPaymentApproved: paymentMethod === 'later' ? isLaterPaymentApproved : false,
+      products: products.map(product => ({
+        productId: product.id,
+        quantity: product.quantity,
+        price: product.sellingPrice,
+        discount: product.discount || 0
+      }))
+    };
     
-    // إظهار معاينة الفاتورة بعد الضغط على زر "تأكيد" بدلاً من إغلاق النافذة
-    setShowInvoicePreview(true);
+    // إرسال الفاتورة إلى الخادم
+    fetch('/api/invoices', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(invoiceData),
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('فشل في حفظ الفاتورة');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('تم حفظ الفاتورة بنجاح:', data);
+        // إظهار معاينة الفاتورة بعد الضغط على زر "تأكيد" بدلاً من إغلاق النافذة
+        setShowInvoicePreview(true);
+      })
+      .catch(error => {
+        console.error('خطأ:', error);
+        alert(t('invoice_save_error'));
+      });
   };
   
   // طباعة الفاتورة
@@ -280,21 +306,48 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
     setIsLaterPaymentApproved(true);
     setShowApprovalDialog(false);
     
-    // بعد الموافقة، نقوم بتقديم النموذج
-    console.log({
+    // إعداد بيانات الفاتورة مع الموافقة على الدفع الآجل
+    const invoiceData = {
       invoiceNumber,
-      customer,
-      products,
+      customerId: customer.id,
       subtotal,
       totalDiscount,
       total,
       notes,
       paymentMethod,
       date: invoiceDate,
-      isLaterPaymentApproved: true
-    });
+      isLaterPaymentApproved: true,
+      products: products.map(product => ({
+        productId: product.id,
+        quantity: product.quantity,
+        price: product.sellingPrice,
+        discount: product.discount || 0
+      }))
+    };
     
-    setShowInvoicePreview(true);
+    // إرسال الفاتورة إلى الخادم
+    fetch('/api/invoices', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(invoiceData),
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('فشل في حفظ الفاتورة');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('تم حفظ الفاتورة بنجاح مع موافقة الدفع الآجل:', data);
+        // إظهار معاينة الفاتورة
+        setShowInvoicePreview(true);
+      })
+      .catch(error => {
+        console.error('خطأ:', error);
+        alert(t('invoice_save_error'));
+      });
   };
   
   return (
@@ -302,7 +355,13 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
       {/* معاينة الفاتورة المنسقة */}
       <InvoicePreview 
         open={showInvoicePreview} 
-        onOpenChange={setShowInvoicePreview}
+        onOpenChange={(open) => {
+          setShowInvoicePreview(open);
+          // إذا تم إغلاق معاينة الفاتورة، نقوم بإغلاق النافذة الرئيسية أيضًا
+          if (!open) {
+            onClose();
+          }
+        }}
         customer={customer}
         invoiceNumber={invoiceNumber}
         invoiceDate={invoiceDate}
