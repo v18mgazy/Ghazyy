@@ -1117,25 +1117,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/employee-deductions', async (req, res) => {
     console.log('Received deduction data:', req.body);
     try {
-      // التحقق من البيانات وتحويلها للشكل المناسب
-      const deductionData = {...req.body};
-
-      // التأكد من أن المبلغ هو رقم
-      if (typeof deductionData.amount === 'string') {
-        deductionData.amount = Number(deductionData.amount);
+      // تجاوز مكتبة zod للتحقق من البيانات يدوياً
+      const { employeeId, amount, reason } = req.body;
+      
+      // التحقق من الحقول المطلوبة
+      if (!employeeId || !amount || !reason) {
+        console.error('Missing required fields:', { employeeId, amount, reason });
+        return res.status(400).json({ message: 'Missing required fields' });
       }
 
-      // نطبع البيانات المعدلة
-      console.log('Validated deduction data:', deductionData);
+      // تحويل المبلغ إلى رقم
+      const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+      
+      if (isNaN(numAmount) || numAmount <= 0) {
+        console.error('Invalid amount:', amount);
+        return res.status(400).json({ message: 'Amount must be a positive number' });
+      }
+      
+      // إنشاء كائن البيانات
+      const deductionData = {
+        employeeId: String(employeeId), // تأكد من أن معرف الموظف هو نص
+        amount: numAmount,
+        reason: String(reason),
+        date: new Date()
+      };
+      
+      console.log('Processed deduction data:', deductionData);
       
       // محاولة إنشاء الخصم
       const deduction = await storage.createEmployeeDeduction(deductionData);
       res.status(201).json(deduction);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        console.error('Zod validation error:', error.errors);
-        return res.status(400).json({ message: 'Invalid deduction data', errors: error.errors });
-      }
       console.error('Error creating employee deduction:', error);
       res.status(500).json({ message: 'Error creating employee deduction' });
     }
