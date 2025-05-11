@@ -592,13 +592,31 @@ export class RealtimeDBStorage implements IStorage {
   async createDamagedItem(item: InsertDamagedItem): Promise<DamagedItem> {
     try {
       const id = this.generateId('damagedItems');
-      const newItem: DamagedItem = {
+      
+      // تبسيط معالجة البيانات للتخزين في Firebase
+      const firebaseItem = {
         id,
-        ...item,
-        createdAt: new Date().toISOString()
+        productId: item.productId,
+        quantity: item.quantity,
+        description: item.description || '',
+        valueLoss: item.valueLoss,
+        date: item.date ? item.date.toISOString() : new Date().toISOString()
       };
       
-      await set(ref(database, `damagedItems/${id}`), newItem);
+      console.log('Saving damaged item to Firebase:', firebaseItem);
+      
+      await set(ref(database, `damagedItems/${id}`), firebaseItem);
+      
+      // إنشاء وإرجاع كائن DamagedItem مع حقل التاريخ كـ Date
+      const newItem: DamagedItem = {
+        id,
+        productId: item.productId,
+        quantity: item.quantity,
+        description: item.description || null,
+        valueLoss: item.valueLoss,
+        date: item.date || new Date()
+      };
+      
       return newItem;
     } catch (error) {
       console.error('Error creating damaged item:', error);

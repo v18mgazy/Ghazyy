@@ -1093,7 +1093,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/damaged-items', async (req, res) => {
     
     try {
-      const itemData = insertDamagedItemSchema.parse(req.body);
+      // تبسيط معالجة بيانات المنتجات التالفة
+      const itemData = {
+        productId: parseInt(req.body.productId),
+        quantity: parseInt(req.body.quantity),
+        description: req.body.description || '',
+        valueLoss: parseFloat(req.body.valueLoss),
+        date: new Date()
+      };
+      
+      console.log('Creating damaged item with data:', itemData);
       
       // Check if product exists and has enough stock
       const product = await storage.getProduct(itemData.productId);
@@ -1115,10 +1124,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(item);
     } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: 'Validation error', errors: err.errors });
-      }
-      res.status(500).json({ message: 'Failed to create damaged item' });
+      console.error('Error creating damaged item:', err);
+      res.status(500).json({ message: 'Failed to create damaged item', error: String(err) });
     }
   });
   
