@@ -117,39 +117,53 @@ export default function EmployeeList({
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead>{t('name')}</TableHead>
-                    <TableHead>{t('hire_date')}</TableHead>
-                    <TableHead>{t('salary')}</TableHead>
-                    <TableHead>{t('deductions')}</TableHead>
-                    <TableHead>{t('final_salary')}</TableHead>
-                    <TableHead>{t('actions')}</TableHead>
+                    <TableHead className="font-semibold">{t('name')}</TableHead>
+                    <TableHead className="font-semibold">{t('hire_date')}</TableHead>
+                    <TableHead className="font-semibold">{t('salary')}</TableHead>
+                    <TableHead className="font-semibold">{t('deductions')}</TableHead>
+                    <TableHead className="font-semibold">{t('final_salary')}</TableHead>
+                    <TableHead className="font-semibold text-right">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredEmployees.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4 text-neutral-500">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         {searchTerm ? t('no_employees_found') : t('no_employees_yet')}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredEmployees.map((employee) => (
-                      <TableRow key={employee.id}>
-                        <TableCell className="font-medium">{employee.name}</TableCell>
+                    filteredEmployees.map((employee, index) => (
+                      <TableRow 
+                        key={employee.id}
+                        className={index % 2 === 0 ? 'bg-muted/20' : ''}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold">
+                              {employee.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="font-medium">{employee.name}</span>
+                          </div>
+                        </TableCell>
                         <TableCell>{formatDate(employee.hireDate, 'PP', language)}</TableCell>
-                        <TableCell>{formatCurrency(employee.salary)}</TableCell>
-                        <TableCell>{formatCurrency(employee.deductions)}</TableCell>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium">{formatCurrency(employee.salary)}</TableCell>
+                        <TableCell>
+                          <span className={employee.deductions > 0 ? 'text-red-600 font-medium' : ''}>
+                            {formatCurrency(employee.deductions)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-semibold text-green-700">
                           {formatCurrency(employee.salary - employee.deductions)}
                         </TableCell>
                         <TableCell>
-                          <div className="flex space-x-2">
+                          <div className="flex space-x-2 justify-end">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-primary hover:text-primary/90"
+                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                               onClick={() => handleEditEmployee(employee)}
                             >
                               <Edit className="h-4 w-4" />
@@ -157,7 +171,7 @@ export default function EmployeeList({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-destructive hover:text-destructive/90"
+                              className="text-red-600 hover:text-red-800 hover:bg-red-50"
                               onClick={() => handleDeleteEmployee(employee.id)}
                             >
                               <Trash2 className="h-4 w-4" />

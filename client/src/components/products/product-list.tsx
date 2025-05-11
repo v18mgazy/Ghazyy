@@ -168,7 +168,7 @@ export default function ProductList({
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="w-[30px]">
                       <Input
@@ -184,24 +184,27 @@ export default function ProductList({
                         }}
                       />
                     </TableHead>
-                    <TableHead>{t('product')}</TableHead>
-                    <TableHead>{t('barcode')}</TableHead>
-                    <TableHead>{t('stock')}</TableHead>
-                    <TableHead>{t('purchase_price')}</TableHead>
-                    <TableHead>{t('selling_price')}</TableHead>
-                    <TableHead>{t('actions')}</TableHead>
+                    <TableHead className="font-semibold">{t('product')}</TableHead>
+                    <TableHead className="font-semibold">{t('barcode')}</TableHead>
+                    <TableHead className="font-semibold">{t('stock')}</TableHead>
+                    <TableHead className="font-semibold">{t('purchase_price')}</TableHead>
+                    <TableHead className="font-semibold">{t('selling_price')}</TableHead>
+                    <TableHead className="font-semibold text-right">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredProducts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-4 text-neutral-500">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         {searchTerm ? t('no_products_found') : t('no_products_yet')}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredProducts.map((product) => (
-                      <TableRow key={product.id}>
+                    filteredProducts.map((product, index) => (
+                      <TableRow 
+                        key={product.id}
+                        className={index % 2 === 0 ? 'bg-muted/20' : ''}
+                      >
                         <TableCell>
                           <Input
                             type="checkbox"
@@ -213,25 +216,31 @@ export default function ProductList({
                         <TableCell>
                           <div className="font-medium">{product.name}</div>
                           {product.alternativeCode && (
-                            <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                            <div className="text-xs text-muted-foreground">
                               {t('code')}: {product.alternativeCode}
                             </div>
                           )}
                         </TableCell>
                         <TableCell>{product.barcode}</TableCell>
                         <TableCell>
-                          <span className={product.stock <= 5 ? 'text-destructive font-medium' : ''}>
+                          <span className={
+                            product.stock <= 5 
+                              ? 'text-red-600 font-medium bg-red-50 px-2 py-1 rounded-md' 
+                              : product.stock <= 10
+                                ? 'text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded-md'
+                                : ''
+                          }>
                             {product.stock}
                           </span>
                         </TableCell>
-                        <TableCell>{formatCurrency(product.purchasePrice)}</TableCell>
-                        <TableCell>{formatCurrency(product.sellingPrice)}</TableCell>
+                        <TableCell className="font-medium">{formatCurrency(product.purchasePrice)}</TableCell>
+                        <TableCell className="font-medium">{formatCurrency(product.sellingPrice)}</TableCell>
                         <TableCell>
-                          <div className="flex space-x-2">
+                          <div className="flex space-x-2 justify-end">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-primary hover:text-primary/90"
+                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                               onClick={() => handleEditProduct(product)}
                             >
                               <Edit className="h-4 w-4" />
@@ -239,7 +248,7 @@ export default function ProductList({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-destructive hover:text-destructive/90"
+                              className="text-red-600 hover:text-red-800 hover:bg-red-50"
                               onClick={() => handleDeleteProduct(product.id)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -247,6 +256,7 @@ export default function ProductList({
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
                               onClick={() => {
                                 onPrintBarcodes([product.id]);
                               }}

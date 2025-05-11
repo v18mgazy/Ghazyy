@@ -137,39 +137,52 @@ export default function DamagedItemList({
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead>{t('product')}</TableHead>
-                    <TableHead>{t('quantity')}</TableHead>
-                    <TableHead>{t('date')}</TableHead>
-                    <TableHead>{t('description')}</TableHead>
-                    <TableHead>{t('value_loss')}</TableHead>
-                    <TableHead>{t('actions')}</TableHead>
+                    <TableHead className="font-semibold">{t('product')}</TableHead>
+                    <TableHead className="font-semibold">{t('quantity')}</TableHead>
+                    <TableHead className="font-semibold">{t('date')}</TableHead>
+                    <TableHead className="font-semibold">{t('description')}</TableHead>
+                    <TableHead className="font-semibold">{t('value_loss')}</TableHead>
+                    <TableHead className="font-semibold text-right">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4 text-neutral-500">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         {searchTerm ? t('no_damaged_items_found') : t('no_damaged_items_yet')}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.product.name}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
+                    filteredItems.map((item, index) => (
+                      <TableRow 
+                        key={item.id}
+                        className={index % 2 === 0 ? 'bg-muted/20' : ''}
+                      >
+                        <TableCell>
+                          <div className="font-medium">{item.product.name}</div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="px-2 py-1 bg-red-50 text-red-700 rounded-md font-medium">
+                            {item.quantity}
+                          </span>
+                        </TableCell>
                         <TableCell>{formatDate(item.date, 'PP', language)}</TableCell>
-                        <TableCell>{item.description ? truncateText(item.description, 50) : '-'}</TableCell>
-                        <TableCell className="text-destructive font-medium">
+                        <TableCell>
+                          <div className="max-w-[200px]">
+                            {item.description ? truncateText(item.description, 50) : '-'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-red-600 font-semibold">
                           {formatCurrency(item.valueLoss)}
                         </TableCell>
                         <TableCell>
-                          <div className="flex space-x-2">
+                          <div className="flex space-x-2 justify-end">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-primary hover:text-primary/90"
+                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                               onClick={() => handleEditItem(item)}
                             >
                               <Edit className="h-4 w-4" />
@@ -177,7 +190,7 @@ export default function DamagedItemList({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-destructive hover:text-destructive/90"
+                              className="text-red-600 hover:text-red-800 hover:bg-red-50"
                               onClick={() => handleDeleteItem(item.id)}
                             >
                               <Trash2 className="h-4 w-4" />
