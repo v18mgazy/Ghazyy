@@ -55,7 +55,7 @@ export default function DeductionForm({
 
   const onSubmit = (data: DeductionFormValues) => {
     onSave({
-      amount: data.amount,
+      amount: Number(data.amount), // تأكد من أن المبلغ هو رقم
       reason: data.reason,
     });
     form.reset();
