@@ -91,9 +91,24 @@ export default function CustomerList({
     queryKey: ['/api/customer-invoices', selectedCustomer?.id],
     queryFn: async () => {
       if (!selectedCustomer?.id) return [];
-      const response = await apiRequest('GET', `/api/customer-invoices/${selectedCustomer.id}`);
-      const data = await response.json();
-      return data;
+      
+      try {
+        console.log(`Fetching customer invoices for customer ID: ${selectedCustomer.id}`);
+        const response = await apiRequest('GET', `/api/customer-invoices/${selectedCustomer.id}`);
+        
+        // التحقق من حالة الاستجابة
+        if (!response.ok) {
+          console.error('API returned error status:', response.status);
+          return [];
+        }
+        
+        const data = await response.json();
+        console.log('Raw API response:', data);
+        return data;
+      } catch (error) {
+        console.error('Error in API request:', error);
+        return [];
+      }
     },
     enabled: false, // لا يتم تنفيذ الاستعلام تلقائيًا
   });
@@ -106,15 +121,21 @@ export default function CustomerList({
     
     // جلب تاريخ مشتريات العميل من قاعدة البيانات
     try {
+      console.log('Fetching purchase history for customer:', customer.id);
       const result = await fetchCustomerHistory();
-      if (result?.data) {
+      console.log('Received purchase history result:', result);
+      
+      // تصحيح: API تعيد المصفوفة مباشرة وليس داخل حقل data
+      if (result && Array.isArray(result)) {
         // تحويل البيانات إلى النموذج المطلوب
-        const formattedHistory = result.data.map((invoice: any) => ({
+        const formattedHistory = result.map((invoice: any) => ({
           id: invoice.id.toString(),
-          date: new Date(invoice.createdAt || Date.now()).toLocaleDateString(),
+          date: new Date(invoice.date || invoice.createdAt || Date.now()).toLocaleDateString(),
           invoiceNumber: `INV-${invoice.id.toString().padStart(5, '0')}`,
-          total: invoice.totalAmount || 0
+          total: invoice.total || 0
         }));
+        
+        console.log('Formatted history:', formattedHistory);
         
         // ترتيب البيانات حسب التاريخ من الأحدث إلى الأقدم
         formattedHistory.sort((a, b) => {
@@ -125,6 +146,7 @@ export default function CustomerList({
         
         setPurchaseHistory(formattedHistory);
       } else {
+        console.log('No valid history data found');
         setPurchaseHistory([]);
       }
     } catch (error) {
