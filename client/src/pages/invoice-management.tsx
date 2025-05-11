@@ -150,52 +150,21 @@ export default function InvoiceManagement() {
     }
   }, [invoicesError, toast, t]);
   
-  // استخدام useQuery لجلب بيانات العملاء وتحويلها إلى قائمة
-  const { data: customersData } = useQuery({
-    queryKey: ['/api/customers'],
-    staleTime: 60000
-  });
-  
-  // تحويل بيانات العملاء إلى قاموس للوصول السريع
-  const customersMap = React.useMemo(() => {
-    if (!customersData || !Array.isArray(customersData)) return {};
-    return customersData.reduce((acc: Record<number, Customer>, customer: Customer) => {
-      acc[customer.id] = customer;
-      return acc;
-    }, {});
-  }, [customersData]);
+  // نستخدم بيانات العملاء المخزنة مع كل فاتورة
+  // نحن لا نحتاج إلى جلب بيانات العملاء مرة ثانية من قاعدة البيانات
+  // لأن معلومات العميل اللازمة متوفرة بالفعل في الفاتورة
   
   // معالجة وتحويل بيانات الفواتير القادمة من قاعدة البيانات
   const processedInvoices = React.useMemo(() => {
-    // التأكد من أن كل من الفواتير والعملاء متاحان كمصفوفة
+    // التأكد من أن الفواتير متاحة كمصفوفة
     const invoices = Array.isArray(dbInvoices) ? dbInvoices : [];
-    const customers = Array.isArray(customersData) ? customersData : [];
     
     if (invoices.length === 0) {
       console.log('No invoices available from database');
       return []; // لا نستخدم بيانات مزيفة
     }
     
-    if (customers.length === 0) {
-      console.log('No customers data available');
-      return [];
-    }
-    
-    console.log('Processing invoices:', invoices); 
-    console.log('Available customers:', customers);
-    
-    // تحويل بيانات العملاء إلى قاموس للوصول السريع
-    const customersMap: Record<string, any> = {};
-    customers.forEach((customer: any) => {
-      if (customer && customer.id) {
-        // تخزين العميل بمعرف رقمي ونصي للمطابقة المرنة
-        const stringId = customer.id.toString();
-        customersMap[stringId] = customer;
-        customersMap[customer.id] = customer;
-      }
-    });
-    
-    console.log('Built customers map with keys:', Object.keys(customersMap)); 
+    console.log('Processing invoices:', invoices);
     
     return invoices.map((invoice: any) => {
       if (!invoice) {
@@ -203,47 +172,18 @@ export default function InvoiceManagement() {
         return null;
       }
       
-      // البحث عن بيانات العميل المرتبط بالفاتورة
+      // استخدام معلومات العميل المخزنة في الفاتورة مباشرة
       console.log('Processing invoice:', invoice);
-      console.log('Invoice customer ID:', invoice.customerId, 'Type:', typeof invoice.customerId);
       
-      // محاولة العثور على العميل بأكثر من طريقة
-      let customer = null;
-      const customerId = invoice.customerId;
-      const customerIdStr = customerId?.toString();
-      
-      if (customerId && customersMap[customerId]) {
-        customer = customersMap[customerId];
-        console.log('Found customer for invoice by numeric ID:', customer);
-      } else if (customerIdStr && customersMap[customerIdStr]) {
-        customer = customersMap[customerIdStr];
-        console.log('Found customer for invoice by string ID:', customer);
-      } else {
-        console.warn(`No customer found for ID: ${customerId} (${typeof customerId})`);
-        // محاولة البحث في جميع العملاء
-        if (customersData.length > 0) {
-          console.log('Attempting to find customer in all data...');
-          const possibleCustomer = customersData.find((c: any) => 
-            c.id === customerId || c.id === parseInt(customerIdStr || '0')
-          );
-          if (possibleCustomer) {
-            customer = possibleCustomer;
-            console.log('Found customer through full search:', customer);
-          }
-        }
-      }
-      
-      // استخدام معلومات العميل المحفوظة في الفاتورة نفسها إذا كانت متوفرة
       return {
         id: invoice.invoiceNumber || `INV-${invoice.id}`,
         dbId: invoice.id,
         date: new Date(invoice.date || Date.now()),
         customer: {
-          id: customer?.id?.toString() || invoice.customerId?.toString() || 'unknown',
-          // استخدام اسم العميل من الفاتورة إذا كان متوفرًا، وإلا استخدام اسم العميل من جدول العملاء
-          name: invoice.customerName || (customer?.name || t('unknown_customer')),
-          phone: invoice.customerPhone || (customer?.phone || ''),
-          address: invoice.customerAddress || (customer?.address || '')
+          id: invoice.customerId?.toString() || 'unknown',
+          name: invoice.customerName || t('unknown_customer'),
+          phone: invoice.customerPhone || '',
+          address: invoice.customerAddress || ''
         },
         total: invoice.total || 0,
         status: invoice.paymentStatus || 'unknown',
@@ -252,7 +192,7 @@ export default function InvoiceManagement() {
         items: []
       };
     }).filter(Boolean); // إزالة القيم الفارغة
-  }, [dbInvoices, customersData, t]);
+  }, [dbInvoices, t]);
   
   // استخدام البيانات المعالجة أو البيانات المزيفة في حالة عدم وجود بيانات
   const [invoices, setInvoices] = useState<any[]>([]);
