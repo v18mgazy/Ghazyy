@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Expense {
   id: number;
@@ -17,6 +18,7 @@ interface Expense {
   amount: number;
   details: string;
   userId: number;
+  expenseType?: string;
 }
 
 interface ExpenseFormProps {
@@ -30,12 +32,13 @@ export default function ExpenseForm({ expense, onClose, onSubmit }: ExpenseFormP
   const [date, setDate] = useState<Date>(expense?.date ? new Date(expense.date) : new Date());
   const [amount, setAmount] = useState<string>(expense?.amount ? expense.amount.toString() : '');
   const [details, setDetails] = useState<string>(expense?.details || '');
-  const [errors, setErrors] = useState<{ amount?: string; details?: string }>({});
+  const [expenseType, setExpenseType] = useState<string>(expense?.expenseType || 'miscellaneous');
+  const [errors, setErrors] = useState<{ amount?: string; details?: string; expenseType?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Validate form
   const validateForm = () => {
-    const newErrors: { amount?: string; details?: string } = {};
+    const newErrors: { amount?: string; details?: string; expenseType?: string } = {};
 
     // Validate amount
     if (!amount.trim()) {
@@ -54,6 +57,11 @@ export default function ExpenseForm({ expense, onClose, onSubmit }: ExpenseFormP
       newErrors.details = t('details_min_length');
     } else if (details.length > 500) {
       newErrors.details = t('details_max_length');
+    }
+
+    // Validate expense type
+    if (!expenseType) {
+      newErrors.expenseType = t('expense_type_required');
     }
 
     setErrors(newErrors);
@@ -75,6 +83,7 @@ export default function ExpenseForm({ expense, onClose, onSubmit }: ExpenseFormP
       date,
       amount: parseFloat(amount),
       details,
+      expenseType,
       userId: 1, // Will be replaced by actual userId from context/session
       ...(expense?.id && { id: expense.id }),
     };
@@ -92,6 +101,24 @@ export default function ExpenseForm({ expense, onClose, onSubmit }: ExpenseFormP
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <div className="grid w-full gap-1.5">
+            <Label htmlFor="expenseType">{t('expense_type')}</Label>
+            <Select
+              value={expenseType}
+              onValueChange={setExpenseType}
+            >
+              <SelectTrigger id="expenseType" className={errors.expenseType ? "border-red-500" : ""}>
+                <SelectValue placeholder={t('select_expense_type')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rent">{t('rent')}</SelectItem>
+                <SelectItem value="personal_expenses">{t('personal_expenses')}</SelectItem>
+                <SelectItem value="miscellaneous">{t('miscellaneous')}</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.expenseType && <p className="text-red-500 text-sm mt-1">{errors.expenseType}</p>}
+          </div>
+
           <div className="grid w-full gap-1.5">
             <Label htmlFor="date">{t('date')}</Label>
             <Popover>

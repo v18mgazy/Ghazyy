@@ -262,5 +262,11 @@
   "date_required": "Date is required",
   "pick_date": "Pick a date",
   "details": "Details",
+  "expense_type": "Expense Type",
+  "expense_type_required": "Expense type is required",
+  "rent": "Rent",
+  "personal_expenses": "Personal Expenses",
+  "miscellaneous": "Miscellaneous",
+  "select_expense_type": "Select expense type",
   "delete_expense_confirmation": "Are you sure you want to delete this expense? This action cannot be undone."
 }

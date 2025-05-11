@@ -1216,7 +1216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.body.userId || 1; // استخدام المستخدم رقم 1 كافتراضي إذا لم يتم توفير معرف المستخدم
       
       // التحقق من صحة البيانات
-      const { date, amount, details } = req.body;
+      const { date, amount, details, expenseType } = req.body;
       
       if (!amount || !details) {
         return res.status(400).json({ message: 'المبلغ والتفاصيل مطلوبة' });
@@ -1234,7 +1234,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         date: date ? new Date(date) : new Date(),
         amount: numAmount,
         details,
-        userId
+        userId,
+        expenseType: expenseType || 'miscellaneous'
       };
       
       // حفظ المصاريف في قاعدة البيانات

@@ -1520,10 +1520,11 @@ export class RealtimeDBStorage implements IStorage {
         amount: expense.amount,
         details: expense.details,
         createdAt: now,
-        userId: expense.userId
+        userId: expense.userId,
+        expenseType: expense.expenseType || 'miscellaneous'
       };
       
-      await admin.database().ref(`expenses/${id}`).set(newExpense);
+      await this.db.ref(`expenses/${id}`).set(newExpense);
       
       return {
         id,
@@ -1531,7 +1532,8 @@ export class RealtimeDBStorage implements IStorage {
         amount: expense.amount,
         details: expense.details,
         createdAt: new Date(now),
-        userId: expense.userId
+        userId: expense.userId,
+        expenseType: expense.expenseType || 'miscellaneous'
       };
     } catch (error) {
       console.error('Error creating expense:', error);

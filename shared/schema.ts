@@ -301,6 +301,7 @@ export const expenses = pgTable("expenses", {
   details: text("details").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   userId: integer("user_id").references(() => users.id).notNull(),
+  expenseType: text("expense_type").default("miscellaneous"),
 });
 
 export const insertExpenseSchema = z.object({
@@ -311,7 +312,8 @@ export const insertExpenseSchema = z.object({
     return parsed;
   })]),
   details: z.string().min(3, "التفاصيل يجب أن تكون 3 أحرف على الأقل"),
-  userId: z.number()
+  userId: z.number(),
+  expenseType: z.enum(["rent", "personal_expenses", "miscellaneous"]).default("miscellaneous")
 });
 
 export type Expense = typeof expenses.$inferSelect;
