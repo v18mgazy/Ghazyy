@@ -240,5 +240,27 @@
   "edit_invoice_success": "Invoice edited successfully",
   "edit_invoice_prepare_success": "Invoice prepared for editing",
   "popup_blocked_description": "Please allow popups for the invoice editor",
-  "invoice_edit_error": "Error editing invoice"
+  "invoice_edit_error": "Error editing invoice",
+  
+  "expenses_management": "Expenses & Miscellaneous",
+  "total_expenses": "Total Expenses",
+  "add_expense": "Add Expense",
+  "edit_expense": "Edit Expense",
+  "expense_id": "Expense ID",
+  "expenses": "Expenses",
+  "no_expenses_found": "No expenses found",
+  "expense_added_successfully": "Expense added successfully",
+  "expense_updated_successfully": "Expense updated successfully",
+  "expense_deleted_successfully": "Expense deleted successfully",
+  "add_expense_error": "Error adding expense",
+  "edit_expense_error": "Error updating expense",
+  "delete_expense_error": "Error deleting expense",
+  "expense_details_placeholder": "Expense details...",
+  "amount_must_be_positive": "Amount must be a positive number",
+  "details_min_length": "Details must be at least 3 characters",
+  "details_max_length": "Details must not exceed 500 characters",
+  "date_required": "Date is required",
+  "pick_date": "Pick a date",
+  "details": "Details",
+  "delete_expense_confirmation": "Are you sure you want to delete this expense? This action cannot be undone."
 }

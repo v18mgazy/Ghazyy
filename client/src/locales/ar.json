@@ -448,5 +448,11 @@
   "date_required": "التاريخ مطلوب",
   "pick_date": "اختر تاريخاً",
   "details": "التفاصيل",
+  "expense_type": "نوع المصروف",
+  "expense_type_required": "نوع المصروف مطلوب",
+  "rent": "إيجار",
+  "personal_expenses": "مصاريف شخصية",
+  "miscellaneous": "نثريات",
+  "select_expense_type": "اختر نوع المصروف",
   "delete_expense_confirmation": "هل أنت متأكد من حذف هذا المصروف؟ لا يمكن التراجع عن هذا الإجراء."
 }
