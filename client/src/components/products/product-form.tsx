@@ -38,6 +38,7 @@ export default function ProductForm({
 }: ProductFormProps) {
   const { t } = useTranslation();
   const isEditing = !!product?.id;
+  const scannerRef = useRef<HTMLDivElement>(null);
   
   const [formData, setFormData] = useState<Product>({
     name: '',
@@ -47,6 +48,10 @@ export default function ProductForm({
     sellingPrice: 0,
     stock: 0
   });
+  
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannerError, setScannerError] = useState<string | null>(null);
+  const [cameraStatus, setCameraStatus] = useState<'idle' | 'requesting' | 'denied' | 'ready'>('idle');
 
   useEffect(() => {
     if (product) {
@@ -61,7 +66,83 @@ export default function ProductForm({
         stock: 0
       });
     }
-  }, [product, open]);
+    
+    // تنظيف الماسح عند فتح/إغلاق النموذج
+    return () => {
+      if (isScanning) {
+        cleanupScanner();
+      }
+    };
+  }, [product, open, isScanning]);
+  
+  const cleanupScanner = () => {
+    try {
+      stopBarcodeScanner();
+      setIsScanning(false);
+    } catch (e) {
+      console.error('Error stopping scanner:', e);
+    }
+  };
+  
+  const startScanner = () => {
+    setScannerError(null);
+    setCameraStatus('requesting');
+
+    // تحقق أولاً من إمكانية الوصول إلى الكاميرا
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        // إيقاف الدفق الأولي (سنستخدم Quagga للتحكم بالكاميرا)
+        stream.getTracks().forEach(track => track.stop());
+
+        setCameraStatus('ready');
+        setIsScanning(true);
+        
+        // إنشاء عنصر الكاميرا
+        setTimeout(() => {
+          if (scannerRef.current) {
+            console.log('Starting barcode scanner');
+            startBarcodeScanner(
+              'barcode-scanner-product',
+              handleBarcodeDetected,
+              (result) => {
+                // معالجة إطارات المسح (اختياري)
+                if (result && result.codeResult) {
+                  // معالجة مرئية للإطار
+                }
+              }
+            );
+          } else {
+            console.error('Scanner element not ready');
+            setCameraStatus('idle');
+            setScannerError(t('scanner_initialization_failed'));
+          }
+        }, 500); // تأخير بسيط للتأكد من جاهزية العنصر
+      })
+      .catch(err => {
+        console.error('Camera access error:', err);
+        setCameraStatus('denied');
+        setScannerError(t('camera_access_denied'));
+      });
+  };
+  
+  const stopScanner = () => {
+    cleanupScanner();
+    setCameraStatus('idle');
+  };
+  
+  const handleBarcodeDetected = (result: any) => {
+    if (result && result.codeResult && result.codeResult.code) {
+      const barcode = result.codeResult.code;
+      stopScanner();
+      
+      console.log('Barcode detected:', barcode);
+      // استخدام الباركود المكتشف
+      setFormData({
+        ...formData,
+        barcode: barcode
+      });
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -186,16 +267,66 @@ export default function ProductForm({
                 />
                 <Button
                   type="button"
-                  className="rounded-l-none"
+                  className="rounded-l-none rounded-r-none"
                   onClick={generateNewBarcode}
                 >
                   <RefreshCw className="h-4 w-4" />
                 </Button>
+                <Button
+                  type="button"
+                  className="rounded-l-none"
+                  onClick={startScanner}
+                  disabled={isScanning}
+                >
+                  <Camera className="h-4 w-4" />
+                </Button>
               </div>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                {t('barcode_auto_generated_info')}
+                {t('barcode_auto_generated_info')} {!isScanning && t('or_scan_existing_barcode')}
               </p>
             </div>
+            
+            {isScanning && (
+              <div className="col-span-2 mt-2">
+                <div 
+                  id="barcode-scanner-product" 
+                  ref={scannerRef} 
+                  className="border-2 border-dashed border-border rounded-lg overflow-hidden relative h-64 bg-black"
+                >
+                  <div className="absolute inset-0 z-10 pointer-events-none">
+                    <div className="absolute top-1/2 left-0 w-full h-1 bg-red-500 opacity-70 animate-pulse"></div>
+                    <div className="absolute top-0 left-1/2 w-1 h-full bg-red-500 opacity-70 animate-pulse"></div>
+                    
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="p-2 rounded-full bg-black/50 backdrop-blur">
+                        <ScanLine className="h-5 w-5 text-white animate-pulse" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-2 flex justify-end">
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={stopScanner}
+                    size="sm"
+                  >
+                    {t('cancel_scanning')}
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {scannerError && (
+              <div className="col-span-2 mt-2">
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>{t('error')}</AlertTitle>
+                  <AlertDescription>{scannerError}</AlertDescription>
+                </Alert>
+              </div>
+            )}
             
             <div className="col-span-2 flex justify-center">
               <div 
