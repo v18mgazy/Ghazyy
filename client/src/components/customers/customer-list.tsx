@@ -100,6 +100,7 @@ export default function CustomerList({
   const viewHistory = async (customer: Customer) => {
     setSelectedCustomer(customer);
     setShowHistory(true);
+    setPurchaseHistory([]); // إعادة ضبط تاريخ المشتريات قبل جلب البيانات الجديدة
     
     // جلب تاريخ مشتريات العميل من قاعدة البيانات
     try {
@@ -108,14 +109,25 @@ export default function CustomerList({
         // تحويل البيانات إلى النموذج المطلوب
         const formattedHistory = result.data.map((invoice: any) => ({
           id: invoice.id.toString(),
-          date: new Date(invoice.createdAt).toLocaleDateString(),
-          invoiceNumber: `INV-${invoice.id}`,
+          date: new Date(invoice.createdAt || Date.now()).toLocaleDateString(),
+          invoiceNumber: `INV-${invoice.id.toString().padStart(5, '0')}`,
           total: invoice.totalAmount || 0
         }));
+        
+        // ترتيب البيانات حسب التاريخ من الأحدث إلى الأقدم
+        formattedHistory.sort((a, b) => {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          return dateB - dateA;
+        });
+        
         setPurchaseHistory(formattedHistory);
+      } else {
+        setPurchaseHistory([]);
       }
     } catch (error) {
       console.error('Error fetching customer history:', error);
+      setPurchaseHistory([]);
     }
   };
 
@@ -324,7 +336,15 @@ export default function CustomerList({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {purchaseHistory.length === 0 ? (
+                {isLoadingHistory ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-4">
+                      <div className="flex justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : purchaseHistory.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center py-4 text-neutral-500">
                       {t('no_purchase_history')}
@@ -342,6 +362,20 @@ export default function CustomerList({
                   ))
                 )}
               </TableBody>
+              {purchaseHistory.length > 0 && (
+                <tfoot>
+                  <tr className="border-t">
+                    <td colSpan={2} className="py-2 px-4 text-right font-semibold">
+                      {t('total')}:
+                    </td>
+                    <td className="py-2 px-4 text-right font-bold">
+                      {formatCurrency(
+                        purchaseHistory.reduce((sum, purchase) => sum + purchase.total, 0)
+                      )}
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
             </Table>
           </div>
           
