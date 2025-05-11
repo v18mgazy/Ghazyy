@@ -647,15 +647,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           console.log(`Updated product ${product.name} stock to ${newStock}`);
           
-          // إرجاع بيانات المنتج المعالجة
+          // إرجاع بيانات المنتج المعالجة مع إضافة سعر الشراء للتقارير وحساب الأرباح
           return {
             productId: productId,
             productName: product.name,
             barcode: product.barcode,
             quantity: item.quantity,
             price: item.price,
+            purchasePrice: product.purchasePrice || 0, // إضافة سعر الشراء للاستخدام في التقارير وحساب الأرباح
+            sellingPrice: product.sellingPrice || item.price, // إضافة سعر البيع كمرجع
             discount: item.discount || 0,
-            total: item.total || (item.quantity * item.price * (1 - (item.discount || 0) / 100))
+            total: item.total || (item.quantity * item.price * (1 - (item.discount || 0) / 100)),
+            profit: (item.price - (product.purchasePrice || 0)) * item.quantity // حساب الربح مباشرة
           };
         }));
         
@@ -1419,6 +1422,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   function createDetailedReports(invoices: any[], damagedItems: any[], type: string, date: string): any[] {
     const detailedReports: any[] = [];
+    let totalDamagesValue = 0;
+    let totalEmployeeDeductions = 0;
     
     // إضافة تقارير مفصلة للفواتير
     for (const invoice of invoices) {
@@ -1426,12 +1431,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const formattedDate = formatDateForReportType(invoiceDate, type);
       
       if (formattedDate === date) {
+        // حساب الأرباح من بيانات المنتجات إذا كانت متوفرة
+        let calculatedProfit = 0;
+        
+        try {
+          if (invoice.productsData) {
+            const products = JSON.parse(invoice.productsData);
+            if (Array.isArray(products)) {
+              for (const product of products) {
+                // استخدام الربح المحسوب مسبقًا أو حسابه الآن
+                if (product.profit !== undefined) {
+                  calculatedProfit += product.profit;
+                } else if (product.purchasePrice !== undefined && product.price) {
+                  calculatedProfit += (product.price - product.purchasePrice) * product.quantity;
+                } else {
+                  // استخدام متوسط هامش ربح 30% إذا لم يكن سعر الشراء متاحًا
+                  calculatedProfit += (product.total || 0) * 0.3;
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error calculating profit from invoice products:", error);
+        }
+        
         detailedReports.push({
           id: invoice.id,
           date: new Date(invoice.date).toISOString().split('T')[0],
           type: 'sale',
           amount: invoice.total,
-          details: `Invoice #${invoice.invoiceNumber}, Payment: ${invoice.paymentMethod}`
+          profit: calculatedProfit, // إضافة الربح المحسوب
+          details: `Invoice #${invoice.invoiceNumber}, Payment: ${invoice.paymentMethod}`,
+          customerName: invoice.customerName || 'عميل غير معروف',
+          paymentStatus: invoice.paymentStatus
         });
       }
     }
@@ -1442,14 +1474,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const formattedDate = formatDateForReportType(itemDate, type);
       
       if (formattedDate === date) {
+        // حساب إجمالي قيمة التوالف
+        totalDamagesValue += item.valueLoss || 0;
+        
         detailedReports.push({
           id: item.id,
           date: new Date(item.date).toISOString().split('T')[0],
           type: 'damage',
           amount: item.valueLoss,
-          details: item.description || 'No description'
+          details: item.description || 'No description',
+          productName: item.productName || 'منتج غير معروف',
+          quantity: item.quantity
         });
       }
+    }
+    
+    // إضافة ملخص للتوالف إذا كانت موجودة
+    if (totalDamagesValue > 0) {
+      detailedReports.push({
+        id: `summary-damaged-${date}`,
+        date: date,
+        type: 'summary',
+        category: 'damaged',
+        amount: totalDamagesValue,
+        details: `إجمالي قيمة التوالف للفترة`
+      });
     }
     
     return detailedReports.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
