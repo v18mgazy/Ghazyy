@@ -83,52 +83,6 @@ export default function InvoiceManagement() {
     }
   }, [invoicesError, toast, t]);
   
-  // تحويل بيانات الفواتير القادمة من قاعدة البيانات
-  const processedInvoices = useMemo(() => {
-    if (!dbInvoices || !Array.isArray(dbInvoices) || dbInvoices.length === 0) {
-      console.log('No invoices available from database');
-      return [];
-    }
-    
-    console.log('Processing invoices:', dbInvoices.length);
-    
-    // تحويل بيانات الفواتير
-    return dbInvoices
-      .filter((invoice: any) => invoice && !invoice.isDeleted) // استبعاد الفواتير المحذوفة
-      .map((invoice: any) => {
-        if (!invoice) {
-          console.warn('Found null invoice in data');
-          return null;
-        }
-        
-        // استخراج بيانات المنتجات
-        let products = extractProductsFromInvoice(invoice);
-        
-        // تنسيق بيانات الفاتورة للعرض
-        return {
-          id: invoice.invoiceNumber || `INV-${invoice.id}`,
-          dbId: invoice.id,
-          date: new Date(invoice.date || Date.now()),
-          customer: {
-            id: invoice.customerId?.toString() || 'unknown',
-            name: invoice.customerName || t('unknown_customer'),
-            phone: invoice.customerPhone || '',
-            address: invoice.customerAddress || ''
-          },
-          total: invoice.total || 0,
-          subtotal: invoice.subtotal || 0,
-          discount: invoice.discount || 0,
-          status: invoice.paymentStatus || 'unknown',
-          paymentMethod: invoice.paymentMethod || 'unknown',
-          items: products,
-          notes: invoice.notes || '',
-          createdAt: invoice.createdAt ? new Date(invoice.createdAt) : new Date(),
-          userId: invoice.userId
-        };
-      })
-      .filter(Boolean); // إزالة القيم الفارغة
-  }, [dbInvoices, t]);
-  
   // استخراج بيانات المنتجات من الفاتورة
   const extractProductsFromInvoice = (invoice: any) => {
     try {
@@ -209,6 +163,52 @@ export default function InvoiceManagement() {
       return [];
     }
   };
+
+  // تحويل بيانات الفواتير القادمة من قاعدة البيانات
+  const processedInvoices = useMemo(() => {
+    if (!dbInvoices || !Array.isArray(dbInvoices) || dbInvoices.length === 0) {
+      console.log('No invoices available from database');
+      return [];
+    }
+    
+    console.log('Processing invoices:', dbInvoices.length);
+    
+    // تحويل بيانات الفواتير
+    return dbInvoices
+      .filter((invoice: any) => invoice && !invoice.isDeleted) // استبعاد الفواتير المحذوفة
+      .map((invoice: any) => {
+        if (!invoice) {
+          console.warn('Found null invoice in data');
+          return null;
+        }
+        
+        // استخراج بيانات المنتجات
+        let products = extractProductsFromInvoice(invoice);
+        
+        // تنسيق بيانات الفاتورة للعرض
+        return {
+          id: invoice.invoiceNumber || `INV-${invoice.id}`,
+          dbId: invoice.id,
+          date: new Date(invoice.date || Date.now()),
+          customer: {
+            id: invoice.customerId?.toString() || 'unknown',
+            name: invoice.customerName || t('unknown_customer'),
+            phone: invoice.customerPhone || '',
+            address: invoice.customerAddress || ''
+          },
+          total: invoice.total || 0,
+          subtotal: invoice.subtotal || 0,
+          discount: invoice.discount || 0,
+          status: invoice.paymentStatus || 'unknown',
+          paymentMethod: invoice.paymentMethod || 'unknown',
+          items: products,
+          notes: invoice.notes || '',
+          createdAt: invoice.createdAt ? new Date(invoice.createdAt) : new Date(),
+          userId: invoice.userId
+        };
+      })
+      .filter(Boolean); // إزالة القيم الفارغة
+  }, [dbInvoices, t]);
   
   // تخزين الفواتير المعالجة في حالة المكون
   const [invoices, setInvoices] = useState<any[]>([]);
