@@ -208,5 +208,16 @@
   "users_management": "Users Management",
   "product_barcodes": "Product Barcodes",
   "popup_blocked": "Popup blocked, please allow popups for this site",
-  "print_error": "Error occurred during printing"
+  "print_error": "Error occurred during printing",
+  "refresh": "Refresh",
+  "refreshing": "Refreshing",
+  "refreshing_invoices_list": "Refreshing invoices list...",
+  "feature_coming_soon": "This feature is coming soon",
+  "invoice_edit_prepare_error": "Error preparing invoice for edit",
+  "invoice_invalid_id": "Invalid invoice ID",
+  "invoice_deleted_successfully": "Invoice deleted successfully",
+  "invoice_delete_error": "Error deleting invoice",
+  "success": "Success",
+  "invoice_save_error": "Error saving invoice",
+  "unauthorized": "Unauthorized"
 }
