@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { 
   Search, FileSpreadsheet, Edit, History, Loader2,
   MessageSquareShare, Filter
 } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
@@ -53,12 +55,13 @@ export default function CustomerList({
   
   const perPage = 10;
   
-  // Mock purchase history data
-  const purchaseHistory = [
-    { id: '1', date: '2023-08-20', invoiceNumber: 'INV-2023-0001', total: 199.99 },
-    { id: '2', date: '2023-07-15', invoiceNumber: 'INV-2023-0056', total: 299.99 },
-    { id: '3', date: '2023-06-10', invoiceNumber: 'INV-2023-0102', total: 99.99 },
-  ];
+  // استخدام استعلام React Query للحصول على تاريخ مشتريات العميل من قاعدة البيانات
+  const [purchaseHistory, setPurchaseHistory] = useState<Array<{
+    id: string;
+    date: string;
+    invoiceNumber: string;
+    total: number;
+  }>>([]);
 
   const filteredCustomers = customers.filter(customer => 
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -81,9 +84,39 @@ export default function CustomerList({
     window.open(whatsappLink, '_blank');
   };
 
-  const viewHistory = (customer: Customer) => {
+  // استعلام للحصول على تاريخ مشتريات العميل (سيتم استخدامه عند طلب عرض التاريخ)
+  const { isLoading: isLoadingHistory, refetch: fetchCustomerHistory } = useQuery({
+    queryKey: ['/api/customer-invoices', selectedCustomer?.id],
+    queryFn: async () => {
+      if (!selectedCustomer?.id) return [];
+      const response = await apiRequest('GET', `/api/customer-invoices/${selectedCustomer.id}`);
+      const data = await response.json();
+      return data;
+    },
+    enabled: false, // لا يتم تنفيذ الاستعلام تلقائيًا
+  });
+
+  // عند طلب عرض تاريخ مشتريات العميل
+  const viewHistory = async (customer: Customer) => {
     setSelectedCustomer(customer);
     setShowHistory(true);
+    
+    // جلب تاريخ مشتريات العميل من قاعدة البيانات
+    try {
+      const result = await fetchCustomerHistory();
+      if (result?.data) {
+        // تحويل البيانات إلى النموذج المطلوب
+        const formattedHistory = result.data.map((invoice: any) => ({
+          id: invoice.id.toString(),
+          date: new Date(invoice.createdAt).toLocaleDateString(),
+          invoiceNumber: `INV-${invoice.id}`,
+          total: invoice.totalAmount || 0
+        }));
+        setPurchaseHistory(formattedHistory);
+      }
+    } catch (error) {
+      console.error('Error fetching customer history:', error);
+    }
   };
 
   return (

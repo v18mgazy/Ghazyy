@@ -156,32 +156,34 @@ export default function Sidebar({ isOpen, onClose, isAdmin }: SidebarProps) {
                 (item.href !== '/' && location.startsWith(item.href));
               
               return (
-                <Link key={item.href} href={item.href}>
-                  <a 
-                    className={cn(
-                      "flex flex-col w-full p-3 rounded-md transition-all card-hover",
+                <div 
+                  key={item.href}
+                  className={cn(
+                    "flex flex-col w-full p-3 rounded-md transition-all card-hover cursor-pointer", 
+                    isActive 
+                      ? "bg-primary text-primary-foreground shadow-md" 
+                      : "hover:bg-muted"
+                  )}
+                  onClick={() => {
+                    navigate(item.href);
+                    onClose();
+                  }}
+                >
+                  <div className="flex items-center">
+                    <div className={cn(
+                      "rounded-md p-2",
                       isActive 
-                        ? "bg-primary text-primary-foreground shadow-md" 
-                        : "hover:bg-muted"
-                    )}
-                    onClick={() => onClose()}
-                  >
-                    <div className="flex items-center">
-                      <div className={cn(
-                        "rounded-md p-2",
-                        isActive 
-                          ? "bg-primary-foreground/20" 
-                          : "bg-primary/10"
-                      )}>
-                        {item.icon}
-                      </div>
-                      <div className={`${marginClass} flex-1`}>
-                        <span className="font-medium block">{item.title}</span>
-                        <span className="text-xs opacity-80 block">{item.description}</span>
-                      </div>
+                        ? "bg-primary-foreground/20" 
+                        : "bg-primary/10" 
+                    )}>
+                      {item.icon}
                     </div>
-                  </a>
-                </Link>
+                    <div className={`${marginClass} flex-1`}>
+                      <span className="font-medium block">{item.title}</span>
+                      <span className="text-xs opacity-80 block">{item.description}</span>
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>
