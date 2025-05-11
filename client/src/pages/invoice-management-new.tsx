@@ -545,7 +545,7 @@ export default function InvoiceManagement() {
     setScannedProduct(product);
   };
   
-  // مشاركة الفاتورة بصيغة PDF
+  // مشاركة الفاتورة بصيغة PDF عن طريق عمل HTML وتحويله
   const shareInvoicePDF = async (invoice: any) => {
     try {
       if (!invoice) {
@@ -557,248 +557,233 @@ export default function InvoiceManagement() {
         return;
       }
       
-      // استيراد مكتبات PDF
+      // استيراد مكتبة jsPDF و html2canvas للتعامل مع HTML
       const { jsPDF } = await import('jspdf');
-      const { default: autoTable } = await import('jspdf-autotable');
+      const html2canvas = (await import('html2canvas')).default;
       
-      // تحديد اتجاه الصفحة حسب اللغة
+      // إنشاء عنصر HTML لتعيين الفاتورة
+      const invoiceElement = document.createElement('div');
+      
+      // تحديد اتجاه التنسيق حسب اللغة
       const isRtl = language === 'ar';
+      const dirStyle = isRtl ? 'rtl' : 'ltr';
+      const textAlignStyle = isRtl ? 'right' : 'left';
+      const reverseTextAlignStyle = isRtl ? 'left' : 'right';
       
-      // إنشاء مستند PDF
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
+      // تنسيق التاريخ
+      const formattedDate = formatDate(invoice.date);
       
-      // إعداد الخط - نستخدم الخط الافتراضي لكن مع تمكين الاتجاه الصحيح
-      doc.setFont('Helvetica', 'normal');
-      if (isRtl) {
-        doc.setR2L(true);
-      }
-      
-      // تعريف أنماط الجدول
-      const tableStyle = {
-        headStyles: {
-          fillColor: [41, 128, 185], // لون أزرق أفضل للعنوان
-          textColor: [255, 255, 255],
-          fontStyle: 'bold',
-          halign: isRtl ? 'right' : 'left'
-        },
-        bodyStyles: {
-          halign: isRtl ? 'right' : 'left'
-        },
-        alternateRowStyles: {
-          fillColor: [240, 240, 240]
-        },
-        styles: {
-          font: 'Helvetica',
-          overflow: 'linebreak',
-          cellPadding: 3
-        }
-      };
-      
-      // إعداد معلومات الفاتورة
-      const storeTitle = isRtl ? 'سيلز غازي' : 'Sales Ghazy';
-      const storeAddress = isRtl ? 'القاهرة - مصر' : 'Cairo - Egypt';
-      const storePhone = '01067677607';
-      const invoiceTitle = isRtl ? 'فاتورة رقم:' : 'Invoice #:';
-      const invoiceDate = isRtl ? 'التاريخ:' : 'Date:';
-      const customerTitle = isRtl ? 'بيانات العميل:' : 'Customer:';
-      
-      // إضافة معلومات الشركة (الرأس)
-      doc.setFillColor(41, 128, 185);
-      doc.rect(0, 0, doc.internal.pageSize.width, 40, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.text(storeTitle, doc.internal.pageSize.width / 2, 15, { align: 'center' });
-      doc.setFontSize(10);
-      doc.text(storeAddress, doc.internal.pageSize.width / 2, 22, { align: 'center' });
-      doc.text(storePhone, doc.internal.pageSize.width / 2, 27, { align: 'center' });
-      
-      // إضافة معلومات الفاتورة
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(14);
-      doc.text(`${invoiceTitle} ${invoice.id}`, isRtl ? 190 : 20, 50);
-      doc.text(`${invoiceDate} ${formatDate(invoice.date)}`, isRtl ? 190 : 20, 58);
-      
-      // معلومات العميل
-      doc.setFontSize(12);
-      doc.setTextColor(70, 70, 70);
-      doc.text(customerTitle, isRtl ? 190 : 20, 70);
-      doc.setFontSize(10);
+      // إعداد البيانات
       const customerName = invoice.customer.name || '';
       const customerPhone = invoice.customer.phone || '';
       const customerAddress = invoice.customer.address || '';
       
-      doc.text(customerName, isRtl ? 190 : 20, 76);
-      if (customerPhone) {
-        doc.text(customerPhone, isRtl ? 190 : 20, 82);
-      }
-      if (customerAddress) {
-        doc.text(customerAddress, isRtl ? 190 : 20, customerPhone ? 88 : 82);
-      }
+      // إنشاء HTML للفاتورة
+      invoiceElement.innerHTML = `
+        <div dir="${dirStyle}" style="font-family: Arial, sans-serif; width: 800px; padding: 20px; box-sizing: border-box; margin: 0 auto;">
+          <!-- رأس الفاتورة -->
+          <div style="background-color: #2980b9; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">${isRtl ? 'سيلز غازي' : 'Sales Ghazy'}</h1>
+            <p style="margin: 5px 0; font-size: 14px;">${isRtl ? 'القاهرة - مصر' : 'Cairo - Egypt'}</p>
+            <p style="margin: 5px 0; font-size: 14px;">01067677607</p>
+          </div>
+          
+          <!-- معلومات الفاتورة -->
+          <div style="margin: 20px 0; overflow: hidden;">
+            <div style="float: ${textAlignStyle}; text-align: ${textAlignStyle}; width: 50%;">
+              <h3 style="margin: 0 0 10px; color: #333; font-size: 16px; font-weight: bold;">
+                ${isRtl ? 'معلومات الفاتورة:' : 'Invoice Information:'}
+              </h3>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>${isRtl ? 'رقم الفاتورة:' : 'Invoice Number:'}</strong> ${invoice.id}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>${isRtl ? 'التاريخ:' : 'Date:'}</strong> ${formattedDate}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>${isRtl ? 'طريقة الدفع:' : 'Payment Method:'}</strong> ${t(invoice.paymentMethod)}
+              </p>
+            </div>
+            
+            <div style="float: ${reverseTextAlignStyle}; text-align: ${reverseTextAlignStyle}; width: 50%;">
+              <h3 style="margin: 0 0 10px; color: #333; font-size: 16px; font-weight: bold;">
+                ${isRtl ? 'معلومات العميل:' : 'Customer Information:'}
+              </h3>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>${isRtl ? 'الاسم:' : 'Name:'}</strong> ${customerName}
+              </p>
+              ${customerPhone ? `
+                <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                  <strong>${isRtl ? 'الهاتف:' : 'Phone:'}</strong> ${customerPhone}
+                </p>
+              ` : ''}
+              ${customerAddress ? `
+                <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                  <strong>${isRtl ? 'العنوان:' : 'Address:'}</strong> ${customerAddress}
+                </p>
+              ` : ''}
+            </div>
+          </div>
+          
+          <!-- الخط الفاصل -->
+          <div style="border-top: 1px solid #ddd; margin: 15px 0;"></div>
+          
+          <!-- قائمة المنتجات -->
+          <h3 style="text-align: center; color: #2980b9; margin: 20px 0; font-size: 18px;">
+            ${isRtl ? 'المنتجات' : 'Products'}
+          </h3>
+          
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; direction: ${dirStyle}; text-align: ${textAlignStyle};">
+            <thead>
+              <tr style="background-color: #2980b9; color: white;">
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: ${textAlignStyle};">${t('product')}</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">${t('price')}</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">${t('quantity')}</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: ${reverseTextAlignStyle};">${t('total')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${invoice.items.map((item: any, index: number) => `
+                <tr style="background-color: ${index % 2 === 0 ? '#f9f9f9' : 'white'};">
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: ${textAlignStyle};">
+                    ${item.productName || item.product?.name || t('unknown_product')}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                    ${formatCurrency(item.price)}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                    ${item.quantity}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: ${reverseTextAlignStyle};">
+                    ${formatCurrency(item.total)}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <!-- ملخص المدفوعات -->
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: ${reverseTextAlignStyle}; width: 300px; margin-left: ${isRtl ? '0' : 'auto'}; margin-right: ${isRtl ? 'auto' : '0'};">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span style="font-weight: bold; color: #555;">${t('subtotal')}:</span>
+              <span>${formatCurrency(invoice.subtotal || invoice.total)}</span>
+            </div>
+            
+            ${invoice.discount && invoice.discount > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #555;">${t('discount')}:</span>
+                <span>${formatCurrency(invoice.discount)}</span>
+              </div>
+            ` : ''}
+            
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 16px; border-top: 1px solid #ddd; padding-top: 10px;">
+              <span style="font-weight: bold; color: #333;">${t('total')}:</span>
+              <span style="font-weight: bold; color: #2980b9;">${formatCurrency(invoice.total)}</span>
+            </div>
+          </div>
+          
+          <!-- رسالة شكر -->
+          <div style="text-align: center; margin-top: 30px; color: #2980b9; font-style: italic;">
+            <p>${t('thank_you_message')}</p>
+          </div>
+          
+          <!-- التذييل -->
+          <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #999;">
+            <p>© ${new Date().getFullYear()} Sales Ghazy - ${new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US')}</p>
+          </div>
+        </div>
+      `;
       
-      // الخط الفاصل
-      doc.setDrawColor(220, 220, 220);
-      doc.setLineWidth(0.5);
-      const lineY = (customerPhone && customerAddress) ? 95 : 
-                    (customerPhone || customerAddress) ? 90 : 83;
-      doc.line(20, lineY, 190, lineY);
-      
-      // عنوان جدول المنتجات
-      doc.setFontSize(14);
-      doc.setTextColor(41, 128, 185);
-      doc.text(t('products'), doc.internal.pageSize.width / 2, lineY + 10, { align: 'center' });
-      
-      // إضافة جدول المنتجات
-      const tableHeaders = [
-        [t('product'), t('price'), t('quantity'), t('total')]
-      ];
-      
-      const tableData = invoice.items.map((item: any) => [
-        item.productName || item.product?.name || t('unknown_product'),
-        formatCurrency(item.price),
-        item.quantity.toString(),
-        formatCurrency(item.total)
-      ]);
-      
-      // ترتيب الأعمدة بشكل صحيح حسب اللغة
-      if (isRtl) {
-        tableHeaders[0].reverse();
-        tableData.forEach(row => row.reverse());
-      }
-      
-      autoTable(doc, {
-        head: tableHeaders,
-        body: tableData,
-        startY: lineY + 15,
-        theme: 'grid',
-        ...tableStyle,
-        columnStyles: isRtl 
-          ? { 0: { halign: 'right' }, 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'left' } }
-          : { 0: { halign: 'left' }, 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'right' } }
+      // إضافة عنصر الفاتورة مؤقتًا إلى الصفحة بحيث يمكن تصويره
+      Object.assign(invoiceElement.style, {
+        position: 'absolute',
+        left: '-9999px',
+        top: '-9999px',
+        zIndex: '-9999'
       });
+      document.body.appendChild(invoiceElement);
       
-      // إضافة ملخص الفاتورة
-      const finalY = (doc as any).lastAutoTable.finalY + 10;
-      
-      // ملخص المدفوعات
-      const paymentSummary = [
-        [`${t('subtotal')}:`, formatCurrency(invoice.subtotal || invoice.total)],
-      ];
-      
-      if (invoice.discount && invoice.discount > 0) {
-        paymentSummary.push([`${t('discount')}:`, formatCurrency(invoice.discount)]);
-      }
-      
-      paymentSummary.push([`${t('total')}:`, formatCurrency(invoice.total)]);
-      
-      // رسالة طريقة الدفع
-      const paymentMethodRow = [[`${t('payment_method')}:`, t(invoice.paymentMethod)]];
-      
-      // ترتيب الأعمدة في ملخص المدفوعات
-      if (isRtl) {
-        paymentSummary.forEach(row => row.reverse());
-        paymentMethodRow[0].reverse();
-      }
-      
-      // جدول الملخص
-      autoTable(doc, {
-        body: paymentSummary,
-        startY: finalY,
-        theme: 'plain',
-        ...tableStyle,
-        styles: {
-          ...tableStyle.styles,
-          fontSize: 10,
-          cellPadding: 2
-        },
-        columnStyles: {
-          0: { fontStyle: 'bold' },
-          1: { halign: isRtl ? 'left' : 'right' }
-        },
-        margin: { left: isRtl ? 20 : 100, right: isRtl ? 100 : 20 }
-      });
-      
-      // طريقة الدفع
-      const paymentMethodY = (doc as any).lastAutoTable.finalY + 5;
-      autoTable(doc, {
-        body: paymentMethodRow,
-        startY: paymentMethodY,
-        theme: 'plain',
-        ...tableStyle,
-        styles: {
-          ...tableStyle.styles,
-          fontSize: 10,
-          cellPadding: 2
-        },
-        columnStyles: {
-          0: { fontStyle: 'bold' },
-          1: { halign: isRtl ? 'left' : 'right' }
-        },
-        margin: { left: isRtl ? 20 : 100, right: isRtl ? 100 : 20 }
-      });
-      
-      // إضافة رسالة شكر
-      doc.setFontSize(12);
-      doc.setTextColor(41, 128, 185);
-      const thankYouMessage = t('thank_you_message');
-      doc.text(thankYouMessage, doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 20, { align: 'center' });
-      
-      // إضافة رقم الصفحة والتذييل
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
-      const dateStr = new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US');
-      const footerText = `© ${new Date().getFullYear()} Sales Ghazy - ${dateStr}`;
-      doc.text(footerText, doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 10, { align: 'center' });
-      
-      // تحديد اسم الملف
-      const fileName = `invoice-${invoice.id}-${formatDate(invoice.date, 'yyyy-MM-dd')}.pdf`;
-      
-      if (invoice.customer && invoice.customer.phone) {
-        // تنظيف رقم الهاتف وإزالة المسافات والشرطات وأي رموز غير رقمية
-        let phone = invoice.customer.phone.replace(/\s+|-|\(|\)|\+/g, '');
+      try {
+        // التقاط الفاتورة كصورة باستخدام html2canvas
+        const canvas = await html2canvas(invoiceElement, {
+          scale: 2, // زيادة الدقة للحصول على جودة أفضل
+          logging: false,
+          useCORS: true
+        });
         
-        // إضافة رمز البلد إذا لم يكن موجودًا
-        if (!phone.startsWith('20')) {
-          phone = '20' + phone;
+        // إزالة عنصر الفاتورة المؤقت
+        document.body.removeChild(invoiceElement);
+        
+        // تحويل الصورة إلى PDF
+        const imgData = canvas.toDataURL('image/png');
+        
+        // إنشاء PDF بنفس أبعاد الصورة
+        const pdfWidth = 210; // حجم A4 بالملم
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        const pdf = new jsPDF({
+          orientation: pdfHeight > pdfWidth ? 'portrait' : 'landscape',
+          unit: 'mm',
+          format: [pdfWidth, pdfHeight]
+        });
+        
+        // إضافة الصورة إلى PDF
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        
+        // تحديد اسم الملف
+        const fileName = `invoice-${invoice.id}-${formatDate(invoice.date, 'yyyy-MM-dd')}.pdf`;
+        
+        // مشاركة الفاتورة
+        if (invoice.customer && invoice.customer.phone) {
+          // تنظيف رقم الهاتف وإزالة المسافات والشرطات وأي رموز غير رقمية
+          let phone = invoice.customer.phone.replace(/\s+|-|\(|\)|\+/g, '');
+          
+          // إضافة رمز البلد إذا لم يكن موجودًا
+          if (!phone.startsWith('20')) {
+            phone = '20' + phone;
+          }
+          
+          // حفظ PDF كـ blob
+          const pdfBlob = pdf.output('blob');
+          
+          // إنشاء URL للتنزيل
+          const pdfUrl = URL.createObjectURL(pdfBlob);
+          
+          // إنشاء رابط التنزيل
+          const downloadLink = document.createElement('a');
+          downloadLink.href = pdfUrl;
+          downloadLink.download = fileName;
+          
+          // تنزيل الملف
+          downloadLink.click();
+          
+          // مشاركة عبر واتساب إذا كان هناك رقم هاتف
+          const shareMessage = `${t('invoice_sent')} - ${invoice.id}`;
+          const whatsappURL = `https://wa.me/${phone}?text=${encodeURIComponent(shareMessage)}`;
+          
+          // فتح واتساب في نافذة جديدة
+          window.open(whatsappURL, '_blank');
+          
+          // إظهار رسالة نجاح
+          toast({
+            title: t('success'),
+            description: t('invoice_pdf_generated'),
+          });
+        } else {
+          // تنزيل الملف فقط إذا لم يتوفر رقم هاتف
+          pdf.save(fileName);
+          
+          toast({
+            title: t('success'),
+            description: t('invoice_pdf_downloaded'),
+          });
         }
-        
-        // حفظ PDF كـ blob
-        const pdfBlob = doc.output('blob');
-        
-        // إنشاء URL للتنزيل
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        
-        // إنشاء رابط التنزيل
-        const downloadLink = document.createElement('a');
-        downloadLink.href = pdfUrl;
-        downloadLink.download = fileName;
-        
-        // تنزيل الملف
-        downloadLink.click();
-        
-        // مشاركة عبر واتساب إذا كان هناك رقم هاتف
-        const shareMessage = `${t('invoice_sent')} - ${invoice.id}`;
-        const whatsappURL = `https://wa.me/${phone}?text=${encodeURIComponent(shareMessage)}`;
-        
-        // فتح واتساب في نافذة جديدة
-        window.open(whatsappURL, '_blank');
-        
-        // إظهار رسالة نجاح
-        toast({
-          title: t('success'),
-          description: t('invoice_pdf_generated'),
-        });
-      } else {
-        // تنزيل الملف فقط إذا لم يتوفر رقم هاتف
-        doc.save(fileName);
-        
-        toast({
-          title: t('success'),
-          description: t('invoice_pdf_downloaded'),
-        });
+      } catch (renderError) {
+        // إزالة عنصر الفاتورة إذا حدث خطأ
+        if (document.body.contains(invoiceElement)) {
+          document.body.removeChild(invoiceElement);
+        }
+        throw renderError;
       }
     } catch (error) {
       console.error('Error generating PDF:', error);
