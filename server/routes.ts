@@ -242,21 +242,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { customerId } = req.params;
       console.log(`Fetching invoices for customer ID: ${customerId}`);
       
+      // جلب بيانات العميل أولاً للحصول على الاسم والهاتف
+      let customerInfo = null;
+      try {
+        const allCustomers = await storage.getAllCustomers();
+        customerInfo = allCustomers.find(c => c.id.toString() === customerId.toString());
+        if (customerInfo) {
+          console.log(`Found customer: ${customerInfo.name} (${customerInfo.phone || 'No phone'})`);
+        }
+      } catch (error) {
+        console.error('Error fetching customer info:', error);
+      }
+      
       // جلب جميع الفواتير
       const allInvoices = await storage.getAllInvoices();
       console.log(`Total invoices found: ${allInvoices.length}`);
       
-      // تصفية الفواتير حسب معرّف العميل
-      // يجب مقارنة السلاسل النصية مع بعضها البعض لأن معرف العميل قد يكون رقمًا كبيرًا
-      const customerIdStr = customerId.toString();
-      const customerInvoices = allInvoices.filter(invoice => {
-        const invoiceCustomerId = invoice.customerId?.toString() || '';
-        const matches = invoiceCustomerId === customerIdStr;
-        if (matches) {
-          console.log(`Matched invoice: ${invoice.id} for customer: ${customerIdStr}`);
-        }
-        return matches;
-      });
+      // مصفوفة لتخزين الفواتير المطابقة
+      let customerInvoices = [];
+      
+      if (customerInfo) {
+        // البحث بواسطة معرف العميل أولاً
+        const idMatches = allInvoices.filter(invoice => {
+          const invoiceCustomerId = invoice.customerId?.toString() || '';
+          const matches = invoiceCustomerId === customerId.toString();
+          if (matches) {
+            console.log(`Matched invoice by ID: ${invoice.id}`);
+          }
+          return matches;
+        });
+        
+        // البحث بواسطة اسم العميل
+        const nameMatches = allInvoices.filter(invoice => {
+          if (invoice.customerName && customerInfo?.name) {
+            const matches = invoice.customerName.toLowerCase() === customerInfo.name.toLowerCase();
+            if (matches) {
+              console.log(`Matched invoice by name: ${invoice.id}`);
+            }
+            return matches;
+          }
+          return false;
+        });
+        
+        // البحث بواسطة رقم هاتف العميل
+        const phoneMatches = allInvoices.filter(invoice => {
+          if (invoice.customerPhone && customerInfo?.phone) {
+            const matches = invoice.customerPhone === customerInfo.phone;
+            if (matches) {
+              console.log(`Matched invoice by phone: ${invoice.id}`);
+            }
+            return matches;
+          }
+          return false;
+        });
+        
+        // دمج النتائج وإزالة التكرارات
+        const invoiceIds = new Set();
+        const combinedInvoices = [...idMatches, ...nameMatches, ...phoneMatches];
+        
+        customerInvoices = combinedInvoices.filter(invoice => {
+          if (invoiceIds.has(invoice.id)) {
+            return false;
+          }
+          invoiceIds.add(invoice.id);
+          return true;
+        });
+      }
       
       console.log(`Found ${customerInvoices.length} invoices for customer ${customerId}`);
       res.json(customerInvoices);
