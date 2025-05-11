@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Loader2, Search, QrCode, X } from 'lucide-react';
+import { AlertTriangle, Loader2, Search, QrCode } from 'lucide-react';
 import { format } from 'date-fns';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
