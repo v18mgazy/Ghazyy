@@ -491,7 +491,7 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
                               onClick={() => {
                                 // عرض جميع المنتجات عند النقر على حقل اسم المنتج بغض النظر عن الحالة
                                 setEditingProductIndex(index);
-                                setSearchResults(mockProducts);
+                                setSearchResults(allProducts);
                                 if (product.name.trim()) {
                                   // يمكن الاستفادة من البحث إذا كان هناك نص بالفعل
                                   searchProducts(product.name);
