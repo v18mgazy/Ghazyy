@@ -5,6 +5,7 @@ import {
   RefreshCw, ArrowUpDown, Download, ChevronRight, ChevronLeft, Loader2, Share, Scan, QrCode,
   X, Box
 } from 'lucide-react';
+import BarcodeScanner from '@/components/barcode-scanner';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useAuthContext } from '@/context/auth-context';
 import { useLocale } from '@/hooks/use-locale';
@@ -1123,8 +1124,69 @@ export default function InvoiceManagement() {
     );
   };
   
+  // إضافة نافذة مسح الباركود
+  const renderBarcodeDialog = () => {
+    return (
+      <Dialog open={isBarcodeDialogOpen} onOpenChange={setIsBarcodeDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-xl">
+              <Scan className="mr-2 h-5 w-5" />
+              {t('scan_barcode')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('scan_barcode_description')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {!scannedProduct ? (
+              <div className="bg-muted/30 p-4 rounded-lg border">
+                <BarcodeScanner onDetected={handleProductScanned} />
+              </div>
+            ) : (
+              <div className="bg-card rounded-lg border p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-semibold text-lg">{t('product_details')}</h3>
+                  <Button variant="ghost" size="icon" onClick={() => setScannedProduct(null)}>
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid gap-2">
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">{t('product_name')}:</span>
+                    <span className="font-medium">{scannedProduct.name}</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">{t('barcode')}:</span>
+                    <span className="font-medium">{scannedProduct.barcode}</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">{t('price')}:</span>
+                    <span className="font-medium">{formatCurrency(scannedProduct.sellingPrice)}</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-muted-foreground">{t('available_stock')}:</span>
+                    <span className="font-medium">{scannedProduct.stock}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBarcodeDialogOpen(false)}>
+              {t('close')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+  
   return (
     <div className="container mx-auto p-4">
+      {renderBarcodeDialog()}
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
