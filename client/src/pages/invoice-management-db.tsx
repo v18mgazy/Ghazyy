@@ -339,12 +339,45 @@ export default function InvoiceManagementDB() {
       
       console.log('Prepared invoice with items for edit:', invoiceWithItems);
       
-      // 2. التحضير للتعديل - نقوم بإرسال بيانات الفاتورة إلى مكون إنشاء الفاتورة
-      // (سيتم تنفيذ هذا لاحقًا)
-      toast({
-        title: t('edit_invoice'),
-        description: t('feature_coming_soon'),
-      });
+      // 2. التحضير للتعديل
+      
+      // تحديث الفاتورة في قاعدة البيانات
+      try {
+        // قم بتعديل الفاتورة
+        const updateResponse = await fetch(`/api/invoices/${invoice.dbId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customerName: invoiceWithItems.customerName,
+            customerPhone: invoiceWithItems.customerPhone,
+            customerAddress: invoiceWithItems.customerAddress,
+            notes: invoiceWithItems.notes,
+            paymentMethod: invoiceWithItems.paymentMethod,
+            paymentStatus: invoiceWithItems.paymentStatus,
+          }),
+        });
+        
+        if (!updateResponse.ok) {
+          throw new Error('Failed to update invoice');
+        }
+        
+        toast({
+          title: t('success'),
+          description: t('invoice_updated_successfully'),
+        });
+        
+        // قم بتحديث القائمة
+        refetch();
+      } catch (updateError) {
+        console.error('Error updating invoice:', updateError);
+        toast({
+          title: t('error'),
+          description: t('invoice_update_error'),
+          variant: 'destructive'
+        });
+      }
       
       // 3. إعداد بيانات التحديث
       const updateData = {
@@ -425,7 +458,7 @@ export default function InvoiceManagementDB() {
     // بناء رأس HTML
     printWindow.document.write(`
       <!DOCTYPE html>
-      <html dir="${t('direction')}" lang="${i18n.language}">
+      <html dir="${t('direction')}" lang="${language}">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
