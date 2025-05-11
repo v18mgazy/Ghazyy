@@ -14,21 +14,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { NotificationsDropdown } from '@/components/notifications/notifications-dropdown';
 
 interface HeaderProps {
   title: string;
   onMenuClick: () => void;
-  onNotificationsClick: () => void;
   username: string;
   isAdmin: boolean;
+  userId: number;
 }
 
 export default function Header({ 
   title, 
   onMenuClick, 
-  onNotificationsClick, 
   username,
-  isAdmin
+  isAdmin,
+  userId
 }: HeaderProps) {
   const { t } = useTranslation();
   const { language } = useLocale();
@@ -112,16 +113,8 @@ export default function Header({
         
         {/* Right side with user info */}
         <div className="flex items-center gap-1.5">
-          {/* Notification button with indicator */}
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="relative text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted rounded-full"
-            onClick={onNotificationsClick}
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1.5 w-2 h-2 bg-destructive rounded-full" />
-          </Button>
+          {/* Notification dropdown */}
+          <NotificationsDropdown userId={userId} />
           
           {/* User dropdown */}
           <DropdownMenu>

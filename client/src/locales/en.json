@@ -1,4 +1,15 @@
 {
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications",
+    "unread": "{{count}} unread",
+    "markAsRead": "Mark as read",
+    "delete": "Delete",
+    "loadError": "Error loading notifications",
+    "retry": "Retry",
+    "markError": "Error marking notification as read",
+    "deleteError": "Error deleting notification"
+  },
   "dashboard": "Dashboard",
   "sales": "Sales",
   "management": "Management",
