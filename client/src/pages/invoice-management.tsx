@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   FileText, Search, Pencil, Trash2, Printer, ExternalLink, Filter, CheckCircle, XCircle, Clock, 
-  RefreshCw, ArrowUpDown, Download, ChevronRight, ChevronLeft, Loader2, Share
+  RefreshCw, ArrowUpDown, Download, ChevronRight, ChevronLeft, Loader2, Share, Scan, QrCode,
+  X, Box
 } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useAuthContext } from '@/context/auth-context';
