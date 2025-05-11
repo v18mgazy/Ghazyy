@@ -61,11 +61,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // User routes
   app.get('/api/users', async (req, res) => {
-    // Check admin permissions in session
-    if (!req.session?.userRole || req.session.userRole !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-    
     try {
       const users = await storage.getAllUsers();
       res.json(users);
@@ -75,10 +70,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.post('/api/users', async (req, res) => {
-    // Check admin permissions in session
-    if (!req.session?.userRole || req.session.userRole !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
     
     try {
       const userData = insertUserSchema.parse(req.body);
@@ -93,11 +84,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.patch('/api/users/:id', async (req, res) => {
-    // Check admin permissions in session
-    if (!req.session?.userRole || req.session.userRole !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-    
     try {
       const { id } = req.params;
       const user = await storage.updateUser(parseInt(id), req.body);
@@ -111,10 +97,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.delete('/api/users/:id', async (req, res) => {
-    // Check admin permissions in session
-    if (!req.session?.userRole || req.session.userRole !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
     
     try {
       const { id } = req.params;
