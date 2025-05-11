@@ -420,11 +420,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Employee routes
   app.get('/api/employees', async (req, res) => {
-    // Check admin permissions in session
-    if (!req.session?.userRole || req.session.userRole !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-    
     try {
       const employees = await storage.getAllEmployees();
       res.json(employees);
@@ -434,10 +429,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.post('/api/employees', async (req, res) => {
-    // Check admin permissions in session
-    if (!req.session?.userRole || req.session.userRole !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
     
     try {
       const employeeData = insertEmployeeSchema.parse(req.body);
@@ -452,10 +443,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.patch('/api/employees/:id', async (req, res) => {
-    // Check admin permissions in session
-    if (!req.session?.userRole || req.session.userRole !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
     
     try {
       const { id } = req.params;
@@ -486,11 +473,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Damaged items routes
   app.get('/api/damaged-items', async (req, res) => {
-    // Check admin permissions in session
-    if (!req.session?.userRole || req.session.userRole !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-    
     try {
       const items = await storage.getAllDamagedItems();
       res.json(items);
@@ -500,10 +482,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.post('/api/damaged-items', async (req, res) => {
-    // Check admin permissions in session
-    if (!req.session?.userRole || req.session.userRole !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
     
     try {
       const itemData = insertDamagedItemSchema.parse(req.body);
