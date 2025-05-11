@@ -529,6 +529,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Creating invoice with data:', req.body);
       
+      // تأكد من أن storage هو كائن متاح
+      console.log('Storage implementation type:', typeof storage);
+      console.log('Storage methods available:', Object.keys(storage));
+      
       // Extract the user role from the request if available
       const userRole = req.body.userRole || 'cashier'; // افتراض أن المستخدم كاشير إذا لم يتم تحديد الدور
       const userId = req.body.userId || 1; // استخدام ID المستخدم من الطلب إذا كان متوفراً
@@ -670,6 +674,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         productsDataArray = productsDataArray.filter(item => item !== null);
       }
       
+      // التأكد من أن مصفوفة المنتجات جاهزة
+      console.log("Product data array before processing:", productsDataArray);
+      
       // إعداد بيانات المنتجات للتخزين في الحقول المنفصلة
       const productIds: number[] = [];
       const productNames: string[] = [];
@@ -684,6 +691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (productsDataArray && productsDataArray.length > 0) {
         productsDataArray.forEach(product => {
           if (product) {
+            console.log("Processing product for separate fields:", product);
             productIds.push(product.productId);
             productNames.push(product.productName);
             productQuantities.push(product.quantity);
@@ -695,6 +703,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
       }
+      
+      console.log("Extracted product data:", {
+        productIds,
+        productNames,
+        productQuantities,
+        productPrices,
+        productPurchasePrices,
+        productDiscounts,
+        productTotals,
+        productProfits
+      });
       
       // إعداد بيانات الفاتورة مع التأكد من أخذ بيانات العميل مباشرة من الطلب
       const invoiceData = {

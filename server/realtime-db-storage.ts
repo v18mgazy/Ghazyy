@@ -385,11 +385,27 @@ export class RealtimeDBStorage implements IStorage {
   async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
     try {
       const id = this.generateId('invoices');
+      
+      // إضافة طباعة لمعرفة الحقول الواردة
+      console.log('Creating invoice with these fields:', Object.keys(invoice));
+      
       const newInvoice: Invoice = {
         id,
         ...invoice,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        // التأكد من تضمين حقول المنتجات المنفصلة
+        productIds: invoice.productIds || '',
+        productNames: invoice.productNames || '',
+        productQuantities: invoice.productQuantities || '',
+        productPrices: invoice.productPrices || '',
+        productPurchasePrices: invoice.productPurchasePrices || '',
+        productDiscounts: invoice.productDiscounts || '',
+        productTotals: invoice.productTotals || '',
+        productProfits: invoice.productProfits || ''
       };
+      
+      // طباعة الكائن النهائي قبل الحفظ
+      console.log('Final invoice object to save:', newInvoice);
       
       await set(ref(database, `invoices/${id}`), newInvoice);
       return newInvoice;
@@ -406,11 +422,62 @@ export class RealtimeDBStorage implements IStorage {
       
       if (snapshot.exists()) {
         const currentInvoice = snapshot.val() as Invoice;
+        
+        // طباعة المعلومات للتصحيح
+        console.log(`Updating invoice ${id} with these fields:`, Object.keys(invoiceData));
+        
+        // معالجة بيانات المنتجات عند تحديث الفاتورة
+        if (invoiceData.productsData) {
+          try {
+            const products = JSON.parse(invoiceData.productsData);
+            console.log(`Found ${products.length} products in updated invoice data`);
+            
+            // استخراج بيانات المنتجات وتخزينها في المصفوفات المنفصلة
+            const productIds: number[] = [];
+            const productNames: string[] = [];
+            const productQuantities: number[] = [];
+            const productPrices: number[] = [];
+            const productPurchasePrices: number[] = [];
+            const productDiscounts: number[] = [];
+            const productTotals: number[] = [];
+            const productProfits: number[] = [];
+            
+            if (products && products.length > 0) {
+              products.forEach((product: any) => {
+                if (product) {
+                  productIds.push(product.productId);
+                  productNames.push(product.productName);
+                  productQuantities.push(product.quantity);
+                  productPrices.push(product.price);
+                  productPurchasePrices.push(product.purchasePrice || 0);
+                  productDiscounts.push(product.discount || 0);
+                  productTotals.push(product.total);
+                  productProfits.push(product.profit || 0);
+                }
+              });
+              
+              // إضافة الحقول المنفصلة إلى بيانات التحديث
+              invoiceData.productIds = productIds.join(',');
+              invoiceData.productNames = productNames.join('|');
+              invoiceData.productQuantities = productQuantities.join(',');
+              invoiceData.productPrices = productPrices.join(',');
+              invoiceData.productPurchasePrices = productPurchasePrices.join(',');
+              invoiceData.productDiscounts = productDiscounts.join(',');
+              invoiceData.productTotals = productTotals.join(',');
+              invoiceData.productProfits = productProfits.join(',');
+            }
+          } catch (error) {
+            console.error('Error processing products data in updateInvoice:', error);
+          }
+        }
+        
         const updatedInvoice = {
           ...currentInvoice,
           ...invoiceData,
           updatedAt: new Date().toISOString()
         };
+        
+        console.log('Final updated invoice data:', updatedInvoice);
         
         await update(ref(database, `invoices/${id}`), updatedInvoice);
         return updatedInvoice;
