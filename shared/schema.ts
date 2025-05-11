@@ -211,3 +211,26 @@ export type InsertPaymentApproval = z.infer<typeof insertPaymentApprovalSchema>;
 
 export type ReportData = typeof reportData.$inferSelect;
 export type InsertReportData = z.infer<typeof insertReportDataSchema>;
+
+// Notifications
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull(), // invoice_created, deferred_payment_request, etc.
+  referenceId: text("reference_id"), // ID of related entity (invoice, payment approval, etc.)
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).pick({
+  userId: true,
+  title: true,
+  message: true,
+  type: true,
+  referenceId: true,
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;

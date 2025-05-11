@@ -993,4 +993,91 @@ export class RealtimeDBStorage implements IStorage {
       throw error;
     }
   }
+
+  // تنفيذ وظائف إدارة الإشعارات
+
+  async getNotification(id: number): Promise<Notification | undefined> {
+    try {
+      const snapshot = await get(ref(database, `notifications/${id}`));
+      if (!snapshot.exists()) {
+        return undefined;
+      }
+      return snapshot.val() as Notification;
+    } catch (error) {
+      console.error('Error getting notification:', error);
+      return undefined;
+    }
+  }
+
+  async getUserNotifications(userId: number): Promise<Notification[]> {
+    try {
+      const notificationsRef = ref(database, 'notifications');
+      const userNotificationsQuery = query(notificationsRef, orderByChild('userId'), equalTo(userId));
+      const snapshot = await get(userNotificationsQuery);
+      
+      if (!snapshot.exists()) {
+        return [];
+      }
+      
+      const notifications: Notification[] = [];
+      snapshot.forEach((childSnapshot) => {
+        notifications.push(childSnapshot.val() as Notification);
+      });
+      
+      // ترتيب الإشعارات من الأحدث إلى الأقدم
+      return notifications.sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    } catch (error) {
+      console.error('Error getting user notifications:', error);
+      return [];
+    }
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    try {
+      const id = this.generateId('notifications');
+      const newNotification: Notification = {
+        id,
+        ...notification,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+      
+      await set(ref(database, `notifications/${id}`), newNotification);
+      return newNotification;
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      throw error;
+    }
+  }
+
+  async markNotificationAsRead(id: number): Promise<Notification | undefined> {
+    try {
+      const notificationRef = ref(database, `notifications/${id}`);
+      const snapshot = await get(notificationRef);
+      
+      if (!snapshot.exists()) {
+        return undefined;
+      }
+      
+      const notification = snapshot.val() as Notification;
+      notification.isRead = true;
+      
+      await update(notificationRef, { isRead: true });
+      return notification;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      return undefined;
+    }
+  }
+
+  async deleteNotification(id: number): Promise<void> {
+    try {
+      await remove(ref(database, `notifications/${id}`));
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      throw error;
+    }
+  }
 }
