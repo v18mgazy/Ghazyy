@@ -533,13 +533,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updatedAt: new Date().toISOString()
       };
       
-      // إعداد بيانات الفاتورة مع التحقق من صحة البيانات
-      const invoiceData = insertInvoiceSchema.parse({
-        ...req.body,
-        ...customerInfo, // إضافة معلومات العميل المفصلة
-        customerId: customerId, // استخدام معرف العميل المحول
-        userId: userId
-      });
+      // إعداد بيانات الفاتورة
+      const invoiceData = {
+        invoiceNumber: req.body.invoiceNumber,
+        customerId: customerId,
+        customerName: customerInfo.customerName,
+        customerPhone: customerInfo.customerPhone,
+        customerAddress: customerInfo.customerAddress,
+        subtotal: req.body.subtotal,
+        discount: req.body.discount || 0,
+        total: req.body.total,
+        paymentMethod: req.body.paymentMethod,
+        paymentStatus: req.body.paymentStatus,
+        notes: customerInfo.notes,
+        date: req.body.date || new Date().toISOString(),
+        userId: userId,
+        isDeleted: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      console.log('Final invoice data for creation:', invoiceData);
       
       // إنشاء الفاتورة
       const invoice = await storage.createInvoice(invoiceData);
