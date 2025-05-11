@@ -2,27 +2,14 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocale } from '@/hooks/use-locale';
 import { Button } from '@/components/ui/button';
-import { ReceiptText, Plus, ArrowRight } from 'lucide-react';
+import { ReceiptText, Plus, ArrowRight, Loader2 } from 'lucide-react';
 import BarcodeScanner from '@/components/barcode-scanner';
 import ActiveInvoice from '@/components/invoice/active-invoice';
 import CreateInvoiceDialog from '@/components/invoice/create-invoice-dialog';
-
-interface Customer {
-  id: string;
-  name: string;
-  phone: string;
-  address: string;
-  isPotential: boolean;
-}
-
-interface Product {
-  id: string;
-  name: string;
-  barcode: string;
-  code?: string;
-  purchasePrice: number;
-  sellingPrice: number;
-}
+import { useQuery } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
+import { Customer, Product } from '@shared/schema';
+import { toast } from '@/hooks/use-toast';
 
 export default function SalesPage() {
   const { t } = useTranslation();
@@ -36,6 +23,32 @@ export default function SalesPage() {
   // حالة النافذة المنبثقة لإنشاء الفاتورة
   const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
   
+  // استعلام للمنتجات
+  const { data: products, isLoading: isProductsLoading } = useQuery({
+    queryKey: ['/api/products'],
+    onError: (error) => {
+      toast({
+        title: t('error'),
+        description: t('products_fetch_error'),
+        variant: 'destructive'
+      });
+      console.error('Failed to fetch products:', error);
+    }
+  });
+  
+  // استعلام للعملاء
+  const { data: customers, isLoading: isCustomersLoading } = useQuery({
+    queryKey: ['/api/customers'],
+    onError: (error) => {
+      toast({
+        title: t('error'),
+        description: t('customers_fetch_error'),
+        variant: 'destructive'
+      });
+      console.error('Failed to fetch customers:', error);
+    }
+  });
+  
   const handleCustomerSelected = (customer: Customer) => {
     setActiveCustomer(customer);
     setIsCreateInvoiceOpen(false);
@@ -44,6 +57,11 @@ export default function SalesPage() {
   const handleProductScanned = (product: Product) => {
     setLastScannedProduct(product);
     setShowScanner(false);
+    
+    // إرسال المنتج المفحوص إلى الفاتورة النشطة (إذا كانت موجودة)
+    if (document.getElementById('add-scanned-product-to-invoice')) {
+      document.getElementById('add-scanned-product-to-invoice')?.click();
+    }
   };
   
   const handleCloseInvoice = () => {
@@ -54,6 +72,16 @@ export default function SalesPage() {
   const handleActivateScanner = () => {
     setShowScanner(true);
   };
+  
+  // مؤشر التحميل
+  if (isProductsLoading || isCustomersLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh]">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="mt-4 text-lg">{t('loading_data')}</p>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -83,6 +111,26 @@ export default function SalesPage() {
           {/* قسم ماسح الباركود */}
           <BarcodeScanner onProductScanned={handleProductScanned} />
           
+          {/* قائمة المنتجات الأخيرة */}
+          {products && products.length > 0 && (
+            <div className="border rounded-lg p-4 bg-muted/30">
+              <h2 className="text-lg font-semibold mb-3">{t('latest_products')}</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {products.slice(0, 8).map((product) => (
+                  <div 
+                    key={product.id} 
+                    className="p-3 bg-card rounded-md border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => handleProductScanned(product)}
+                  >
+                    <p className="font-medium">{product.name}</p>
+                    <p className="text-sm text-muted-foreground">{t('barcode')}: {product.barcode}</p>
+                    <p className="text-primary font-semibold mt-1">{product.sellingPrice}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           {/* زر طافي لإنشاء فاتورة جديدة */}
           <div className="fixed bottom-6 right-6 z-50 md:hidden">
             <Button
@@ -109,6 +157,7 @@ export default function SalesPage() {
             customer={activeCustomer} 
             onClose={handleCloseInvoice}
             onAddProduct={handleActivateScanner}
+            products={products || []}
           />
         </>
       )}
@@ -116,7 +165,11 @@ export default function SalesPage() {
       {/* نافذة إنشاء الفاتورة المنبثقة */}
       <CreateInvoiceDialog 
         open={isCreateInvoiceOpen} 
-        onOpenChange={setIsCreateInvoiceOpen} 
+        onOpenChange={setIsCreateInvoiceOpen}
+        onCustomerSelected={handleCustomerSelected}
+        preSelectedProduct={lastScannedProduct}
+        customers={customers || []} 
+        products={products || []}
       />
     </div>
   );
