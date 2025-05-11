@@ -545,7 +545,7 @@ export default function InvoiceManagement() {
     setScannedProduct(product);
   };
   
-  // مشاركة الفاتورة بصيغة PDF عن طريق عمل HTML وتحويله
+  // Generate PDF invoice using HTML canvas approach (English only)
   const shareInvoicePDF = async (invoice: any) => {
     try {
       if (!invoice) {
@@ -578,75 +578,75 @@ export default function InvoiceManagement() {
       const customerPhone = invoice.customer.phone || '';
       const customerAddress = invoice.customer.address || '';
       
-      // إنشاء HTML للفاتورة
+      // إنشاء HTML للفاتورة - باللغة الإنجليزية فقط
       invoiceElement.innerHTML = `
-        <div dir="${dirStyle}" style="font-family: Arial, sans-serif; width: 800px; padding: 20px; box-sizing: border-box; margin: 0 auto;">
-          <!-- رأس الفاتورة -->
+        <div style="font-family: Arial, sans-serif; width: 800px; padding: 20px; box-sizing: border-box; margin: 0 auto;">
+          <!-- Header -->
           <div style="background-color: #2980b9; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0;">
-            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">${isRtl ? 'سيلز غازي' : 'Sales Ghazy'}</h1>
-            <p style="margin: 5px 0; font-size: 14px;">${isRtl ? 'القاهرة - مصر' : 'Cairo - Egypt'}</p>
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">Sales Ghazy</h1>
+            <p style="margin: 5px 0; font-size: 14px;">Cairo - Egypt</p>
             <p style="margin: 5px 0; font-size: 14px;">01067677607</p>
           </div>
           
-          <!-- معلومات الفاتورة -->
+          <!-- Invoice Information -->
           <div style="margin: 20px 0; overflow: hidden;">
-            <div style="float: ${textAlignStyle}; text-align: ${textAlignStyle}; width: 50%;">
+            <div style="float: left; text-align: left; width: 50%;">
               <h3 style="margin: 0 0 10px; color: #333; font-size: 16px; font-weight: bold;">
-                ${isRtl ? 'معلومات الفاتورة:' : 'Invoice Information:'}
+                Invoice Information:
               </h3>
               <p style="margin: 5px 0; font-size: 14px; color: #555;">
-                <strong>${isRtl ? 'رقم الفاتورة:' : 'Invoice Number:'}</strong> ${invoice.id}
+                <strong>Invoice Number:</strong> ${invoice.id}
               </p>
               <p style="margin: 5px 0; font-size: 14px; color: #555;">
-                <strong>${isRtl ? 'التاريخ:' : 'Date:'}</strong> ${formattedDate}
+                <strong>Date:</strong> ${formattedDate}
               </p>
               <p style="margin: 5px 0; font-size: 14px; color: #555;">
-                <strong>${isRtl ? 'طريقة الدفع:' : 'Payment Method:'}</strong> ${t(invoice.paymentMethod)}
+                <strong>Payment Method:</strong> ${invoice.paymentMethod}
               </p>
             </div>
             
-            <div style="float: ${reverseTextAlignStyle}; text-align: ${reverseTextAlignStyle}; width: 50%;">
+            <div style="float: right; text-align: right; width: 50%;">
               <h3 style="margin: 0 0 10px; color: #333; font-size: 16px; font-weight: bold;">
-                ${isRtl ? 'معلومات العميل:' : 'Customer Information:'}
+                Customer Information:
               </h3>
               <p style="margin: 5px 0; font-size: 14px; color: #555;">
-                <strong>${isRtl ? 'الاسم:' : 'Name:'}</strong> ${customerName}
+                <strong>Name:</strong> ${customerName}
               </p>
               ${customerPhone ? `
                 <p style="margin: 5px 0; font-size: 14px; color: #555;">
-                  <strong>${isRtl ? 'الهاتف:' : 'Phone:'}</strong> ${customerPhone}
+                  <strong>Phone:</strong> ${customerPhone}
                 </p>
               ` : ''}
               ${customerAddress ? `
                 <p style="margin: 5px 0; font-size: 14px; color: #555;">
-                  <strong>${isRtl ? 'العنوان:' : 'Address:'}</strong> ${customerAddress}
+                  <strong>Address:</strong> ${customerAddress}
                 </p>
               ` : ''}
             </div>
           </div>
           
-          <!-- الخط الفاصل -->
+          <!-- Divider -->
           <div style="border-top: 1px solid #ddd; margin: 15px 0;"></div>
           
-          <!-- قائمة المنتجات -->
+          <!-- Products List -->
           <h3 style="text-align: center; color: #2980b9; margin: 20px 0; font-size: 18px;">
-            ${isRtl ? 'المنتجات' : 'Products'}
+            Products
           </h3>
           
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; direction: ${dirStyle}; text-align: ${textAlignStyle};">
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
             <thead>
               <tr style="background-color: #2980b9; color: white;">
-                <th style="padding: 10px; border: 1px solid #ddd; text-align: ${textAlignStyle};">${t('product')}</th>
-                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">${t('price')}</th>
-                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">${t('quantity')}</th>
-                <th style="padding: 10px; border: 1px solid #ddd; text-align: ${reverseTextAlignStyle};">${t('total')}</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Product</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Price</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Quantity</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Total</th>
               </tr>
             </thead>
             <tbody>
               ${invoice.items.map((item: any, index: number) => `
                 <tr style="background-color: ${index % 2 === 0 ? '#f9f9f9' : 'white'};">
-                  <td style="padding: 10px; border: 1px solid #ddd; text-align: ${textAlignStyle};">
-                    ${item.productName || item.product?.name || t('unknown_product')}
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: left;">
+                    ${item.productName || item.product?.name || 'Unknown Product'}
                   </td>
                   <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
                     ${formatCurrency(item.price)}
@@ -654,7 +654,7 @@ export default function InvoiceManagement() {
                   <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
                     ${item.quantity}
                   </td>
-                  <td style="padding: 10px; border: 1px solid #ddd; text-align: ${reverseTextAlignStyle};">
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">
                     ${formatCurrency(item.total)}
                   </td>
                 </tr>
@@ -662,34 +662,34 @@ export default function InvoiceManagement() {
             </tbody>
           </table>
           
-          <!-- ملخص المدفوعات -->
-          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: ${reverseTextAlignStyle}; width: 300px; margin-left: ${isRtl ? '0' : 'auto'}; margin-right: ${isRtl ? 'auto' : '0'};">
+          <!-- Payment Summary -->
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: right; width: 300px; margin-left: auto;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-              <span style="font-weight: bold; color: #555;">${t('subtotal')}:</span>
+              <span style="font-weight: bold; color: #555;">Subtotal:</span>
               <span>${formatCurrency(invoice.subtotal || invoice.total)}</span>
             </div>
             
             ${invoice.discount && invoice.discount > 0 ? `
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                <span style="font-weight: bold; color: #555;">${t('discount')}:</span>
+                <span style="font-weight: bold; color: #555;">Discount:</span>
                 <span>${formatCurrency(invoice.discount)}</span>
               </div>
             ` : ''}
             
             <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 16px; border-top: 1px solid #ddd; padding-top: 10px;">
-              <span style="font-weight: bold; color: #333;">${t('total')}:</span>
+              <span style="font-weight: bold; color: #333;">Total:</span>
               <span style="font-weight: bold; color: #2980b9;">${formatCurrency(invoice.total)}</span>
             </div>
           </div>
           
-          <!-- رسالة شكر -->
+          <!-- Thank You Message -->
           <div style="text-align: center; margin-top: 30px; color: #2980b9; font-style: italic;">
-            <p>${t('thank_you_message')}</p>
+            <p>Thank you for your business! We look forward to serving you again.</p>
           </div>
           
-          <!-- التذييل -->
+          <!-- Footer -->
           <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #999;">
-            <p>© ${new Date().getFullYear()} Sales Ghazy - ${new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US')}</p>
+            <p>© ${new Date().getFullYear()} Sales Ghazy - ${new Date().toLocaleDateString('en-US')}</p>
           </div>
         </div>
       `;
