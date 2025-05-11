@@ -15,6 +15,7 @@ import {
   query, where, orderBy, limit, Timestamp, FieldValue, serverTimestamp
 } from 'firebase/firestore';
 import bcrypt from 'bcryptjs';
+import { LocalFirebaseStorage } from './local-firebase-storage';
 
 export interface IStorage {
   // User management
@@ -1620,5 +1621,6 @@ export class MemStorage implements IStorage {
 }
 
 // Choose which storage implementation to use
-// Use FirebaseStorage as requested
-export const storage = new FirebaseStorage(); // Use FirebaseStorage as per user request
+// For production, use FirebaseStorage when Firestore API is enabled
+// For development/testing, use LocalFirebaseStorage as a temporary replacement
+export const storage = new LocalFirebaseStorage(); // Temporarily using local storage until Firestore API is enabled
