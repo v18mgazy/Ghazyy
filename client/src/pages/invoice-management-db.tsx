@@ -301,6 +301,91 @@ export default function InvoiceManagementDB() {
     }
   };
   
+  // وظيفة تعديل الفاتورة
+  const handleEditInvoice = async (invoice: any) => {
+    console.log('Editing invoice:', invoice);
+    
+    // 1. أولاً - جلب تفاصيل الفاتورة كاملة بما في ذلك العناصر إذا لم تكن متوفرة
+    let invoiceWithItems = invoice;
+    
+    try {
+      // جلب تفاصيل الفاتورة من الخادم للتأكد من أحدث البيانات
+      console.log('Fetching latest invoice data for ID:', invoice.dbId);
+      const response = await fetch(`/api/invoices/${invoice.dbId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch invoice data');
+      }
+      
+      const latestInvoiceData = await response.json();
+      console.log('Latest invoice data:', latestInvoiceData);
+      
+      // جلب عناصر الفاتورة من API
+      console.log('Fetching invoice items for edit');
+      const itemsResponse = await fetch(`/api/invoices/${invoice.dbId}/items`);
+      
+      if (!itemsResponse.ok) {
+        throw new Error('Failed to fetch invoice items');
+      }
+      
+      const items = await itemsResponse.json();
+      console.log('Invoice items loaded:', items);
+      
+      if (items && Array.isArray(items)) {
+        invoiceWithItems = {
+          ...latestInvoiceData,
+          items: items
+        };
+      } else {
+        invoiceWithItems = latestInvoiceData;
+      }
+      
+      console.log('Prepared invoice with items for edit:', invoiceWithItems);
+      
+      // 2. التحضير للتعديل - نقوم بإرسال بيانات الفاتورة إلى مكون إنشاء الفاتورة
+      // (سيتم تنفيذ هذا لاحقًا)
+      toast({
+        title: t('edit_invoice'),
+        description: t('feature_coming_soon'),
+      });
+      
+      // 3. إعداد بيانات التحديث
+      const updateData = {
+        invoiceNumber: invoiceWithItems.invoiceNumber,
+        customerId: invoiceWithItems.customerId,
+        customerDetails: {
+          name: invoiceWithItems.customerName || '',
+          phone: invoiceWithItems.customerPhone || '',
+          address: invoiceWithItems.customerAddress || ''
+        },
+        subtotal: invoiceWithItems.subtotal,
+        discount: invoiceWithItems.discount || 0,
+        total: invoiceWithItems.total,
+        paymentMethod: invoiceWithItems.paymentMethod,
+        paymentStatus: invoiceWithItems.paymentStatus,
+        notes: invoiceWithItems.notes || '',
+        products: invoiceWithItems.items.map((item: any) => ({
+          productId: item.productId,
+          productName: item.product?.name || 'Unknown product',
+          quantity: item.quantity,
+          price: item.price,
+          discount: item.discount || 0,
+          total: item.total
+        }))
+      };
+      
+      console.log('Edit data prepared:', updateData);
+      
+    } catch (error) {
+      console.error('Error preparing invoice for edit:', error);
+      toast({
+        title: t('error'),
+        description: t('invoice_edit_prepare_error'),
+        variant: 'destructive'
+      });
+    }
+  };
+  
   // إضافة mutation لحذف الفاتورة
   const deleteMutation = useMutation({
     mutationFn: async (invoiceId: number) => {
@@ -639,14 +724,25 @@ export default function InvoiceManagementDB() {
                           </Button>
                           
                           {user?.role === 'admin' && invoice.status !== 'cancelled' && (
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-7 w-7 text-destructive"
-                              onClick={() => confirmDeleteInvoice(invoice)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7 text-primary"
+                                onClick={() => handleEditInvoice(invoice)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7 text-destructive"
+                                onClick={() => confirmDeleteInvoice(invoice)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
                         </div>
                       </TableCell>
