@@ -118,12 +118,36 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   
   // اختيار منتج من نتائج البحث
   const handleSelectProduct = (product: ProductSearchResult) => {
+    // التحقق من توفر المخزون
+    if ((product as any).quantity <= 0) {
+      // إظهار رسالة تنبيه أن المنتج غير متوفر في المخزون
+      alert(t('product_out_of_stock'));
+      return;
+    }
+    
     setSelectedProduct(product);
+    // وضع الحد الأقصى للكمية المتوفرة
+    setMaxAvailableQuantity((product as any).quantity || 0);
   };
+  
+  // متغير لتخزين الحد الأقصى للكمية المتوفرة من المنتج
+  const [maxAvailableQuantity, setMaxAvailableQuantity] = useState<number>(0);
   
   // إضافة المنتج المحدد إلى الفاتورة
   const addSelectedProductToInvoice = () => {
     if (selectedProduct) {
+      // التحقق من أن الكمية المطلوبة لا تتجاوز الكمية المتوفرة
+      if (productQuantity > maxAvailableQuantity) {
+        alert(t('quantity_exceeds_available', { available: maxAvailableQuantity }));
+        return;
+      }
+      
+      // التحقق من أن الكمية موجبة
+      if (productQuantity <= 0) {
+        alert(t('quantity_must_be_positive'));
+        return;
+      }
+      
       const newProduct: Product = {
         id: selectedProduct.id,
         name: selectedProduct.name,
@@ -137,6 +161,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
       setSelectedProduct(null);
       setProductQuantity(1);
       setProductDiscount(0);
+      setMaxAvailableQuantity(0);
     }
   };
 
@@ -370,13 +395,22 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
                           <div className="font-medium">{product.name}</div>
                           <div className="text-sm text-muted-foreground">
                             {product.code && <span className="mr-2">{t('code')}: {product.code}</span>}
-                            {product.category && <span>{t('category')}: {product.category}</span>}
+                            {product.category && <span className="mr-2">{t('category')}: {product.category}</span>}
+                            {/* إضافة عرض للكمية المتاحة */}
+                            <span className={`font-medium ${(product as any).quantity > 5 ? 'text-green-600 dark:text-green-400' : (product as any).quantity > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
+                              {t('available')}: {(product as any).quantity || 0}
+                            </span>
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="font-medium text-primary">
                             {formatCurrency(product.sellingPrice)}
                           </div>
+                          {(product as any).quantity <= 0 && (
+                            <div className="text-xs text-red-600 dark:text-red-400 font-medium mt-1">
+                              {t('out_of_stock')}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </CardContent>

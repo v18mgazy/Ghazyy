@@ -484,14 +484,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Parsed customer ID:', customerId);
       
-      // تحقق من وجود العميل
-      const customer = await storage.getCustomer(customerId);
-      if (!customer) {
-        console.error('Customer not found:', customerId);
-        return res.status(404).json({ message: 'Customer not found' });
+      // تحقق من وجود العميل أو إنشاء عميل جديد إذا تم توفير البيانات
+      let customer = await storage.getCustomer(customerId);
+      
+      // إذا لم يتم العثور على العميل ولكن تم توفير بيانات العميل، قم بإنشاء عميل جديد
+      if (!customer && req.body.customerDetails) {
+        try {
+          console.log('Customer not found but details provided. Creating new customer:', req.body.customerDetails);
+          const newCustomer = await storage.createCustomer({
+            name: req.body.customerDetails.name || 'عميل جديد',
+            phone: req.body.customerDetails.phone || '',
+            address: req.body.customerDetails.address || '',
+            email: req.body.customerDetails.email || '',
+            isPotential: false
+          });
+          customerId = newCustomer.id;
+          customer = newCustomer;
+          console.log('Created new customer:', customer);
+        } catch (createCustomerError) {
+          console.error('Error creating new customer:', createCustomerError);
+          // استمر بدون إنشاء عميل، سنستخدم بيانات العميل مباشرة في الفاتورة
+        }
       }
       
-      console.log('Found customer:', customer);
+      // استخدام عميل افتراضي إذا لم يتم العثور على عميل
+      if (!customer) {
+        console.log('Using default customer data for invoice');
+        customer = {
+          id: 0,
+          name: req.body.customerDetails?.name || 'عميل نقدي',
+          phone: req.body.customerDetails?.phone || '',
+          address: req.body.customerDetails?.address || '',
+          email: req.body.customerDetails?.email || ''
+        };
+      } else {
+        console.log('Found customer:', customer);
+      }
       
       // سجل معلومات العميل المفصلة إذا كانت متوفرة في الطلب
       console.log('Customer details from request:', req.body.customerDetails);
