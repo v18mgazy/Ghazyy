@@ -1142,7 +1142,7 @@ export default function InvoiceManagement() {
           <div className="space-y-6">
             {!scannedProduct ? (
               <div className="bg-muted/30 p-4 rounded-lg border">
-                <BarcodeScanner onDetected={handleProductScanned} />
+                <BarcodeScanner onProductScanned={handleProductScanned} />
               </div>
             ) : (
               <div className="bg-card rounded-lg border p-4 space-y-3">

@@ -111,25 +111,7 @@ export default function SalesPage() {
           {/* قسم ماسح الباركود */}
           <BarcodeScanner onProductScanned={handleProductScanned} />
           
-          {/* قائمة المنتجات الأخيرة */}
-          {products && products.length > 0 && (
-            <div className="border rounded-lg p-4 bg-muted/30">
-              <h2 className="text-lg font-semibold mb-3">{t('latest_products')}</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {products.slice(0, 8).map((product) => (
-                  <div 
-                    key={product.id} 
-                    className="p-3 bg-card rounded-md border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => handleProductScanned(product)}
-                  >
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-sm text-muted-foreground">{t('barcode')}: {product.barcode}</p>
-                    <p className="text-primary font-semibold mt-1">{product.sellingPrice}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* تمت إزالة قسم المنتجات الأخيرة بناءً على طلب العميل */}
           
           {/* زر طافي لإنشاء فاتورة جديدة */}
           <div className="fixed bottom-6 right-6 z-50 md:hidden">

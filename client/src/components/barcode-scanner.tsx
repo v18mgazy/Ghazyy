@@ -226,17 +226,7 @@ export default function BarcodeScanner({ onProductScanned }: BarcodeScannerProps
                   {t('activate_camera')}
                 </Button>
                 
-                <div className="mt-4 pt-4 border-t border-border">
-                  <Button
-                    variant="outline"
-                    onClick={handleManualEntry}
-                    size="sm"
-                    className="text-xs"
-                  >
-                    <FileBarChart2 className={`h-3.5 w-3.5 ${rtl ? 'ml-1' : 'mr-1'}`} />
-                    {t('use_test_barcode')}
-                  </Button>
-                </div>
+                {/* قسم زر الباركود الاختباري تم إزالته بناءً على طلب العميل */}
               </>
             )}
           </div>
