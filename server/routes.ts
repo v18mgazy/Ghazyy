@@ -1203,8 +1203,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/damaged-items', async (req, res) => {
     try {
       const items = await storage.getAllDamagedItems();
-      res.json(items);
+      // نحضر جميع المنتجات لنقوم بإضافة معلومات المنتج لكل عنصر تالف
+      const products = await storage.getAllProducts();
+      
+      // إضافة معلومات المنتج لكل عنصر تالف
+      const itemsWithProductDetails = items.map(item => {
+        const product = products.find(p => p.id === Number(item.productId));
+        return {
+          ...item,
+          product: product ? { name: product.name } : { name: 'منتج غير معروف' }
+        };
+      });
+      
+      res.json(itemsWithProductDetails);
     } catch (err) {
+      console.error('Error fetching damaged items:', err);
       res.status(500).json({ message: 'Failed to fetch damaged items' });
     }
   });
