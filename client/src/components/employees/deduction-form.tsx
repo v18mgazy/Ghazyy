@@ -24,7 +24,14 @@ import { Textarea } from '@/components/ui/textarea';
 
 // تعريف نموذج للخصم
 const deductionSchema = z.object({
-  amount: z.number().positive({ message: 'يجب أن تكون قيمة الخصم أكبر من صفر' }),
+  amount: z.union([
+    z.number().positive({ message: 'يجب أن تكون قيمة الخصم أكبر من صفر' }),
+    z.string().transform((val) => {
+      const parsed = Number(val);
+      if (isNaN(parsed) || parsed <= 0) throw new Error('يجب أن تكون قيمة الخصم أكبر من صفر');
+      return parsed;
+    }),
+  ]),
   reason: z.string().min(3, { message: 'يجب إدخال سبب الخصم (3 أحرف على الأقل)' }),
 });
 
@@ -56,9 +63,11 @@ export default function DeductionForm({
   const onSubmit = (data: DeductionFormValues) => {
     console.log('Form submitted with data:', data);
     console.log('Amount type:', typeof data.amount);
+    console.log('Amount value:', data.amount);
     
+    // المبلغ هو بالفعل رقم (حولته zod في deductionSchema)
     onSave({
-      amount: Number(data.amount), // تأكد من أن المبلغ هو رقم
+      amount: data.amount,
       reason: data.reason,
     });
     form.reset();

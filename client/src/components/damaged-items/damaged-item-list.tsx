@@ -61,10 +61,19 @@ export default function DamagedItemList({
   const [selectedItem, setSelectedItem] = useState<DamagedItem | undefined>();
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
-  const filteredItems = items.filter(item => 
-    item.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredItems = items.filter(item => {
+    // نتحقق أولاً إذا كان item.product موجود ثم نبحث في الاسم
+    const productNameMatch = item.product && item.product.name 
+      ? item.product.name.toLowerCase().includes(searchTerm.toLowerCase())
+      : false;
+      
+    // نتحقق من الوصف
+    const descriptionMatch = item.description 
+      ? item.description.toLowerCase().includes(searchTerm.toLowerCase())
+      : false;
+      
+    return productNameMatch || descriptionMatch;
+  });
 
   const handleAddItem = () => {
     setSelectedItem(undefined);
@@ -161,7 +170,11 @@ export default function DamagedItemList({
                         className={index % 2 === 0 ? 'bg-muted/20' : ''}
                       >
                         <TableCell>
-                          <div className="font-medium">{item.product.name}</div>
+                          <div className="font-medium">
+                            {item.product && item.product.name 
+                              ? item.product.name 
+                              : t('product_not_found')}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <span className="px-2 py-1 bg-red-50 text-red-700 rounded-md font-medium">
