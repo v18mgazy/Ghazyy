@@ -521,14 +521,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Found customer:', customer);
       }
       
-      // سجل معلومات العميل المفصلة
-      console.log('Customer info:', {
-        name: req.body.customerName || customer?.name,
-        phone: req.body.customerPhone || customer?.phone,
-        address: req.body.customerAddress || customer?.address
+      // سجل كامل بيانات الطلب للتشخيص
+      console.log('Complete request body:', JSON.stringify(req.body, null, 2));
+      
+      // سجل معلومات العميل المفصلة من الطلب
+      console.log('Customer info from request body:', {
+        customerName: req.body.customerName,
+        customerPhone: req.body.customerPhone,
+        customerAddress: req.body.customerAddress
       });
       
-      // استخدام بيانات العميل مباشرة من الطلب أو من قاعدة البيانات
+      // استخدام بيانات العميل مباشرة من الطلب بدلاً من قاعدة البيانات
       const customerInfo = {
         customerName: req.body.customerName || (customer ? customer.name : 'عميل نقدي'),
         customerPhone: req.body.customerPhone || (customer ? customer.phone || '' : ''),
@@ -537,13 +540,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updatedAt: new Date().toISOString()
       };
       
-      // إعداد بيانات الفاتورة
+      // إعداد بيانات الفاتورة مع التأكد من أخذ بيانات العميل مباشرة من الطلب
       const invoiceData = {
         invoiceNumber: req.body.invoiceNumber,
         customerId: customerId,
-        customerName: customerInfo.customerName,
-        customerPhone: customerInfo.customerPhone,
-        customerAddress: customerInfo.customerAddress,
+        // استخدام بيانات العميل مباشرة من طلب إنشاء الفاتورة
+        customerName: req.body.customerName || customerInfo.customerName,
+        customerPhone: req.body.customerPhone || customerInfo.customerPhone,
+        customerAddress: req.body.customerAddress || customerInfo.customerAddress,
         subtotal: req.body.subtotal,
         discount: req.body.discount || 0,
         total: req.body.total,
