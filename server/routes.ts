@@ -1115,12 +1115,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.post('/api/employee-deductions', async (req, res) => {
+    console.log('Received deduction data:', req.body);
     try {
-      const deductionData = insertEmployeeDeductionSchema.parse(req.body);
+      // التحقق من البيانات وتحويلها للشكل المناسب
+      const deductionData = {...req.body};
+
+      // التأكد من أن المبلغ هو رقم
+      if (typeof deductionData.amount === 'string') {
+        deductionData.amount = Number(deductionData.amount);
+      }
+
+      // نطبع البيانات المعدلة
+      console.log('Validated deduction data:', deductionData);
+      
+      // محاولة إنشاء الخصم
       const deduction = await storage.createEmployeeDeduction(deductionData);
       res.status(201).json(deduction);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error('Zod validation error:', error.errors);
         return res.status(400).json({ message: 'Invalid deduction data', errors: error.errors });
       }
       console.error('Error creating employee deduction:', error);
