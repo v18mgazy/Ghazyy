@@ -7,6 +7,7 @@ import {
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useAuthContext } from '@/context/auth-context';
 import { useLocale } from '@/hooks/use-locale';
+import { useToast } from '@/hooks/use-toast';
 
 // UI Components
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -125,6 +126,7 @@ export default function InvoiceManagement() {
   const { t } = useTranslation();
   const { language } = useLocale();
   const { user } = useAuthContext();
+  const { toast } = useToast();
   
   const [invoices, setInvoices] = useState(mockInvoices);
   const [searchTerm, setSearchTerm] = useState('');
@@ -164,6 +166,26 @@ export default function InvoiceManagement() {
     setSelectedInvoice(invoice);
   };
   
+  // Handle printing invoice
+  const handlePrintInvoice = (invoice: any) => {
+    // In a real app, this would generate a printable invoice
+    console.log('Printing invoice:', invoice.id);
+    toast({
+      title: t('print_started'),
+      description: t('invoice_sent_to_printer'),
+    });
+  };
+  
+  // Handle editing invoice
+  const handleEditInvoice = (invoice: any) => {
+    // In a real app, this would open an edit form or redirect to an edit page
+    console.log('Editing invoice:', invoice.id);
+    toast({
+      title: t('edit_invoice'),
+      description: t('edit_invoice_description'),
+    });
+  };
+  
   // Handle invoice deletion
   const confirmDeleteInvoice = (invoiceId: string) => {
     setInvoiceToDelete(invoiceId);
@@ -175,6 +197,11 @@ export default function InvoiceManagement() {
       setInvoices(invoices.filter(inv => inv.id !== invoiceToDelete));
       setIsDeleteDialogOpen(false);
       setInvoiceToDelete(null);
+      
+      toast({
+        title: t('invoice_deleted'),
+        description: t('invoice_deleted_successfully'),
+      });
     }
   };
   
@@ -414,13 +441,13 @@ export default function InvoiceManagement() {
                               <DropdownMenuItem className="focus:bg-primary-50 focus:text-primary-600" onClick={() => openInvoiceDetails(invoice)}>
                                 <ExternalLink className="mr-2 h-4 w-4" /> {t('view_details')}
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="focus:bg-primary-50 focus:text-primary-600">
+                              <DropdownMenuItem className="focus:bg-primary-50 focus:text-primary-600" onClick={() => handlePrintInvoice(invoice)}>
                                 <Printer className="mr-2 h-4 w-4" /> {t('print_invoice')}
                               </DropdownMenuItem>
                               {user?.role === 'admin' && (
                                 <>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="focus:bg-primary-50 focus:text-primary-600">
+                                  <DropdownMenuItem className="focus:bg-primary-50 focus:text-primary-600" onClick={() => handleEditInvoice(invoice)}>
                                     <Pencil className="mr-2 h-4 w-4" /> {t('edit_invoice')}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 

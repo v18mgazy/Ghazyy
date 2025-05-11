@@ -128,47 +128,57 @@ export default function CustomerList({
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead>{t('name')}</TableHead>
-                    <TableHead>{t('phone')}</TableHead>
-                    <TableHead>{t('address')}</TableHead>
-                    <TableHead>{t('potential')}</TableHead>
-                    <TableHead>{t('total_purchases')}</TableHead>
-                    <TableHead>{t('actions')}</TableHead>
+                    <TableHead className="font-semibold">{t('name')}</TableHead>
+                    <TableHead className="font-semibold">{t('phone')}</TableHead>
+                    <TableHead className="font-semibold">{t('address')}</TableHead>
+                    <TableHead className="font-semibold">{t('potential')}</TableHead>
+                    <TableHead className="font-semibold">{t('total_purchases')}</TableHead>
+                    <TableHead className="font-semibold text-right">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {currentCustomers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4 text-neutral-500">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         {searchTerm ? t('no_customers_found') : t('no_customers_yet')}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    currentCustomers.map((customer) => (
-                      <TableRow key={customer.id}>
-                        <TableCell className="font-medium">{customer.name}</TableCell>
+                    currentCustomers.map((customer, index) => (
+                      <TableRow 
+                        key={customer.id}
+                        className={index % 2 === 0 ? 'bg-muted/20' : ''}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold">
+                              {customer.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="font-medium">{customer.name}</span>
+                          </div>
+                        </TableCell>
                         <TableCell>{customer.phone || '-'}</TableCell>
                         <TableCell>{customer.address || '-'}</TableCell>
                         <TableCell>
                           <Badge 
                             variant="outline" 
                             className={customer.isPotential 
-                              ? 'bg-secondary-light bg-opacity-10 text-secondary' 
-                              : 'bg-success-light bg-opacity-10 text-success'
+                              ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                              : 'bg-green-50 text-green-700 border-green-200'
                             }
                           >
                             {customer.isPotential ? t('yes') : t('no')}
                           </Badge>
                         </TableCell>
-                        <TableCell>{formatCurrency(customer.totalPurchases)}</TableCell>
+                        <TableCell className="font-medium">{formatCurrency(customer.totalPurchases)}</TableCell>
                         <TableCell>
-                          <div className="flex space-x-2">
+                          <div className="flex space-x-2 justify-end">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-primary hover:text-primary/90"
+                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                               onClick={() => {}}
                             >
                               <Edit className="h-4 w-4" />
@@ -176,7 +186,7 @@ export default function CustomerList({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+                              className="text-gray-600 hover:text-gray-800 hover:bg-gray-50"
                               onClick={() => viewHistory(customer)}
                             >
                               <History className="h-4 w-4" />
@@ -184,7 +194,7 @@ export default function CustomerList({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-success hover:text-success/90"
+                              className="text-green-600 hover:text-green-800 hover:bg-green-50"
                               onClick={() => openWhatsApp(customer)}
                               disabled={!customer.phone}
                             >
@@ -202,9 +212,9 @@ export default function CustomerList({
         </CardContent>
         
         {totalPages > 1 && (
-          <CardFooter>
+          <CardFooter className="border-t p-4">
             <div className="w-full flex justify-between items-center">
-              <div className="text-sm text-neutral-500 dark:text-neutral-400">
+              <div className="text-sm text-muted-foreground">
                 {t('showing')} <span className="font-medium">{startIndex + 1}</span> {t('to')} <span className="font-medium">
                   {Math.min(startIndex + perPage, filteredCustomers.length)}
                 </span> {t('of')} <span className="font-medium">{filteredCustomers.length}</span> {t('customers')}
@@ -215,25 +225,40 @@ export default function CustomerList({
                   <PaginationItem>
                     <PaginationPrevious 
                       onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'hover:bg-muted'}
                     />
                   </PaginationItem>
                   
-                  {Array.from({ length: totalPages }).map((_, i) => (
-                    <PaginationItem key={i}>
-                      <PaginationLink
-                        onClick={() => handlePageChange(i + 1)}
-                        isActive={currentPage === i + 1}
-                      >
-                        {i + 1}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
+                  {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
+                    // Handle pagination for more than 5 pages
+                    let pageNum = i + 1;
+                    if (totalPages > 5) {
+                      if (currentPage > 3 && currentPage < totalPages - 1) {
+                        pageNum = i + currentPage - 2;
+                        if (i === 0) pageNum = 1;
+                        if (i === 4) pageNum = totalPages;
+                      } else if (currentPage >= totalPages - 1) {
+                        pageNum = totalPages - 4 + i;
+                      }
+                    }
+                    
+                    return (
+                      <PaginationItem key={i}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(pageNum)}
+                          isActive={currentPage === pageNum}
+                          className={currentPage === pageNum ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
                   
                   <PaginationItem>
                     <PaginationNext 
                       onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'hover:bg-muted'}
                     />
                   </PaginationItem>
                 </PaginationContent>
