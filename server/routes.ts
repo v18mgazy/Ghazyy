@@ -271,6 +271,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // مسار جديد للحصول على فواتير العميل
+  app.get('/api/customer-invoices/:customerId', async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      // جلب جميع الفواتير
+      const allInvoices = await storage.getAllInvoices();
+      
+      // تصفية الفواتير حسب معرّف العميل
+      const customerInvoices = allInvoices.filter(invoice => 
+        invoice.customerId === parseInt(customerId)
+      );
+      
+      res.json(customerInvoices);
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to fetch customer invoices' });
+    }
+  });
+  
   // Invoice routes
   app.get('/api/invoices', async (req, res) => {
     try {

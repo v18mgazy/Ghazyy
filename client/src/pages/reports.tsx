@@ -28,6 +28,34 @@ interface ReportDataSummary {
   previousSalesCount: number;
 }
 
+interface TopProduct {
+  id: number;
+  name: string;
+  quantity: number;
+  revenue: number;
+}
+
+interface ChartDataPoint {
+  date: string;
+  sales: number;
+  profit: number;
+}
+
+interface DetailedReport {
+  id: number;
+  date: string;
+  type: string;
+  amount: number;
+  details: string;
+}
+
+interface ReportData {
+  summary: ReportDataSummary;
+  chartData: ChartDataPoint[];
+  topProducts: TopProduct[];
+  detailedReports: DetailedReport[];
+}
+
 export default function ReportsPage() {
   const { t } = useTranslation();
   const { language } = useLocale();
@@ -37,7 +65,7 @@ export default function ReportsPage() {
   const [year, setYear] = useState<string>(format(new Date(), 'yyyy'));
   
   // استرجاع بيانات التقارير من قاعدة البيانات بناءً على نوع الفترة
-  const { data: reportData, isLoading } = useQuery({
+  const { data: reportData, isLoading } = useQuery<ReportData>({
     queryKey: ['/api/reports', period, period === 'daily' ? formatDate(date, 'yyyy-MM-dd') : period === 'monthly' ? month : year],
     onError: (error) => {
       console.error('Error fetching report data:', error);
@@ -174,7 +202,7 @@ export default function ReportsPage() {
         </TabsList>
         
         <TabsContent value="daily" className="m-0">
-          {reportData && (
+          {reportData ? (
             <>
               <ReportSummary 
                 data={{
@@ -202,11 +230,15 @@ export default function ReportsPage() {
                 onPrint={handlePrint}
               />
             </>
+          ) : (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">{isLoading ? t('loading') : t('no_data_available')}</p>
+            </div>
           )}
         </TabsContent>
         
         <TabsContent value="weekly" className="m-0">
-          {reportData && (
+          {reportData ? (
             <>
               <ReportSummary 
                 data={{
@@ -234,11 +266,15 @@ export default function ReportsPage() {
                 onPrint={handlePrint}
               />
             </>
+          ) : (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">{isLoading ? t('loading') : t('no_data_available')}</p>
+            </div>
           )}
         </TabsContent>
         
         <TabsContent value="monthly" className="m-0">
-          {reportData && (
+          {reportData ? (
             <>
               <ReportSummary 
                 data={{
@@ -266,11 +302,15 @@ export default function ReportsPage() {
                 onPrint={handlePrint}
               />
             </>
+          ) : (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">{isLoading ? t('loading') : t('no_data_available')}</p>
+            </div>
           )}
         </TabsContent>
         
         <TabsContent value="yearly" className="m-0">
-          {reportData && (
+          {reportData ? (
             <>
               <ReportSummary 
                 data={{
@@ -298,6 +338,10 @@ export default function ReportsPage() {
                 onPrint={handlePrint}
               />
             </>
+          ) : (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">{isLoading ? t('loading') : t('no_data_available')}</p>
+            </div>
           )}
         </TabsContent>
       </Tabs>
