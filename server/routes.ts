@@ -569,7 +569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Report data routes
+  // طرق API لبيانات التقارير
   app.get('/api/reports', async (req, res) => {
     try {
       const { type, date } = req.query;
@@ -579,8 +579,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const reportData = await storage.getReportData(type as string, date as string);
-      res.json(reportData);
+      // إذا لم تكن هناك بيانات، أرجع مصفوفة فارغة
+      res.json(reportData || {
+        summary: {
+          totalSales: 0,
+          totalProfit: 0,
+          totalDamages: 0,
+          salesCount: 0,
+          previousTotalSales: 0,
+          previousTotalProfit: 0,
+          previousTotalDamages: 0,
+          previousSalesCount: 0,
+        },
+        chartData: [],
+        topProducts: [],
+        detailedReports: [],
+      });
     } catch (err) {
+      console.error('Error fetching report data:', err);
       res.status(500).json({ message: 'Failed to fetch report data' });
     }
   });

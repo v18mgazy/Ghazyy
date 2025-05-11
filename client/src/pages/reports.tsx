@@ -36,59 +36,11 @@ export default function ReportsPage() {
   const [month, setMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   const [year, setYear] = useState<string>(format(new Date(), 'yyyy'));
   
-  // Get report data based on period type
+  // استرجاع بيانات التقارير من قاعدة البيانات بناءً على نوع الفترة
   const { data: reportData, isLoading } = useQuery({
-    queryKey: ['/api/reports', period, period === 'daily' ? date : period === 'monthly' ? month : year],
-    queryFn: async () => {
-      // Mock data for demo
-      const mockData = {
-        summary: {
-          totalSales: 3549.99,
-          totalProfit: 1244.50,
-          totalDamages: 650.00,
-          salesCount: 18,
-          previousTotalSales: 3152.88,
-          previousTotalProfit: 1150.25,
-          previousTotalDamages: 636.50,
-          previousSalesCount: 16,
-        },
-        chartData: [
-          { name: period === 'daily' ? '9 AM' : period === 'weekly' ? 'Mon' : period === 'monthly' ? '1' : 'Jan', revenue: 500, profit: 200 },
-          { name: period === 'daily' ? '10 AM' : period === 'weekly' ? 'Tue' : period === 'monthly' ? '2' : 'Feb', revenue: 800, profit: 320 },
-          { name: period === 'daily' ? '11 AM' : period === 'weekly' ? 'Wed' : period === 'monthly' ? '3' : 'Mar', revenue: 400, profit: 160 },
-          { name: period === 'daily' ? '12 PM' : period === 'weekly' ? 'Thu' : period === 'monthly' ? '4' : 'Apr', revenue: 1000, profit: 400 },
-          { name: period === 'daily' ? '1 PM' : period === 'weekly' ? 'Fri' : period === 'monthly' ? '5' : 'May', revenue: 600, profit: 240 },
-          { name: period === 'daily' ? '2 PM' : period === 'weekly' ? 'Sat' : period === 'monthly' ? '6' : 'Jun', revenue: 450, profit: 180 },
-          { name: period === 'daily' ? '3 PM' : period === 'weekly' ? 'Sun' : period === 'monthly' ? '7' : 'Jul', revenue: 700, profit: 280 },
-        ],
-        topProducts: [
-          { id: '1', name: 'Samsung Galaxy S21', soldQuantity: 12, revenue: 10799.88, profit: 2999.88 },
-          { id: '2', name: 'Lenovo ThinkPad X1', soldQuantity: 5, revenue: 5999.95, profit: 1999.95 },
-          { id: '3', name: 'Apple iPhone 13', soldQuantity: 3, revenue: 2999.97, profit: 899.97 },
-        ],
-        detailedReports: [
-          { 
-            date: '2023-08-24', 
-            salesCount: 18, 
-            revenue: 3549.99, 
-            cost: 2245.50, 
-            discounts: 59.99, 
-            damages: 0, 
-            profit: 1244.50 
-          },
-          { 
-            date: '2023-08-23', 
-            salesCount: 15, 
-            revenue: 2899.95, 
-            cost: 1955.25, 
-            discounts: 45.50, 
-            damages: 650.00, 
-            profit: 249.20 
-          },
-        ],
-      };
-      
-      return mockData;
+    queryKey: ['/api/reports', period, period === 'daily' ? formatDate(date, 'yyyy-MM-dd') : period === 'monthly' ? month : year],
+    onError: (error) => {
+      console.error('Error fetching report data:', error);
     }
   });
   
