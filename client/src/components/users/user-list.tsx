@@ -156,32 +156,50 @@ export default function UserList({
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead>{t('name')}</TableHead>
-                    <TableHead>{t('username')}</TableHead>
-                    <TableHead>{t('role')}</TableHead>
-                    <TableHead>{t('status')}</TableHead>
-                    <TableHead>{t('last_login')}</TableHead>
-                    <TableHead>{t('actions')}</TableHead>
+                    <TableHead className="font-semibold">{t('name')}</TableHead>
+                    <TableHead className="font-semibold">{t('username')}</TableHead>
+                    <TableHead className="font-semibold">{t('role')}</TableHead>
+                    <TableHead className="font-semibold">{t('status')}</TableHead>
+                    <TableHead className="font-semibold">{t('last_login')}</TableHead>
+                    <TableHead className="font-semibold text-right">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4 text-neutral-500">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         {searchTerm ? t('no_users_found') : t('no_users_yet')}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.username}</TableCell>
+                    filteredUsers.map((user, index) => (
+                      <TableRow 
+                        key={user.id}
+                        className={index % 2 === 0 ? 'bg-muted/20' : ''}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className={`h-9 w-9 rounded-full flex items-center justify-center font-semibold ${
+                              user.role === 'admin' 
+                                ? 'bg-purple-100 text-purple-700' 
+                                : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="font-medium">{user.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{user.username}</TableCell>
                         <TableCell>
                           <Badge 
                             variant="outline" 
-                            className={`capitalize ${getRoleBadgeColor(user.role)}`}
+                            className={`font-medium capitalize ${
+                              user.role === 'admin'
+                                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                            }`}
                           >
                             {t(user.role)}
                           </Badge>
@@ -189,22 +207,31 @@ export default function UserList({
                         <TableCell>
                           <Badge 
                             variant="outline" 
-                            className={`capitalize ${getStatusBadgeColor(user.status)}`}
+                            className={`font-medium capitalize ${
+                              user.status === 'active'
+                                ? 'bg-green-50 text-green-700 border-green-200'
+                                : 'bg-red-50 text-red-700 border-red-200'
+                            }`}
                           >
                             {t(user.status)}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {user.lastLogin 
-                            ? formatTimeAgo(user.lastLogin, language)
-                            : t('never')}
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-sm">
+                              {user.lastLogin 
+                                ? formatTimeAgo(user.lastLogin, language)
+                                : t('never')}
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex space-x-2">
+                          <div className="flex space-x-2 justify-end">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-primary hover:text-primary/90"
+                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                               onClick={() => handleEditUser(user)}
                             >
                               <Edit className="h-4 w-4" />
@@ -212,7 +239,7 @@ export default function UserList({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+                              className="text-amber-600 hover:text-amber-800 hover:bg-amber-50"
                               onClick={() => handleResetPassword(user.id)}
                             >
                               <Lock className="h-4 w-4" />
@@ -220,7 +247,7 @@ export default function UserList({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-destructive hover:text-destructive/90"
+                              className="text-red-600 hover:text-red-800 hover:bg-red-50"
                               onClick={() => handleDeleteUser(user.id)}
                             >
                               <Trash2 className="h-4 w-4" />
