@@ -8,7 +8,8 @@ import {
   type Employee, type InsertEmployee,
   type PaymentApproval, type InsertPaymentApproval,
   type ReportData, type InsertReportData,
-  type Notification, type InsertNotification
+  type Notification, type InsertNotification,
+  type EmployeeDeduction, type InsertEmployeeDeduction
 } from "@shared/schema";
 import { db } from './lib/firebase';
 import { 
@@ -86,6 +87,14 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: number): Promise<Notification | undefined>;
   deleteNotification(id: number): Promise<void>;
+  
+  // Employee Deductions management
+  getEmployeeDeduction(id: number): Promise<EmployeeDeduction | undefined>;
+  getEmployeeDeductions(employeeId: string): Promise<EmployeeDeduction[]>;
+  getAllEmployeeDeductions(): Promise<EmployeeDeduction[]>;
+  createEmployeeDeduction(deduction: InsertEmployeeDeduction): Promise<EmployeeDeduction>;
+  updateEmployeeDeduction(id: number, deductionData: Partial<EmployeeDeduction>): Promise<EmployeeDeduction | undefined>;
+  deleteEmployeeDeduction(id: number): Promise<void>;
 }
 
 export class FirebaseStorage implements IStorage {

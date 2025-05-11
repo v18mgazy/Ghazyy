@@ -244,6 +244,25 @@ export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type PaymentApproval = typeof paymentApprovals.$inferSelect;
 export type InsertPaymentApproval = z.infer<typeof insertPaymentApprovalSchema>;
 
+// Employee Deductions
+export const employeeDeductions = pgTable("employee_deductions", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull(),
+  amount: real("amount").notNull(),
+  reason: text("reason").notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+});
+
+export const insertEmployeeDeductionSchema = z.object({
+  employeeId: z.string(),  // In Firebase we use string IDs
+  amount: z.number().positive(),
+  reason: z.string().min(3),
+  date: z.date().optional()
+});
+
+export type EmployeeDeduction = typeof employeeDeductions.$inferSelect;
+export type InsertEmployeeDeduction = z.infer<typeof insertEmployeeDeductionSchema>;
+
 export type ReportData = typeof reportData.$inferSelect;
 export type InsertReportData = z.infer<typeof insertReportDataSchema>;
 
