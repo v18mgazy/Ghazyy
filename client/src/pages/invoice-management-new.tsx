@@ -571,62 +571,85 @@ export default function InvoiceManagement() {
         format: 'a4'
       });
       
-      // إعداد الخط للغة العربية إذا كانت اللغة الحالية هي العربية
+      // إعداد الخط - نستخدم الخط الافتراضي لكن مع تمكين الاتجاه الصحيح
+      doc.setFont('Helvetica', 'normal');
       if (isRtl) {
-        // تلاحظ: هنا نستخدم الخط الافتراضي لأن الخطوط العربية تتطلب تحميل خطوط إضافية
-        doc.setFont('Helvetica', 'normal');
         doc.setR2L(true);
-      } else {
-        doc.setFont('Helvetica', 'normal');
       }
       
-      // إضافة عنوان الفاتورة
-      doc.setFontSize(22);
-      doc.setTextColor(40, 40, 40);
-      const title = t('invoice') + ' #' + invoice.id;
-      doc.text(title, isRtl ? 190 : 20, 20, { align: isRtl ? 'right' : 'left' });
+      // تعريف أنماط الجدول
+      const tableStyle = {
+        headStyles: {
+          fillColor: [41, 128, 185], // لون أزرق أفضل للعنوان
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: isRtl ? 'right' : 'left'
+        },
+        bodyStyles: {
+          halign: isRtl ? 'right' : 'left'
+        },
+        alternateRowStyles: {
+          fillColor: [240, 240, 240]
+        },
+        styles: {
+          font: 'Helvetica',
+          overflow: 'linebreak',
+          cellPadding: 3
+        }
+      };
       
-      // معلومات المتجر والتاريخ
+      // إعداد معلومات الفاتورة
+      const storeTitle = isRtl ? 'سيلز غازي' : 'Sales Ghazy';
+      const storeAddress = isRtl ? 'القاهرة - مصر' : 'Cairo - Egypt';
+      const storePhone = '01067677607';
+      const invoiceTitle = isRtl ? 'فاتورة رقم:' : 'Invoice #:';
+      const invoiceDate = isRtl ? 'التاريخ:' : 'Date:';
+      const customerTitle = isRtl ? 'بيانات العميل:' : 'Customer:';
+      
+      // إضافة معلومات الشركة (الرأس)
+      doc.setFillColor(41, 128, 185);
+      doc.rect(0, 0, doc.internal.pageSize.width, 40, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.text(storeTitle, doc.internal.pageSize.width / 2, 15, { align: 'center' });
       doc.setFontSize(10);
-      doc.setTextColor(80, 80, 80);
-      const storeInfo = [
-        t('store_name'),
-        t('store_address'),
-        t('store_phone')
-      ];
+      doc.text(storeAddress, doc.internal.pageSize.width / 2, 22, { align: 'center' });
+      doc.text(storePhone, doc.internal.pageSize.width / 2, 27, { align: 'center' });
       
-      const dateInfo = [
-        `${t('date')}: ${formatDate(invoice.date)}`,
-        `${t('invoice_number')}: ${invoice.id}`,
-        `${t('payment_method')}: ${t(invoice.paymentMethod)}`
-      ];
-      
-      // طباعة معلومات المتجر
-      storeInfo.forEach((line, index) => {
-        doc.text(line, isRtl ? 190 : 20, 30 + (index * 5), { align: isRtl ? 'right' : 'left' });
-      });
-      
-      // طباعة معلومات التاريخ والفاتورة
-      dateInfo.forEach((line, index) => {
-        doc.text(line, isRtl ? 20 : 190, 30 + (index * 5), { align: isRtl ? 'left' : 'right' });
-      });
+      // إضافة معلومات الفاتورة
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(14);
+      doc.text(`${invoiceTitle} ${invoice.id}`, isRtl ? 190 : 20, 50);
+      doc.text(`${invoiceDate} ${formatDate(invoice.date)}`, isRtl ? 190 : 20, 58);
       
       // معلومات العميل
       doc.setFontSize(12);
-      doc.setTextColor(40, 40, 40);
-      doc.text(t('customer_information'), isRtl ? 190 : 20, 55, { align: isRtl ? 'right' : 'left' });
-      
+      doc.setTextColor(70, 70, 70);
+      doc.text(customerTitle, isRtl ? 190 : 20, 70);
       doc.setFontSize(10);
-      doc.setTextColor(80, 80, 80);
-      const customerInfo = [
-        `${t('name')}: ${invoice.customer.name}`,
-        invoice.customer.phone ? `${t('phone')}: ${invoice.customer.phone}` : '',
-        invoice.customer.address ? `${t('address')}: ${invoice.customer.address}` : ''
-      ].filter(Boolean); // إزالة السطور الفارغة
+      const customerName = invoice.customer.name || '';
+      const customerPhone = invoice.customer.phone || '';
+      const customerAddress = invoice.customer.address || '';
       
-      customerInfo.forEach((line, index) => {
-        doc.text(line, isRtl ? 190 : 20, 60 + (index * 5), { align: isRtl ? 'right' : 'left' });
-      });
+      doc.text(customerName, isRtl ? 190 : 20, 76);
+      if (customerPhone) {
+        doc.text(customerPhone, isRtl ? 190 : 20, 82);
+      }
+      if (customerAddress) {
+        doc.text(customerAddress, isRtl ? 190 : 20, customerPhone ? 88 : 82);
+      }
+      
+      // الخط الفاصل
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.5);
+      const lineY = (customerPhone && customerAddress) ? 95 : 
+                    (customerPhone || customerAddress) ? 90 : 83;
+      doc.line(20, lineY, 190, lineY);
+      
+      // عنوان جدول المنتجات
+      doc.setFontSize(14);
+      doc.setTextColor(41, 128, 185);
+      doc.text(t('products'), doc.internal.pageSize.width / 2, lineY + 10, { align: 'center' });
       
       // إضافة جدول المنتجات
       const tableHeaders = [
@@ -649,21 +672,12 @@ export default function InvoiceManagement() {
       autoTable(doc, {
         head: tableHeaders,
         body: tableData,
-        startY: 75,
+        startY: lineY + 15,
         theme: 'grid',
-        headStyles: {
-          fillColor: [60, 63, 81],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold',
-          halign: isRtl ? 'right' : 'left'
-        },
-        bodyStyles: {
-          halign: isRtl ? 'right' : 'left'
-        },
-        styles: {
-          font: 'Helvetica',
-          fontSize: 9
-        }
+        ...tableStyle,
+        columnStyles: isRtl 
+          ? { 0: { halign: 'right' }, 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'left' } }
+          : { 0: { halign: 'left' }, 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'right' } }
       });
       
       // إضافة ملخص الفاتورة
@@ -680,44 +694,66 @@ export default function InvoiceManagement() {
       
       paymentSummary.push([`${t('total')}:`, formatCurrency(invoice.total)]);
       
+      // رسالة طريقة الدفع
+      const paymentMethodRow = [[`${t('payment_method')}:`, t(invoice.paymentMethod)]];
+      
       // ترتيب الأعمدة في ملخص المدفوعات
       if (isRtl) {
         paymentSummary.forEach(row => row.reverse());
+        paymentMethodRow[0].reverse();
       }
       
+      // جدول الملخص
       autoTable(doc, {
         body: paymentSummary,
         startY: finalY,
         theme: 'plain',
+        ...tableStyle,
         styles: {
-          fontSize: 10
+          ...tableStyle.styles,
+          fontSize: 10,
+          cellPadding: 2
         },
         columnStyles: {
           0: { fontStyle: 'bold' },
-          1: { halign: 'right' }
+          1: { halign: isRtl ? 'left' : 'right' }
         },
         margin: { left: isRtl ? 20 : 100, right: isRtl ? 100 : 20 }
       });
       
-      // الملاحظات
-      if (invoice.notes) {
-        doc.setFontSize(10);
-        doc.setTextColor(80, 80, 80);
-        doc.text(`${t('notes')}: ${invoice.notes}`, isRtl ? 190 : 20, (doc as any).lastAutoTable.finalY + 20, { 
-          align: isRtl ? 'right' : 'left',
-          maxWidth: 170
-        });
-      }
-      
-      // الختام
-      doc.setFontSize(9);
-      doc.setTextColor(100, 100, 100);
-      doc.text(t('thank_you_message'), doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 20, { 
-        align: 'center', 
-        maxWidth: 150 
+      // طريقة الدفع
+      const paymentMethodY = (doc as any).lastAutoTable.finalY + 5;
+      autoTable(doc, {
+        body: paymentMethodRow,
+        startY: paymentMethodY,
+        theme: 'plain',
+        ...tableStyle,
+        styles: {
+          ...tableStyle.styles,
+          fontSize: 10,
+          cellPadding: 2
+        },
+        columnStyles: {
+          0: { fontStyle: 'bold' },
+          1: { halign: isRtl ? 'left' : 'right' }
+        },
+        margin: { left: isRtl ? 20 : 100, right: isRtl ? 100 : 20 }
       });
       
-      // حفظ الملف باسم الفاتورة
+      // إضافة رسالة شكر
+      doc.setFontSize(12);
+      doc.setTextColor(41, 128, 185);
+      const thankYouMessage = t('thank_you_message');
+      doc.text(thankYouMessage, doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 20, { align: 'center' });
+      
+      // إضافة رقم الصفحة والتذييل
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      const dateStr = new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US');
+      const footerText = `© ${new Date().getFullYear()} Sales Ghazy - ${dateStr}`;
+      doc.text(footerText, doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 10, { align: 'center' });
+      
+      // تحديد اسم الملف
       const fileName = `invoice-${invoice.id}-${formatDate(invoice.date, 'yyyy-MM-dd')}.pdf`;
       
       if (invoice.customer && invoice.customer.phone) {
