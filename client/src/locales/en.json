@@ -219,5 +219,10 @@
   "invoice_delete_error": "Error deleting invoice",
   "success": "Success",
   "invoice_save_error": "Error saving invoice",
-  "unauthorized": "Unauthorized"
+  "unauthorized": "Unauthorized",
+  "share": "Share",
+  "no_customer_phone": "No customer phone number available",
+  "share_error": "Error sharing invoice",
+  "items": "Items",
+  "thank_you_message": "Thank you for your business!"
 }

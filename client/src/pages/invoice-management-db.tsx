@@ -407,8 +407,246 @@ export default function InvoiceManagementDB() {
     }
   });
   
+  // طباعة الفاتورة
   const handlePrintInvoice = () => {
-    window.print();
+    if (!selectedInvoice) return;
+    
+    const printWindow = window.open('', '_blank');
+    
+    if (!printWindow) {
+      toast({
+        title: t('error'),
+        description: t('popup_blocked'),
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // بناء رأس HTML
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html dir="${t('direction')}" lang="${i18n.language}">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${t('invoice')} #${selectedInvoice.invoiceNumber}</title>
+        <style>
+          body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+          }
+          .invoice-container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+            padding: 20px;
+          }
+          .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+          }
+          .invoice-details, .customer-details {
+            margin-bottom: 20px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+          }
+          th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+          }
+          th {
+            background-color: #f8f9fa;
+          }
+          .invoice-summary {
+            display: flex;
+            justify-content: flex-end;
+          }
+          .invoice-summary table {
+            width: 300px;
+          }
+          .text-right { text-align: right; }
+          .text-center { text-align: center; }
+          .invoice-footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+          }
+          @media print {
+            body { padding: 0; }
+            .invoice-container { border: none; }
+          }
+        </style>
+      </head>
+      <body>
+    `);
+
+    // محتوى الفاتورة
+    printWindow.document.write(`
+      <div class="invoice-container">
+        <div class="invoice-header">
+          <div>
+            <h1>${t('ghazy_store')}</h1>
+            <p>${t('address')}: ${t('store_address')}</p>
+            <p>${t('phone')}: ${t('store_phone')}</p>
+          </div>
+          <div>
+            <h2>${t('invoice')} #${selectedInvoice.invoiceNumber}</h2>
+            <p>${t('date')}: ${formatDate(new Date(selectedInvoice.date || selectedInvoice.createdAt))}</p>
+            <p>${t('status')}: ${t(selectedInvoice.status || 'completed')}</p>
+          </div>
+        </div>
+        
+        <div class="customer-details">
+          <h3>${t('customer_info')}</h3>
+          <p>${t('name')}: ${selectedInvoice.customerName || '-'}</p>
+          <p>${t('phone')}: ${selectedInvoice.customerPhone || '-'}</p>
+          <p>${t('address')}: ${selectedInvoice.customerAddress || '-'}</p>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>${t('product')}</th>
+              <th class="text-right">${t('price')}</th>
+              <th class="text-right">${t('quantity')}</th>
+              <th class="text-right">${t('subtotal')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${selectedInvoice.items && selectedInvoice.items.map((item: any) => `
+              <tr>
+                <td>
+                  <div>
+                    <p>${item.product.name}</p>
+                    <small>${t('barcode')}: ${item.product.barcode || '-'}</small>
+                  </div>
+                </td>
+                <td class="text-right">${formatCurrency(item.price)}</td>
+                <td class="text-right">${item.quantity}</td>
+                <td class="text-right">${formatCurrency(item.subtotal || (item.price * item.quantity))}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <div class="invoice-summary">
+          <table>
+            <tr>
+              <td>${t('subtotal')}</td>
+              <td class="text-right">${formatCurrency(selectedInvoice.subtotal)}</td>
+            </tr>
+            ${selectedInvoice.discount > 0 ? `
+              <tr>
+                <td>${t('discount')}</td>
+                <td class="text-right">${formatCurrency(selectedInvoice.discount)}</td>
+              </tr>
+            ` : ''}
+            <tr>
+              <th>${t('total')}</th>
+              <th class="text-right">${formatCurrency(selectedInvoice.total)}</th>
+            </tr>
+            <tr>
+              <td>${t('payment_method')}</td>
+              <td class="text-right">${t(selectedInvoice.paymentMethod)}</td>
+            </tr>
+          </table>
+        </div>
+        
+        ${selectedInvoice.notes ? `
+          <div class="notes">
+            <h4>${t('notes')}</h4>
+            <p>${selectedInvoice.notes}</p>
+          </div>
+        ` : ''}
+        
+        <div class="invoice-footer">
+          <p>${t('thank_you_message')}</p>
+        </div>
+      </div>
+    `);
+
+    // اغلاق الـ HTML
+    printWindow.document.write(`
+      </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    
+    // طباعة المستند
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
+  };
+  
+  // مشاركة الفاتورة مع العميل عبر تطبيق WhatsApp
+  const handleShareInvoice = (invoice: any) => {
+    if (!invoice || !invoice.customerPhone) {
+      toast({
+        title: t('error'),
+        description: t('no_customer_phone'),
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    try {
+      // تنسيق رقم الهاتف (إزالة أي أحرف غير رقمية)
+      const phoneNumber = invoice.customerPhone.replace(/\D/g, '');
+      
+      // بناء نص الرسالة
+      let message = `*${t('invoice')} #${invoice.invoiceNumber}*\n\n`;
+      message += `*${t('date')}:* ${formatDate(new Date(invoice.date || invoice.createdAt))}\n`;
+      message += `*${t('customer_name')}:* ${invoice.customerName || '-'}\n\n`;
+      
+      // إضافة العناصر
+      message += `*${t('items')}:*\n`;
+      if (invoice.items && invoice.items.length > 0) {
+        invoice.items.forEach((item: any, index: number) => {
+          message += `${index + 1}. ${item.product.name} x ${item.quantity} = ${formatCurrency(item.subtotal || (item.price * item.quantity))}\n`;
+        });
+      }
+      
+      message += `\n*${t('subtotal')}:* ${formatCurrency(invoice.subtotal)}\n`;
+      if (invoice.discount > 0) {
+        message += `*${t('discount')}:* ${formatCurrency(invoice.discount)}\n`;
+      }
+      message += `*${t('total')}:* ${formatCurrency(invoice.total)}\n`;
+      message += `*${t('payment_method')}:* ${t(invoice.paymentMethod)}\n`;
+      
+      if (invoice.notes) {
+        message += `\n*${t('notes')}:* ${invoice.notes}\n`;
+      }
+      
+      message += `\n${t('thank_you_message')}`;
+      
+      // تشفير الرسالة للرابط URL
+      const encodedMessage = encodeURIComponent(message);
+      
+      // إنشاء رابط واتساب
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+      
+      // فتح واتساب في نافذة جديدة
+      window.open(whatsappUrl, '_blank');
+      
+    } catch (error) {
+      console.error('Error sharing invoice:', error);
+      toast({
+        title: t('error'),
+        description: t('share_error'),
+        variant: 'destructive'
+      });
+    }
   };
   
   const confirmDeleteInvoice = (invoice: any) => {
