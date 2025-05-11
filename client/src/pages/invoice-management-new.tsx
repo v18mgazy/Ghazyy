@@ -564,6 +564,17 @@ export default function InvoiceManagement() {
       const { jsPDF } = await import('jspdf');
       const html2canvas = (await import('html2canvas')).default;
       
+      // جلب معلومات المتجر
+      let storeInfo;
+      try {
+        const response = await fetch('/api/store-info');
+        if (response.ok) {
+          storeInfo = await response.json();
+        }
+      } catch (error) {
+        console.error('Error fetching store info:', error);
+      }
+      
       // إنشاء عنصر HTML لتعيين الفاتورة
       const invoiceElement = document.createElement('div');
       
@@ -581,14 +592,19 @@ export default function InvoiceManagement() {
       const customerPhone = invoice.customer.phone || '';
       const customerAddress = invoice.customer.address || '';
       
+      // استخدام بيانات المتجر إذا كانت متوفرة
+      const storeName = storeInfo?.name || 'Sales Ghazy';
+      const storeAddress = storeInfo?.address || 'Cairo - Egypt';
+      const storePhone = storeInfo?.phone || '01xxxxxxxx';
+      
       // إنشاء HTML للفاتورة - باللغة الإنجليزية فقط
       invoiceElement.innerHTML = `
         <div style="font-family: Arial, sans-serif; width: 800px; padding: 20px; box-sizing: border-box; margin: 0 auto;">
           <!-- Header -->
           <div style="background-color: #2980b9; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0;">
-            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">Sales Ghazy</h1>
-            <p style="margin: 5px 0; font-size: 14px;">Cairo - Egypt</p>
-            <p style="margin: 5px 0; font-size: 14px;">01067677607</p>
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">${storeName}</h1>
+            <p style="margin: 5px 0; font-size: 14px;">${storeAddress}</p>
+            <p style="margin: 5px 0; font-size: 14px;">${storePhone}</p>
           </div>
           
           <!-- Invoice Information -->
@@ -1493,6 +1509,12 @@ export default function InvoiceManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* نافذة معلومات المتجر */}
+      <StoreInfoDialog 
+        isOpen={isStoreInfoDialogOpen} 
+        onClose={() => setIsStoreInfoDialogOpen(false)} 
+      />
     </div>
   );
 }
