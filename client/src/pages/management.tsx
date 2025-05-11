@@ -19,16 +19,25 @@ export default function ManagementPage() {
   // Products - استخدام البيانات الحقيقية من قاعدة البيانات
   const { data: products = [], isLoading: isLoadingProducts } = useQuery({
     queryKey: ['/api/products'],
+    refetchInterval: 30 * 1000,     // تحديث البيانات كل 30 ثانية
+    refetchOnWindowFocus: true,     // تحديث البيانات عند العودة للصفحة
+    staleTime: 20 * 1000,           // اعتبار البيانات قديمة بعد 20 ثانية
   });
   
   // Employees - استخدام البيانات الحقيقية من قاعدة البيانات
   const { data: employees = [], isLoading: isLoadingEmployees } = useQuery({
     queryKey: ['/api/employees'],
+    refetchInterval: 30 * 1000,     // تحديث البيانات كل 30 ثانية
+    refetchOnWindowFocus: true,     // تحديث البيانات عند العودة للصفحة
+    staleTime: 20 * 1000,           // اعتبار البيانات قديمة بعد 20 ثانية
   });
   
   // Employee Deductions
   const { data: employeeDeductions = [], isLoading: isLoadingDeductions } = useQuery({
     queryKey: ['/api/employee-deductions'],
+    refetchInterval: 30 * 1000,     // تحديث البيانات كل 30 ثانية
+    refetchOnWindowFocus: true,     // تحديث البيانات عند العودة للصفحة
+    staleTime: 20 * 1000,           // اعتبار البيانات قديمة بعد 20 ثانية
   });
   
   // Employee deduction mutation
@@ -63,16 +72,25 @@ export default function ManagementPage() {
   // Damaged Items - استخدام البيانات الحقيقية من قاعدة البيانات
   const { data: damagedItems = [], isLoading: isLoadingDamagedItems } = useQuery({
     queryKey: ['/api/damaged-items'],
+    refetchInterval: 30 * 1000,     // تحديث البيانات كل 30 ثانية
+    refetchOnWindowFocus: true,     // تحديث البيانات عند العودة للصفحة
+    staleTime: 20 * 1000,           // اعتبار البيانات قديمة بعد 20 ثانية
   });
   
   // Users - استخدام البيانات الحقيقية من قاعدة البيانات
   const { data: users = [], isLoading: isLoadingUsers } = useQuery({
     queryKey: ['/api/users'],
+    refetchInterval: 60 * 1000,     // تحديث البيانات كل دقيقة
+    refetchOnWindowFocus: true,     // تحديث البيانات عند العودة للصفحة
+    staleTime: 30 * 1000,           // اعتبار البيانات قديمة بعد 30 ثانية
   });
   
   // Expenses (مصاريف ونثريات) - استخدام البيانات الحقيقية من قاعدة البيانات
   const { data: expenses = [], isLoading: isLoadingExpenses } = useQuery({
     queryKey: ['/api/expenses'],
+    refetchInterval: 30 * 1000,     // تحديث البيانات كل 30 ثانية
+    refetchOnWindowFocus: true,     // تحديث البيانات عند العودة للصفحة
+    staleTime: 20 * 1000,           // اعتبار البيانات قديمة بعد 20 ثانية
   });
   
   // تعريف الميوتيشن للعمليات على المنتجات

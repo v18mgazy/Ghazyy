@@ -49,6 +49,9 @@ export function NotificationsDropdown({ userId }: NotificationsDropdownProps) {
   } = useQuery<Notification[]>({
     queryKey: [`/api/notifications/user/${userId}`],
     enabled: !!userId,
+    refetchInterval: 30 * 1000,     // تحديث الإشعارات كل 30 ثانية
+    refetchOnWindowFocus: true,     // تحديث الإشعارات عند العودة للتطبيق
+    staleTime: 10 * 1000,           // اعتبار الإشعارات قديمة بعد 10 ثوانٍ
   });
   
   // تعيين نص تبعاً لنوع الإشعار
