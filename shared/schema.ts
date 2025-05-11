@@ -95,6 +95,7 @@ export const invoiceItems = pgTable("invoice_items", {
   quantity: integer("quantity").notNull(),
   price: real("price").notNull(),
   total: real("total").notNull(),
+  discount: real("discount").default(0),
 });
 
 export const insertInvoiceItemSchema = createInsertSchema(invoiceItems).pick({
@@ -103,6 +104,7 @@ export const insertInvoiceItemSchema = createInsertSchema(invoiceItems).pick({
   quantity: true,
   price: true,
   total: true,
+  discount: true,
 });
 
 // Damaged Items

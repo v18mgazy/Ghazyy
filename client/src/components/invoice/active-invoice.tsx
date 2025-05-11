@@ -95,8 +95,9 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
       });
       // إظهار معاينة الفاتورة بعد الحفظ بنجاح
       setShowInvoicePreview(true);
-      // إعادة تحميل قائمة الفواتير
+      // إعادة تحميل قائمة الفواتير والمنتجات لتحديث الكميات
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
     },
     onError: (error) => {
       // عرض رسالة خطأ

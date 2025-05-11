@@ -288,6 +288,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create the invoice
       const invoice = await storage.createInvoice(invoiceData);
       
+      // Process invoice items and update product quantities
+      if (req.body.products && Array.isArray(req.body.products)) {
+        for (const item of req.body.products) {
+          try {
+            // Create invoice item
+            await storage.createInvoiceItem({
+              invoiceId: invoice.id,
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price,
+              discount: item.discount || 0
+            });
+            
+            // Update product quantity in inventory
+            const product = await storage.getProduct(item.productId);
+            if (product) {
+              const newStock = Math.max(0, (product.stock || 0) - item.quantity);
+              await storage.updateProduct(item.productId, { 
+                stock: newStock 
+              });
+              console.log(`Updated product ${product.name} stock to ${newStock}`);
+            }
+          } catch (itemError) {
+            console.error('Error processing invoice item:', itemError);
+            // Continue processing other items even if one fails
+          }
+        }
+      }
+      
       // إرسال إشعار للمدير بإنشاء فاتورة جديدة
       try {
         // الحصول على معلومات العميل
@@ -345,6 +374,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           timestamp: new Date()
         });
       }
+      
+      // No need to invalidate cache on server side
       
       res.status(201).json(invoice);
     } catch (err) {
