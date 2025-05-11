@@ -81,7 +81,9 @@ export default function InvoiceManagement() {
     refetch: refetchInvoices
   } = useQuery({
     queryKey: ['/api/invoices'],
-    staleTime: 10000, // تقليل وقت الصلاحية لضمان تحديث البيانات
+    staleTime: 10000,           // تقليل وقت الصلاحية لضمان تحديث البيانات
+    refetchInterval: 20 * 1000, // تحديث البيانات كل 20 ثانية
+    refetchOnWindowFocus: true, // تحديث البيانات عند العودة للصفحة
   });
   
   // استعلام للحصول على بيانات المنتجات
@@ -90,7 +92,9 @@ export default function InvoiceManagement() {
     isLoading: isLoadingProducts
   } = useQuery({
     queryKey: ['/api/products'],
-    staleTime: 60000,
+    staleTime: 30000,               // 30 ثانية
+    refetchInterval: 60 * 1000,     // دقيقة واحدة
+    refetchOnWindowFocus: true,
   });
   
   // استعلام للحصول على بيانات العملاء
@@ -99,7 +103,9 @@ export default function InvoiceManagement() {
     isLoading: isLoadingCustomers
   } = useQuery({
     queryKey: ['/api/customers'],
-    staleTime: 60000,
+    staleTime: 30000,               // 30 ثانية
+    refetchInterval: 60 * 1000,     // دقيقة واحدة
+    refetchOnWindowFocus: true,
   });
   
   // تحديث المنتجات والعملاء المتاحين عند تغير البيانات
