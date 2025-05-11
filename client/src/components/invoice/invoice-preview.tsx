@@ -333,50 +333,89 @@ export default function InvoicePreview({
             </div>
             
             {/* معلومات العميل */}
-            <div className="mb-6 bg-muted/30 p-4 rounded-md">
-              <h2 className="font-semibold text-gray-700 mb-2">{t('customer_information')}</h2>
+            <div className="mb-6 bg-blue-50 p-5 rounded-md border border-blue-100">
+              <h2 className="font-semibold text-blue-700 mb-3 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+                {t('customer_information')}
+              </h2>
               <div className="flex flex-col">
-                <div className="font-medium text-lg">{customer.name}</div>
-                {customer.phone && <div className="text-gray-600">{t('phone')}: {customer.phone}</div>}
-                {customer.address && <div className="text-gray-600">{t('address')}: {customer.address}</div>}
+                <div className="font-medium text-lg text-gray-800">{customer.name}</div>
+                {customer.phone && 
+                  <div className="text-gray-700 flex items-center mt-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                    </svg>
+                    {t('phone')}: <span className="font-medium">{customer.phone}</span>
+                  </div>
+                }
+                {customer.address && 
+                  <div className="text-gray-700 flex items-center mt-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                    {t('address')}: <span className="font-medium">{customer.address}</span>
+                  </div>
+                }
               </div>
             </div>
             
             {/* المنتجات */}
-            <table className="w-full border-collapse mb-6">
+            <table className="w-full border-collapse mb-6 bg-white rounded-lg overflow-hidden shadow-sm">
               <thead>
-                <tr className="bg-gray-100">
-                  <th className="py-2 px-4 text-start border">{t('product')}</th>
-                  <th className="py-2 px-4 text-center border">{t('price')}</th>
-                  <th className="py-2 px-4 text-center border">{t('quantity')}</th>
+                <tr className="bg-primary-50 text-primary-700">
+                  <th className="py-3 px-4 text-start font-semibold border-b border-primary-100">{t('product')}</th>
+                  <th className="py-3 px-4 text-center font-semibold border-b border-primary-100">{t('price')}</th>
+                  <th className="py-3 px-4 text-center font-semibold border-b border-primary-100">{t('quantity')}</th>
                   {products.some(p => p.discount && p.discount > 0) && (
-                    <th className="py-2 px-4 text-center border">{t('discount')} %</th>
+                    <th className="py-3 px-4 text-center font-semibold border-b border-primary-100">
+                      <span className="flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zm7-10a1 1 0 01.707.293l.707.707L10 7.414 13.586 4l.707-.707a1 1 0 111.414 1.414L13 8.414l2.707 2.707a1 1 0 11-1.414 1.414L14 9.414 10.414 13l3.293 3.293a1 1 0 11-1.414 1.414l-.707-.707L8 13.414l-3.293 3.293a1 1 0 01-1.414-1.414L6.586 12 3.293 8.707a1 1 0 011.414-1.414L8 10.586l3.586-3.586-.707-.707a1 1 0 01-.103-1.304z" clipRule="evenodd" />
+                        </svg>
+                        {t('discount')} %
+                      </span>
+                    </th>
                   )}
-                  <th className="py-2 px-4 text-end border">{t('total')}</th>
+                  <th className="py-3 px-4 text-end font-semibold border-b border-primary-100">{t('total')}</th>
                 </tr>
               </thead>
               <tbody>
-                {products.map((product) => {
+                {products.map((product, index) => {
                   const productTotal = product.sellingPrice * product.quantity;
                   const productDiscount = product.discount ? (productTotal * product.discount / 100) : 0;
                   const productNetTotal = productTotal - productDiscount;
                   
                   return (
-                    <tr key={product.id} className="border-b">
-                      <td className="py-3 px-4 border">
-                        <div className="font-medium">{product.name}</div>
+                    <tr key={product.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="py-3 px-4 border-b border-gray-100">
+                        <div className="font-medium text-gray-800">{product.name}</div>
                         {product.barcode && (
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-500 mt-1 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 2V5h1v1H5zm-2 7a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zm2 2v-1h1v1H5zm8-12a1 1 0 00-1 1v3a1 1 0 001 1h3a1 1 0 001-1V4a1 1 0 00-1-1h-3zm1 2V5h1v1h-1zm-2 7a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-3zm2 2v-1h1v1h-1z" clipRule="evenodd" />
+                            </svg>
                             {t('barcode')}: {product.barcode}
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-center border">{formatCurrency(product.sellingPrice)}</td>
-                      <td className="py-3 px-4 text-center border">{product.quantity}</td>
+                      <td className="py-3 px-4 text-center border-b border-gray-100 font-medium">{formatCurrency(product.sellingPrice)}</td>
+                      <td className="py-3 px-4 text-center border-b border-gray-100">
+                        <span className="inline-flex items-center justify-center min-w-[2rem] bg-blue-50 text-blue-600 py-1 px-2 rounded-full font-medium">
+                          {product.quantity}
+                        </span>
+                      </td>
                       {products.some(p => p.discount && p.discount > 0) && (
-                        <td className="py-3 px-4 text-center border">{product.discount || 0}%</td>
+                        <td className="py-3 px-4 text-center border-b border-gray-100">
+                          {product.discount ? (
+                            <span className="text-amber-600 font-medium">
+                              {product.discount}%
+                            </span>
+                          ) : '0%'}
+                        </td>
                       )}
-                      <td className="py-3 px-4 text-end border">{formatCurrency(productNetTotal)}</td>
+                      <td className="py-3 px-4 text-end border-b border-gray-100 font-semibold text-gray-900">{formatCurrency(productNetTotal)}</td>
                     </tr>
                   );
                 })}
