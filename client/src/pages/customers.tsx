@@ -37,12 +37,20 @@ export default function CustomersPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [editCustomerOpen, setEditCustomerOpen] = useState(false);
+  const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(null);
   const [newCustomer, setNewCustomer] = useState({
     name: '',
     phone: '',
     address: '',
     isPotential: true
   });
+  
+  // عند النقر على زر تعديل العميل
+  const handleEditCustomer = (customer: Customer) => {
+    setCurrentCustomer(customer);
+    setEditCustomerOpen(true);
+  };
   
   // استدعاء بيانات العملاء من الخادم
   const { data: customersResponse = [], isLoading: isLoadingCustomers } = useQuery<CustomerResponse[]>({
@@ -106,6 +114,7 @@ export default function CustomersPage() {
     }
   });
   
+  // دالة إضافة عميل جديد
   const handleAddCustomer = () => {
     if (!newCustomer.name) {
       toast({
@@ -117,6 +126,59 @@ export default function CustomersPage() {
     }
     
     addCustomerMutation.mutate(newCustomer);
+  };
+  
+  // دالة تعديل العميل - mutation
+  const updateCustomerMutation = useMutation({
+    mutationFn: async (customerData: Omit<Customer, 'totalPurchases'>) => {
+      // استخدام واجهة برمجة التطبيقات لتعديل العميل
+      console.log('Updating customer:', customerData);
+      const response = await apiRequest('PATCH', `/api/customers/${customerData.id}`, {
+        name: customerData.name,
+        phone: customerData.phone,
+        address: customerData.address,
+        isPotential: customerData.isPotential
+      });
+      return await response.json() as CustomerResponse;
+    },
+    onSuccess: (updatedCustomer) => {
+      console.log('Customer updated successfully:', updatedCustomer);
+      
+      // تحديث استعلام العملاء لجلب البيانات المحدثة
+      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      
+      toast({
+        title: t('customer_updated'),
+        description: t('customer_updated_successfully'),
+      });
+      
+      setEditCustomerOpen(false);
+      setCurrentCustomer(null);
+    },
+    onError: (error) => {
+      console.error('Error updating customer:', error);
+      toast({
+        title: t('error'),
+        description: t('error_updating_customer'),
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // تنفيذ عملية تعديل العميل
+  const handleUpdateCustomer = () => {
+    if (!currentCustomer) return;
+    
+    if (!currentCustomer.name) {
+      toast({
+        title: t('validation_error'),
+        description: t('customer_name_required'),
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    updateCustomerMutation.mutate(currentCustomer);
   };
   
   return (
@@ -139,6 +201,7 @@ export default function CustomersPage() {
         customers={customers}
         isLoading={isLoadingCustomers}
         onExportToExcel={exportToExcel}
+        onEditCustomer={handleEditCustomer}
       />
       
       {/* Add Customer Dialog */}
@@ -205,6 +268,87 @@ export default function CustomersPage() {
             </Button>
             <Button onClick={handleAddCustomer} disabled={addCustomerMutation.isPending}>
               {addCustomerMutation.isPending ? t('saving') : t('save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Customer Dialog */}
+      <Dialog open={editCustomerOpen} onOpenChange={setEditCustomerOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('edit_customer')}</DialogTitle>
+            <DialogDescription>
+              {t('edit_customer_description')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">{t('name')} <span className="text-destructive">*</span></Label>
+              <Input
+                id="edit-name"
+                value={currentCustomer?.name || ''}
+                onChange={(e) => currentCustomer && setCurrentCustomer({ 
+                  ...currentCustomer, 
+                  name: e.target.value 
+                })}
+                placeholder={t('customer_name')}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-phone">{t('phone')}</Label>
+              <Input
+                id="edit-phone"
+                value={currentCustomer?.phone || ''}
+                onChange={(e) => currentCustomer && setCurrentCustomer({ 
+                  ...currentCustomer, 
+                  phone: e.target.value 
+                })}
+                placeholder={t('phone_number')}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-address">{t('address')}</Label>
+              <Input
+                id="edit-address"
+                value={currentCustomer?.address || ''}
+                onChange={(e) => currentCustomer && setCurrentCustomer({ 
+                  ...currentCustomer, 
+                  address: e.target.value 
+                })}
+                placeholder={t('customer_address')}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-isPotential">{t('potential_client')}</Label>
+              <Select
+                value={currentCustomer?.isPotential ? 'yes' : 'no'}
+                onValueChange={(value) => currentCustomer && setCurrentCustomer({ 
+                  ...currentCustomer, 
+                  isPotential: value === 'yes' 
+                })}
+              >
+                <SelectTrigger id="edit-isPotential">
+                  <SelectValue placeholder={t('select')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">{t('yes')}</SelectItem>
+                  <SelectItem value="no">{t('no')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditCustomerOpen(false)}>
+              {t('cancel')}
+            </Button>
+            <Button onClick={handleUpdateCustomer} disabled={updateCustomerMutation.isPending}>
+              {updateCustomerMutation.isPending ? t('saving') : t('save')}
             </Button>
           </DialogFooter>
         </DialogContent>

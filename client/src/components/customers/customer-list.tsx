@@ -40,12 +40,14 @@ interface CustomerListProps {
   customers: Customer[];
   isLoading: boolean;
   onExportToExcel: () => void;
+  onEditCustomer: (customer: Customer) => void;
 }
 
 export default function CustomerList({
   customers,
   isLoading,
-  onExportToExcel
+  onExportToExcel,
+  onEditCustomer
 }: CustomerListProps) {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
@@ -224,7 +226,7 @@ export default function CustomerList({
                               variant="ghost"
                               size="icon"
                               className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                              onClick={() => {}}
+                              onClick={() => onEditCustomer(customer)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
