@@ -378,5 +378,9 @@
   "invoice_invalid_id": "معرف فاتورة غير صالح",
   "invoice_deleted_successfully": "تم حذف الفاتورة بنجاح",
   "invoice_delete_error": "خطأ في حذف الفاتورة",
-  "success": "نجاح"
+  "success": "نجاح",
+  "edit_invoice_success": "تم تعديل الفاتورة بنجاح",
+  "edit_invoice_prepare_success": "تم تحضير بيانات الفاتورة للتعديل",
+  "popup_blocked_description": "يرجى السماح بالنوافذ المنبثقة لمحرر الفاتورة",
+  "invoice_edit_error": "حدث خطأ أثناء تعديل الفاتورة"
 }

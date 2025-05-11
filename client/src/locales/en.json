@@ -231,5 +231,9 @@
   "customer_updated_successfully": "Customer information updated successfully",
   "error_updating_customer": "Error occurred while updating customer information",
   "edit_customer": "Edit Customer",
-  "edit_customer_description": "Edit customer information"
+  "edit_customer_description": "Edit customer information",
+  "edit_invoice_success": "Invoice edited successfully",
+  "edit_invoice_prepare_success": "Invoice prepared for editing",
+  "popup_blocked_description": "Please allow popups for the invoice editor",
+  "invoice_edit_error": "Error editing invoice"
 }
