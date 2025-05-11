@@ -1620,7 +1620,5 @@ export class MemStorage implements IStorage {
 }
 
 // Choose which storage implementation to use
-// For production, use FirebaseStorage
-// For development/testing, use MemStorage
-import { DatabaseStorage } from './database-storage';
-export const storage = new DatabaseStorage(); // Use DatabaseStorage for actual functionality
+// Use FirebaseStorage as requested
+export const storage = new FirebaseStorage(); // Use FirebaseStorage as per user request

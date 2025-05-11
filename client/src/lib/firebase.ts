@@ -4,12 +4,14 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "demo-key",
-  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID || "demo-project"}.firebaseapp.com`,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "demo-project",
-  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID || "demo-project"}.appspot.com`,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "000000000000",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:000000000000:web:0000000000000000000000",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "GOOGLE_API_KEY",
+  authDomain: "sales-ghazy.firebaseapp.com",
+  databaseURL: "https://sales-ghazy-default-rtdb.firebaseio.com",
+  projectId: "sales-ghazy",
+  storageBucket: "sales-ghazy.firebasestorage.app",
+  messagingSenderId: "172409339688",
+  appId: "1:172409339688:web:0ae4e6c22bc9ea65719a1d",
+  measurementId: "G-JGPJ8LC6GC"
 };
 
 // Initialize Firebase
