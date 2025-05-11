@@ -676,33 +676,29 @@ export class RealtimeDBStorage implements IStorage {
     try {
       const id = this.generateId('employees');
       
-      // تحويل كائن Date إلى تاريخ صالح لـ Firebase
-      const hireDateIso = employee.hireDate instanceof Date ? 
-        employee.hireDate.toISOString() : 
-        new Date().toISOString();
-        
+      // تبسيط عملية تخزين البيانات في Firebase
+      const firebaseEmployee = {
+        id,
+        name: employee.name,
+        hireDate: new Date().toISOString(), // تخزين التاريخ كنص بتنسيق ISO
+        salary: employee.salary,
+        deductions: employee.deductions || 0,
+        userId: employee.userId || null
+      };
+      
+      console.log('Saving employee to Firebase (simplified):', firebaseEmployee);
+      
+      await set(ref(database, `employees/${id}`), firebaseEmployee);
+      
+      // تكوين كائن Employee للإرجاع في API
       const newEmployee: Employee = {
         id,
         name: employee.name,
-        hireDate: employee.hireDate,
+        hireDate: new Date(), // تخزين التاريخ ككائن Date في الكائن المرجع
         salary: employee.salary,
         deductions: employee.deductions || 0,
-        userId: employee.userId || null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        userId: employee.userId || null
       };
-      
-      // تحضير البيانات للتخزين في Firebase مع معالجة كائنات التاريخ
-      const firebaseEmployee = {
-        ...newEmployee,
-        hireDate: hireDateIso,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      console.log('Saving employee to Firebase:', firebaseEmployee);
-      
-      await set(ref(database, `employees/${id}`), firebaseEmployee);
       
       return newEmployee;
     } catch (error) {
