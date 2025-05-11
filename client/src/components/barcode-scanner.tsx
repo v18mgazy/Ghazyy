@@ -100,16 +100,15 @@ export default function BarcodeScanner({ onProductScanned }: BarcodeScannerProps
       
       try {
         console.log('Barcode detected:', barcode);
-        // في التطبيق الحقيقي، هذا سيكون نداء API
-        // للآن، سنحاكي العثور على منتج
-        const mockProduct = {
-          id: '123',
-          name: 'Samsung Galaxy S21',
-          barcode: barcode,
-          sellingPrice: 899.99
-        };
+        // البحث عن المنتج بالباركود في قاعدة البيانات
+        const response = await fetch(`/api/products/barcode/${barcode}`);
         
-        setScannedProduct(mockProduct);
+        if (!response.ok) {
+          throw new Error(`Product not found with barcode: ${barcode}`);
+        }
+        
+        const product = await response.json();
+        setScannedProduct(product);
       } catch (err) {
         setError(t('product_not_found'));
         console.error('Error finding product:', err);
@@ -130,17 +129,35 @@ export default function BarcodeScanner({ onProductScanned }: BarcodeScannerProps
     setTimeout(startScanner, 500);
   };
 
-  // استخدم باركود وهمي للاختبار
-  const handleManualEntry = () => {
-    const testBarcode = '1234567890123';
-    const mockProduct = {
-      id: '123',
-      name: 'Samsung Galaxy S21',
-      barcode: testBarcode,
-      sellingPrice: 899.99
-    };
-    
-    setScannedProduct(mockProduct);
+  // استخدام باركود اختباري للبحث في قاعدة البيانات
+  const handleManualEntry = async () => {
+    try {
+      // استخدام باركود اختباري معروف "12345" وهو تنسيق Code 128 المطلوب
+      const testBarcode = 'C128-12345';
+      console.log('Testing with barcode:', testBarcode);
+      
+      // البحث عن المنتج بالباركود في قاعدة البيانات
+      const response = await fetch(`/api/products/barcode/${testBarcode}`);
+      
+      if (!response.ok) {
+        // إذا لم يتم العثور على المنتج، سنقوم بإنشاء منتج جديد للاختبار فقط
+        console.warn(`No product found with barcode ${testBarcode}. Using test product.`);
+        const testProduct = {
+          id: '999',
+          name: 'منتج اختباري',
+          barcode: testBarcode,
+          sellingPrice: 99.99
+        };
+        setScannedProduct(testProduct);
+        return;
+      }
+      
+      const product = await response.json();
+      setScannedProduct(product);
+    } catch (err) {
+      console.error('Error in manual entry:', err);
+      setError(t('error_finding_product'));
+    }
   };
 
   return (

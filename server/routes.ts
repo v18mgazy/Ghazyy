@@ -1138,52 +1138,199 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   
   function createChartData(invoices: any[], type: string, date: string): any[] {
-    // تنفيذ بسيط - يمكن توسيعه حسب احتياجات العميل
+    // إنشاء بيانات رسومية بناءً على الفواتير الفعلية
     const chartData: any[] = [];
+    const salesData = new Map<string, { sales: number, profit: number }>();
     
-    // إضافة بيانات مثال للاختبار
+    // تهيئة البيانات حسب نوع التقرير
     if (type === 'daily') {
-      // بيانات لساعات اليوم
+      // تهيئة البيانات لساعات اليوم (24 ساعة)
       for (let i = 0; i < 24; i++) {
-        chartData.push({
-          date: `${i}:00`,
-          sales: Math.floor(Math.random() * 1000),
-          profit: Math.floor(Math.random() * 500)
-        });
+        const hourKey = `${i}:00`;
+        salesData.set(hourKey, { sales: 0, profit: 0 });
+      }
+      
+      // تجميع المبيعات حسب الساعة
+      for (const invoice of invoices) {
+        if (!invoice.date) continue;
+        
+        const invoiceDate = new Date(invoice.date);
+        const formattedDate = formatDateForReportType(invoiceDate, type);
+        
+        if (formattedDate === date) {
+          const hour = invoiceDate.getHours();
+          const hourKey = `${hour}:00`;
+          const current = salesData.get(hourKey) || { sales: 0, profit: 0 };
+          
+          // إضافة المبيعات والأرباح (افتراض متوسط هامش ربح 30% للتبسيط)
+          current.sales += invoice.total || 0;
+          current.profit += (invoice.total || 0) * 0.3;
+          
+          salesData.set(hourKey, current);
+        }
       }
     } else if (type === 'monthly') {
-      // بيانات لأيام الشهر
-      const daysInMonth = new Date(parseInt(date.split('-')[0]), parseInt(date.split('-')[1]), 0).getDate();
+      // استخراج السنة والشهر من التاريخ
+      const [year, month] = date.split('-');
+      // حساب عدد أيام الشهر
+      const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+      
+      // تهيئة البيانات لأيام الشهر
       for (let i = 1; i <= daysInMonth; i++) {
-        chartData.push({
-          date: i.toString(),
-          sales: Math.floor(Math.random() * 5000),
-          profit: Math.floor(Math.random() * 2500)
-        });
+        const dayKey = i.toString();
+        salesData.set(dayKey, { sales: 0, profit: 0 });
       }
+      
+      // تجميع المبيعات حسب اليوم
+      for (const invoice of invoices) {
+        if (!invoice.date) continue;
+        
+        const invoiceDate = new Date(invoice.date);
+        const invoiceMonth = formatDateForReportType(invoiceDate, 'monthly');
+        
+        if (invoiceMonth === date) {
+          const day = invoiceDate.getDate();
+          const dayKey = day.toString();
+          const current = salesData.get(dayKey) || { sales: 0, profit: 0 };
+          
+          // إضافة المبيعات والأرباح
+          current.sales += invoice.total || 0;
+          current.profit += (invoice.total || 0) * 0.3;
+          
+          salesData.set(dayKey, current);
+        }
+      }
+    } else if (type === 'weekly') {
+      // أيام الأسبوع
+      const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+      
+      for (let i = 0; i < 7; i++) {
+        salesData.set(days[i], { sales: 0, profit: 0 });
+      }
+      
+      // تجميع المبيعات حسب اليوم في الأسبوع
+      for (const invoice of invoices) {
+        if (!invoice.date) continue;
+        
+        const invoiceDate = new Date(invoice.date);
+        const invoiceWeek = formatDateForReportType(invoiceDate, 'weekly');
+        
+        if (invoiceWeek === date) {
+          const dayOfWeek = invoiceDate.getDay();
+          const dayKey = days[dayOfWeek];
+          const current = salesData.get(dayKey) || { sales: 0, profit: 0 };
+          
+          // إضافة المبيعات والأرباح
+          current.sales += invoice.total || 0;
+          current.profit += (invoice.total || 0) * 0.3;
+          
+          salesData.set(dayKey, current);
+        }
+      }
+    } else if (type === 'yearly') {
+      // أشهر السنة
+      const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+      
+      for (let i = 0; i < 12; i++) {
+        salesData.set(months[i], { sales: 0, profit: 0 });
+      }
+      
+      // تجميع المبيعات حسب الشهر
+      for (const invoice of invoices) {
+        if (!invoice.date) continue;
+        
+        const invoiceDate = new Date(invoice.date);
+        const invoiceYear = formatDateForReportType(invoiceDate, 'yearly');
+        
+        if (invoiceYear === date) {
+          const month = invoiceDate.getMonth();
+          const monthKey = months[month];
+          const current = salesData.get(monthKey) || { sales: 0, profit: 0 };
+          
+          // إضافة المبيعات والأرباح
+          current.sales += invoice.total || 0;
+          current.profit += (invoice.total || 0) * 0.3;
+          
+          salesData.set(monthKey, current);
+        }
+      }
+    }
+    
+    // تحويل البيانات المجمعة إلى تنسيق مناسب للرسم البياني
+    for (const [key, value] of salesData.entries()) {
+      chartData.push({
+        name: key,
+        revenue: Math.round(value.sales * 100) / 100, // تقريب إلى رقمين عشريين
+        profit: Math.round(value.profit * 100) / 100
+      });
     }
     
     return chartData;
   }
   
   function calculateTopProducts(invoices: any[], products: any[]): any[] {
-    // تنفيذ بسيط - يمكن توسيعه حسب احتياجات العميل
-    const productMap = new Map();
+    // حساب أفضل المنتجات مبيعًا بناءً على بيانات الفواتير الفعلية
+    const productSalesMap = new Map<number, { 
+      id: number, 
+      name: string, 
+      soldQuantity: number,
+      revenue: number,
+      profit: number 
+    }>();
     
-    // تصنيف المنتجات حسب الكمية والإيرادات
+    // تهيئة خريطة المنتجات بالبيانات الأساسية
     for (const product of products) {
       if (product.id) {
-        productMap.set(product.id, {
+        productSalesMap.set(product.id, {
           id: product.id,
-          name: product.name,
-          quantity: 0,
-          revenue: 0
+          name: product.name || 'منتج غير معروف',
+          soldQuantity: 0,
+          revenue: 0,
+          profit: 0
         });
       }
     }
     
-    // ترتيب أفضل 5 منتجات
-    return Array.from(productMap.values())
+    // تجميع المبيعات لكل منتج من خلال الفواتير وعناصرها
+    (async () => {
+      for (const invoice of invoices) {
+        if (invoice.id) {
+          try {
+            // جلب عناصر الفاتورة
+            const invoiceItems = await storage.getInvoiceItems(invoice.id);
+            
+            for (const item of invoiceItems) {
+              if (item.productId && productSalesMap.has(item.productId)) {
+                const productData = productSalesMap.get(item.productId);
+                if (productData) {
+                  // تحديث بيانات المبيعات للمنتج
+                  productData.soldQuantity += item.quantity || 0;
+                  productData.revenue += item.total || 0;
+                  
+                  // حساب الربح باستخدام سعر الشراء إذا كان متاحًا
+                  const product = await storage.getProduct(item.productId);
+                  if (product && product.purchasePrice) {
+                    const itemProfit = (item.price - product.purchasePrice) * item.quantity;
+                    productData.profit += itemProfit;
+                  } else {
+                    // استخدام متوسط هامش ربح 30% إذا لم يكن سعر الشراء متاحًا
+                    productData.profit += (item.total || 0) * 0.3;
+                  }
+                  
+                  productSalesMap.set(item.productId, productData);
+                }
+              }
+            }
+          } catch (err) {
+            console.error(`Error processing invoice items for invoice ${invoice.id}:`, err);
+          }
+        }
+      }
+    })();
+    
+    // ترتيب أفضل 5 منتجات حسب الإيرادات
+    return Array.from(productSalesMap.values())
+      .filter(product => product.soldQuantity > 0) // فقط المنتجات المباعة
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
   }
