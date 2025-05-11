@@ -452,73 +452,215 @@ export default function ManagementPage() {
   });
   
   const addEmployeeMutation = useMutation({
-    mutationFn: (employee: any) => Promise.resolve(employee),
+    mutationFn: async (employee: any) => {
+      const response = await apiRequest('POST', '/api/employees', employee);
+      return await response.json();
+    },
     onSuccess: () => {
-      // In a real app, invalidate employees query
+      queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
+      toast({
+        title: t('success'),
+        description: t('employee_added_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('add_employee_error'),
+        variant: 'destructive',
+      });
     }
   });
   
   const editEmployeeMutation = useMutation({
-    mutationFn: (employee: any) => Promise.resolve(employee),
+    mutationFn: async (employee: any) => {
+      const response = await apiRequest('PATCH', `/api/employees/${employee.id}`, employee);
+      return await response.json();
+    },
     onSuccess: () => {
-      // In a real app, invalidate employees query
+      queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
+      toast({
+        title: t('success'),
+        description: t('employee_updated_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('update_employee_error'),
+        variant: 'destructive',
+      });
     }
   });
   
   const deleteEmployeeMutation = useMutation({
-    mutationFn: (employeeId: string) => Promise.resolve(employeeId),
+    mutationFn: async (employeeId: string) => {
+      const response = await apiRequest('DELETE', `/api/employees/${employeeId}`);
+      return employeeId;
+    },
     onSuccess: () => {
-      // In a real app, invalidate employees query
+      queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
+      toast({
+        title: t('success'),
+        description: t('employee_deleted_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('delete_employee_error'),
+        variant: 'destructive',
+      });
     }
   });
   
   const addDamagedItemMutation = useMutation({
-    mutationFn: (item: any) => Promise.resolve(item),
+    mutationFn: async (item: any) => {
+      const response = await apiRequest('POST', '/api/damaged-items', item);
+      return await response.json();
+    },
     onSuccess: () => {
-      // In a real app, invalidate damaged items query
+      queryClient.invalidateQueries({ queryKey: ['/api/damaged-items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] }); // Refresh products as inventory might change
+      toast({
+        title: t('success'),
+        description: t('damaged_item_added_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('add_damaged_item_error'),
+        variant: 'destructive',
+      });
     }
   });
   
   const editDamagedItemMutation = useMutation({
-    mutationFn: (item: any) => Promise.resolve(item),
+    mutationFn: async (item: any) => {
+      const response = await apiRequest('PATCH', `/api/damaged-items/${item.id}`, item);
+      return await response.json();
+    },
     onSuccess: () => {
-      // In a real app, invalidate damaged items query
+      queryClient.invalidateQueries({ queryKey: ['/api/damaged-items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] }); // Refresh products as inventory might change
+      toast({
+        title: t('success'),
+        description: t('damaged_item_updated_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('update_damaged_item_error'),
+        variant: 'destructive',
+      });
     }
   });
   
   const deleteDamagedItemMutation = useMutation({
-    mutationFn: (itemId: string) => Promise.resolve(itemId),
+    mutationFn: async (itemId: string) => {
+      const response = await apiRequest('DELETE', `/api/damaged-items/${itemId}`);
+      return itemId;
+    },
     onSuccess: () => {
-      // In a real app, invalidate damaged items query
+      queryClient.invalidateQueries({ queryKey: ['/api/damaged-items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] }); // Refresh products as inventory might change
+      toast({
+        title: t('success'),
+        description: t('damaged_item_deleted_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('delete_damaged_item_error'),
+        variant: 'destructive',
+      });
     }
   });
   
   const addUserMutation = useMutation({
-    mutationFn: (user: any) => Promise.resolve(user),
+    mutationFn: async (user: any) => {
+      const response = await apiRequest('POST', '/api/users', user);
+      return await response.json();
+    },
     onSuccess: () => {
-      // In a real app, invalidate users query
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      toast({
+        title: t('success'),
+        description: t('user_added_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('add_user_error'),
+        variant: 'destructive',
+      });
     }
   });
   
   const editUserMutation = useMutation({
-    mutationFn: (user: any) => Promise.resolve(user),
+    mutationFn: async (user: any) => {
+      const response = await apiRequest('PATCH', `/api/users/${user.id}`, user);
+      return await response.json();
+    },
     onSuccess: () => {
-      // In a real app, invalidate users query
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      toast({
+        title: t('success'),
+        description: t('user_updated_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('update_user_error'),
+        variant: 'destructive',
+      });
     }
   });
   
   const deleteUserMutation = useMutation({
-    mutationFn: (userId: string) => Promise.resolve(userId),
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest('DELETE', `/api/users/${userId}`);
+      return userId;
+    },
     onSuccess: () => {
-      // In a real app, invalidate users query
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      toast({
+        title: t('success'),
+        description: t('user_deleted_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('delete_user_error'),
+        variant: 'destructive',
+      });
     }
   });
   
   const resetPasswordMutation = useMutation({
-    mutationFn: (userId: string) => Promise.resolve(userId),
-    onSuccess: () => {
-      // In a real app, send reset password email
-      console.log('Reset password');
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest('POST', `/api/users/${userId}/reset-password`);
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      toast({
+        title: t('success'),
+        description: t('password_reset_success') + `: ${data.newPassword || ''}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('password_reset_error'),
+        variant: 'destructive',
+      });
     }
   });
   
