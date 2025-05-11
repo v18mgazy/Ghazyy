@@ -8,9 +8,11 @@ import UserList from '@/components/users/user-list';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { formatCurrency, generateBarcodeSVG } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ManagementPage() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('products');
   
   // Products - استخدام البيانات الحقيقية من قاعدة البيانات
@@ -26,6 +28,34 @@ export default function ManagementPage() {
   // Employee Deductions
   const { data: employeeDeductions = [], isLoading: isLoadingDeductions } = useQuery({
     queryKey: ['/api/employee-deductions'],
+  });
+  
+  // Employee deduction mutation
+  const addDeductionMutation = useMutation({
+    mutationFn: async ({employeeId, deduction}: {employeeId: string, deduction: {amount: number, reason: string}}) => {
+      const response = await apiRequest('POST', '/api/employee-deductions', {
+        employeeId,
+        amount: deduction.amount,
+        reason: deduction.reason,
+        date: new Date()
+      });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/employee-deductions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
+      toast({
+        title: t('success'),
+        description: t('deduction_added_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: t('error_adding_deduction'),
+        variant: 'destructive',
+      });
+    }
   });
   
   // Damaged Items - استخدام البيانات الحقيقية من قاعدة البيانات
@@ -737,6 +767,9 @@ export default function ManagementPage() {
             onAddEmployee={(employee) => addEmployeeMutation.mutate(employee)}
             onEditEmployee={(employee) => editEmployeeMutation.mutate(employee)}
             onDeleteEmployee={(id) => deleteEmployeeMutation.mutate(id)}
+            onAddDeduction={(employeeId, deduction) => addDeductionMutation.mutate({employeeId, deduction})}
+            deductionHistory={employeeDeductions}
+            isLoadingDeductions={isLoadingDeductions}
           />
         </TabsContent>
         
