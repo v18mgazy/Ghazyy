@@ -303,7 +303,10 @@ export default function EmployeeList({
         <DeductionHistory
           open={deductionHistoryOpen}
           onClose={() => setDeductionHistoryOpen(false)}
-          deductions={deductionHistory.filter(d => d.employeeId === selectedEmployeeForDeduction.id)}
+          deductions={deductionHistory.filter(d => 
+            // تحويل كلا المعرفين إلى نص لضمان المقارنة الصحيحة
+            String(d.employeeId) === String(selectedEmployeeForDeduction.id)
+          )}
           employeeName={selectedEmployeeForDeduction.name}
         />
       )}
