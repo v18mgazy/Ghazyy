@@ -419,14 +419,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Found invoice to delete:`, invoice);
       
-      // 1. حذف عناصر الفاتورة أو استعادة المخزون إذا لزم الأمر
+      // 1. حذف عناصر الفاتورة واستعادة المخزون
       try {
         // الحصول على جميع عناصر الفاتورة
         const invoiceItems = await storage.getInvoiceItems(invoiceId);
         console.log(`Found ${invoiceItems.length} items for invoice ${invoiceId}`);
         
-        // يمكن استعادة المخزون للمنتجات هنا إذا كان ذلك مطلوبًا
-        // لكن في هذا المثال سنكتفي بتعليم الفاتورة كمحذوفة
+        // استعادة المخزون للمنتجات التي تم بيعها في هذه الفاتورة
+        for (const item of invoiceItems) {
+          try {
+            // الحصول على المنتج الحالي
+            const product = await storage.getProduct(item.productId);
+            
+            if (product) {
+              // إضافة الكمية المباعة مرة أخرى إلى المخزون
+              const updatedStock = (product.stock || 0) + item.quantity;
+              
+              // تحديث المخزون
+              await storage.updateProduct(item.productId, {
+                stock: updatedStock
+              });
+              
+              console.log(`Restored ${item.quantity} units to product ${product.name} (ID: ${product.id}). New stock: ${updatedStock}`);
+            }
+          } catch (productError) {
+            console.error(`Error restoring stock for product ID ${item.productId}:`, productError);
+            // نستمر بالعملية رغم فشل تحديث منتج معين
+          }
+        }
       } catch (itemError) {
         console.error('Error processing invoice items during deletion:', itemError);
         // قد نستمر بالحذف رغم الخطأ

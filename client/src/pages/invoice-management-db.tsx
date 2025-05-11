@@ -155,23 +155,16 @@ export default function InvoiceManagementDB() {
     console.log(`Showing ${activeInvoices.length} active invoices out of ${dbInvoices.length} total`);
     
     return activeInvoices.map((invoice: Invoice) => {
-      // البحث عن بيانات العميل المرتبط بالفاتورة
-      const customer = invoice.customerId ? customersMap[invoice.customerId] : null;
-      
+      // استخدام بيانات العميل المخزنة مباشرة في الفاتورة بدلاً من البحث في جدول العملاء
       return {
         id: invoice.invoiceNumber,
         dbId: invoice.id,
         date: invoice.date ? new Date(invoice.date) : new Date(),
-        customer: customer ? {
-          id: customer.id.toString(),
-          name: customer.name,
-          phone: customer.phone || '',
-          address: customer.address || ''
-        } : {
-          id: 'unknown',
-          name: t('unknown_customer'),
-          phone: '',
-          address: ''
+        customer: {
+          id: invoice.customerId?.toString() || 'unknown',
+          name: invoice.customerName || t('unknown_customer'),
+          phone: invoice.customerPhone || '',
+          address: invoice.customerAddress || ''
         },
         total: invoice.total,
         status: invoice.paymentStatus,
