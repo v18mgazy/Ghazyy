@@ -59,6 +59,16 @@ export default function InvoiceManagement() {
   const [invoiceToDeleteDbId, setInvoiceToDeleteDbId] = useState<number | undefined>();
   const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
   const [scannedProduct, setScannedProduct] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [invoiceToEdit, setInvoiceToEdit] = useState<any>(null);
+  
+  // حالة تعديل الفاتورة
+  const [editedCustomerName, setEditedCustomerName] = useState('');
+  const [editedCustomerPhone, setEditedCustomerPhone] = useState('');
+  const [editedCustomerAddress, setEditedCustomerAddress] = useState('');
+  const [editedProducts, setEditedProducts] = useState<any[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<any[]>([]);
+  const [availableCustomers, setAvailableCustomers] = useState<any[]>([]);
   
   // استعلام للحصول على بيانات الفواتير
   const { 
@@ -70,6 +80,46 @@ export default function InvoiceManagement() {
     queryKey: ['/api/invoices'],
     staleTime: 10000, // تقليل وقت الصلاحية لضمان تحديث البيانات
   });
+  
+  // استعلام للحصول على بيانات المنتجات
+  const {
+    data: dbProducts,
+    isLoading: isLoadingProducts
+  } = useQuery({
+    queryKey: ['/api/products'],
+    staleTime: 60000,
+  });
+  
+  // استعلام للحصول على بيانات العملاء
+  const {
+    data: dbCustomers,
+    isLoading: isLoadingCustomers
+  } = useQuery({
+    queryKey: ['/api/customers'],
+    staleTime: 60000,
+  });
+  
+  // تحديث المنتجات والعملاء المتاحين عند تغير البيانات
+  useEffect(() => {
+    if (dbProducts && Array.isArray(dbProducts)) {
+      setAvailableProducts(dbProducts.map(product => ({
+        id: product.id,
+        name: product.name,
+        price: product.sellingPrice,
+        stock: product.stock,
+        barcode: product.barcode
+      })));
+    }
+    
+    if (dbCustomers && Array.isArray(dbCustomers)) {
+      setAvailableCustomers(dbCustomers.map(customer => ({
+        id: customer.id,
+        name: customer.name,
+        phone: customer.phone || '',
+        address: customer.address || ''
+      })));
+    }
+  }, [dbProducts, dbCustomers]);
   
   // معالجة الأخطاء
   useEffect(() => {
@@ -321,6 +371,168 @@ export default function InvoiceManagement() {
     }
   };
   
+  // فتح نافذة تعديل الفاتورة
+  const openEditInvoiceModal = (invoice: any) => {
+    console.log('Opening edit invoice modal for:', invoice.id);
+    setInvoiceToEdit(invoice);
+    
+    // تعيين بيانات العميل الأولية
+    setEditedCustomerName(invoice.customer.name);
+    setEditedCustomerPhone(invoice.customer.phone || '');
+    setEditedCustomerAddress(invoice.customer.address || '');
+    
+    // تعيين المنتجات الأولية
+    if (invoice.items && Array.isArray(invoice.items)) {
+      setEditedProducts([...invoice.items]);
+    } else {
+      setEditedProducts([]);
+    }
+    
+    setIsEditModalOpen(true);
+  };
+  
+  // إضافة منتج للفاتورة المعدلة
+  const addProductToEditedInvoice = (productId: number) => {
+    const product = availableProducts.find(p => p.id === productId);
+    if (!product) return;
+    
+    // التحقق من وجود المنتج مسبقا
+    const existingProductIndex = editedProducts.findIndex(p => p.productId === productId);
+    
+    if (existingProductIndex !== -1) {
+      // زيادة الكمية فقط
+      const newProducts = [...editedProducts];
+      const currentProduct = newProducts[existingProductIndex];
+      const newQuantity = currentProduct.quantity + 1;
+      const newTotal = newQuantity * currentProduct.price;
+      
+      newProducts[existingProductIndex] = {
+        ...currentProduct,
+        quantity: newQuantity,
+        total: newTotal
+      };
+      
+      setEditedProducts(newProducts);
+    } else {
+      // إضافة منتج جديد
+      const newProduct = {
+        productId: product.id,
+        productName: product.name,
+        price: product.price,
+        quantity: 1,
+        total: product.price,
+        discount: 0,
+      };
+      
+      setEditedProducts([...editedProducts, newProduct]);
+    }
+  };
+  
+  // حذف منتج من الفاتورة المعدلة
+  const removeProductFromEditedInvoice = (index: number) => {
+    const newProducts = [...editedProducts];
+    newProducts.splice(index, 1);
+    setEditedProducts(newProducts);
+  };
+  
+  // تغيير كمية المنتج في الفاتورة المعدلة
+  const updateProductQuantity = (index: number, quantity: number) => {
+    if (quantity <= 0) return;
+    
+    const newProducts = [...editedProducts];
+    const product = newProducts[index];
+    
+    product.quantity = quantity;
+    product.total = product.price * quantity - (product.discount || 0);
+    
+    setEditedProducts(newProducts);
+  };
+  
+  // حساب إجمالي الفاتورة المعدلة
+  const calculateEditedInvoiceTotal = () => {
+    return editedProducts.reduce((sum, product) => sum + product.total, 0);
+  };
+  
+  // حفظ التعديلات على الفاتورة
+  const saveInvoiceEdit = async () => {
+    if (!invoiceToEdit || !invoiceToEdit.dbId) {
+      console.error('No invoice to edit');
+      return;
+    }
+    
+    try {
+      const invoiceId = invoiceToEdit.dbId;
+      const productsData = JSON.stringify(editedProducts);
+      
+      // حساب المجموع والتخفيض
+      const subtotal = editedProducts.reduce((sum, product) => 
+        sum + (product.price * product.quantity), 0);
+      
+      const discount = editedProducts.reduce((sum, product) => 
+        sum + (product.discount || 0), 0);
+      
+      const total = subtotal - discount;
+      
+      // إعداد بيانات التحديث
+      const updateData = {
+        customerName: editedCustomerName,
+        customerPhone: editedCustomerPhone,
+        customerAddress: editedCustomerAddress,
+        productsData,
+        subtotal,
+        discount,
+        total,
+        // تخزين بيانات المنتجات في الحقول المنفصلة أيضا
+        productIds: editedProducts.map(p => p.productId).join(','),
+        productNames: editedProducts.map(p => p.productName).join('|'),
+        productQuantities: editedProducts.map(p => p.quantity).join(','),
+        productPrices: editedProducts.map(p => p.price).join(','),
+        productDiscounts: editedProducts.map(p => p.discount || 0).join(','),
+        productTotals: editedProducts.map(p => p.total).join(',')
+      };
+      
+      console.log('Updating invoice with data:', updateData);
+      
+      // إرسال طلب التحديث إلى الخادم
+      const response = await apiRequest('PATCH', `/api/invoices/${invoiceId}`, updateData);
+      
+      if (!response.ok) {
+        let errorMessage = t('failed_to_update_invoice');
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // في حالة عدم وجود رسالة خطأ محددة
+        }
+        throw new Error(errorMessage);
+      }
+      
+      // إغلاق النافذة المنبثقة وإعادة تعيين الحالة
+      setIsEditModalOpen(false);
+      setInvoiceToEdit(null);
+      setEditedProducts([]);
+      setEditedCustomerName('');
+      setEditedCustomerPhone('');
+      setEditedCustomerAddress('');
+      
+      // إعادة تحميل البيانات
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      
+      // إظهار رسالة نجاح
+      toast({
+        title: t('invoice_updated'),
+        description: t('invoice_updated_successfully'),
+      });
+    } catch (error: any) {
+      console.error('Error updating invoice:', error);
+      toast({
+        title: t('error'),
+        description: error.message || t('failed_to_update_invoice'),
+        variant: 'destructive'
+      });
+    }
+  };
+  
   // مسح الباركود
   const openBarcodeScanner = () => {
     setScannedProduct(null);
@@ -333,65 +545,239 @@ export default function InvoiceManagement() {
     setScannedProduct(product);
   };
   
-  // مشاركة الفاتورة عبر واتساب
-  const shareInvoiceWhatsApp = async (invoice: any) => {
+  // مشاركة الفاتورة بصيغة PDF
+  const shareInvoicePDF = async (invoice: any) => {
     try {
-      if (!invoice || !invoice.customer || !invoice.customer.phone) {
+      if (!invoice) {
         toast({
           title: t('error'),
-          description: t('customer_phone_missing'),
+          description: t('invoice_not_found'),
           variant: 'destructive'
         });
         return;
       }
       
-      // تنظيف رقم الهاتف وإزالة المسافات والشرطات وأي رموز غير رقمية
-      let phone = invoice.customer.phone.replace(/\s+|-|\(|\)|\+/g, '');
+      // استيراد مكتبات PDF
+      const { jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
       
-      // إضافة رمز البلد إذا لم يكن موجودًا
-      if (!phone.startsWith('20')) {
-        phone = '20' + phone;
+      // تحديد اتجاه الصفحة حسب اللغة
+      const isRtl = language === 'ar';
+      
+      // إنشاء مستند PDF
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      // إعداد الخط للغة العربية إذا كانت اللغة الحالية هي العربية
+      if (isRtl) {
+        // تلاحظ: هنا نستخدم الخط الافتراضي لأن الخطوط العربية تتطلب تحميل خطوط إضافية
+        doc.setFont('Helvetica', 'normal');
+        doc.setR2L(true);
+      } else {
+        doc.setFont('Helvetica', 'normal');
       }
       
-      // بناء رسالة الواتساب
-      let message = `🧾 *${t('invoice')}*: ${invoice.id}\n`;
-      message += `📅 *${t('date')}*: ${formatDate(invoice.date)}\n`;
-      message += `👤 *${t('customer')}*: ${invoice.customer.name}\n\n`;
+      // إضافة عنوان الفاتورة
+      doc.setFontSize(22);
+      doc.setTextColor(40, 40, 40);
+      const title = t('invoice') + ' #' + invoice.id;
+      doc.text(title, isRtl ? 190 : 20, 20, { align: isRtl ? 'right' : 'left' });
       
-      // إضافة المنتجات
-      message += `*${t('products')}*:\n`;
-      if (invoice.items && invoice.items.length > 0) {
-        invoice.items.forEach((item: any, index: number) => {
-          message += `${index + 1}. ${item.productName || item.product?.name} - ${
-            formatCurrency(item.price)
-          } x ${item.quantity} = ${formatCurrency(item.total)}\n`;
+      // معلومات المتجر والتاريخ
+      doc.setFontSize(10);
+      doc.setTextColor(80, 80, 80);
+      const storeInfo = [
+        t('store_name'),
+        t('store_address'),
+        t('store_phone')
+      ];
+      
+      const dateInfo = [
+        `${t('date')}: ${formatDate(invoice.date)}`,
+        `${t('invoice_number')}: ${invoice.id}`,
+        `${t('payment_method')}: ${t(invoice.paymentMethod)}`
+      ];
+      
+      // طباعة معلومات المتجر
+      storeInfo.forEach((line, index) => {
+        doc.text(line, isRtl ? 190 : 20, 30 + (index * 5), { align: isRtl ? 'right' : 'left' });
+      });
+      
+      // طباعة معلومات التاريخ والفاتورة
+      dateInfo.forEach((line, index) => {
+        doc.text(line, isRtl ? 20 : 190, 30 + (index * 5), { align: isRtl ? 'left' : 'right' });
+      });
+      
+      // معلومات العميل
+      doc.setFontSize(12);
+      doc.setTextColor(40, 40, 40);
+      doc.text(t('customer_information'), isRtl ? 190 : 20, 55, { align: isRtl ? 'right' : 'left' });
+      
+      doc.setFontSize(10);
+      doc.setTextColor(80, 80, 80);
+      const customerInfo = [
+        `${t('name')}: ${invoice.customer.name}`,
+        invoice.customer.phone ? `${t('phone')}: ${invoice.customer.phone}` : '',
+        invoice.customer.address ? `${t('address')}: ${invoice.customer.address}` : ''
+      ].filter(Boolean); // إزالة السطور الفارغة
+      
+      customerInfo.forEach((line, index) => {
+        doc.text(line, isRtl ? 190 : 20, 60 + (index * 5), { align: isRtl ? 'right' : 'left' });
+      });
+      
+      // إضافة جدول المنتجات
+      const tableHeaders = [
+        [t('product'), t('price'), t('quantity'), t('total')]
+      ];
+      
+      const tableData = invoice.items.map((item: any) => [
+        item.productName || item.product?.name || t('unknown_product'),
+        formatCurrency(item.price),
+        item.quantity.toString(),
+        formatCurrency(item.total)
+      ]);
+      
+      // ترتيب الأعمدة بشكل صحيح حسب اللغة
+      if (isRtl) {
+        tableHeaders[0].reverse();
+        tableData.forEach(row => row.reverse());
+      }
+      
+      autoTable(doc, {
+        head: tableHeaders,
+        body: tableData,
+        startY: 75,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [60, 63, 81],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: isRtl ? 'right' : 'left'
+        },
+        bodyStyles: {
+          halign: isRtl ? 'right' : 'left'
+        },
+        styles: {
+          font: 'Helvetica',
+          fontSize: 9
+        }
+      });
+      
+      // إضافة ملخص الفاتورة
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      
+      // ملخص المدفوعات
+      const paymentSummary = [
+        [`${t('subtotal')}:`, formatCurrency(invoice.subtotal || invoice.total)],
+      ];
+      
+      if (invoice.discount && invoice.discount > 0) {
+        paymentSummary.push([`${t('discount')}:`, formatCurrency(invoice.discount)]);
+      }
+      
+      paymentSummary.push([`${t('total')}:`, formatCurrency(invoice.total)]);
+      
+      // ترتيب الأعمدة في ملخص المدفوعات
+      if (isRtl) {
+        paymentSummary.forEach(row => row.reverse());
+      }
+      
+      autoTable(doc, {
+        body: paymentSummary,
+        startY: finalY,
+        theme: 'plain',
+        styles: {
+          fontSize: 10
+        },
+        columnStyles: {
+          0: { fontStyle: 'bold' },
+          1: { halign: 'right' }
+        },
+        margin: { left: isRtl ? 20 : 100, right: isRtl ? 100 : 20 }
+      });
+      
+      // الملاحظات
+      if (invoice.notes) {
+        doc.setFontSize(10);
+        doc.setTextColor(80, 80, 80);
+        doc.text(`${t('notes')}: ${invoice.notes}`, isRtl ? 190 : 20, (doc as any).lastAutoTable.finalY + 20, { 
+          align: isRtl ? 'right' : 'left',
+          maxWidth: 170
         });
       }
       
-      message += `\n`;
-      message += `💰 *${t('subtotal')}*: ${formatCurrency(invoice.subtotal || invoice.total)}\n`;
+      // الختام
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.text(t('thank_you_message'), doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 20, { 
+        align: 'center', 
+        maxWidth: 150 
+      });
       
-      if (invoice.discount && invoice.discount > 0) {
-        message += `🏷️ *${t('discount')}*: ${formatCurrency(invoice.discount)}\n`;
+      // حفظ الملف باسم الفاتورة
+      const fileName = `invoice-${invoice.id}-${formatDate(invoice.date, 'yyyy-MM-dd')}.pdf`;
+      
+      if (invoice.customer && invoice.customer.phone) {
+        // تنظيف رقم الهاتف وإزالة المسافات والشرطات وأي رموز غير رقمية
+        let phone = invoice.customer.phone.replace(/\s+|-|\(|\)|\+/g, '');
+        
+        // إضافة رمز البلد إذا لم يكن موجودًا
+        if (!phone.startsWith('20')) {
+          phone = '20' + phone;
+        }
+        
+        // حفظ PDF كـ blob
+        const pdfBlob = doc.output('blob');
+        
+        // إنشاء URL للتنزيل
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        
+        // إنشاء رابط التنزيل
+        const downloadLink = document.createElement('a');
+        downloadLink.href = pdfUrl;
+        downloadLink.download = fileName;
+        
+        // تنزيل الملف
+        downloadLink.click();
+        
+        // مشاركة عبر واتساب إذا كان هناك رقم هاتف
+        const shareMessage = `${t('invoice_sent')} - ${invoice.id}`;
+        const whatsappURL = `https://wa.me/${phone}?text=${encodeURIComponent(shareMessage)}`;
+        
+        // فتح واتساب في نافذة جديدة
+        window.open(whatsappURL, '_blank');
+        
+        // إظهار رسالة نجاح
+        toast({
+          title: t('success'),
+          description: t('invoice_pdf_generated'),
+        });
+      } else {
+        // تنزيل الملف فقط إذا لم يتوفر رقم هاتف
+        doc.save(fileName);
+        
+        toast({
+          title: t('success'),
+          description: t('invoice_pdf_downloaded'),
+        });
       }
-      
-      message += `💵 *${t('total')}*: ${formatCurrency(invoice.total)}\n`;
-      message += `💳 *${t('payment_method')}*: ${t(invoice.paymentMethod)}\n`;
-      message += `\n🏪 *${t('store_name')}*`;
-      
-      // إنشاء رابط الواتساب
-      const whatsappURL = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-      
-      // فتح رابط الواتساب في نافذة جديدة
-      window.open(whatsappURL, '_blank');
     } catch (error) {
-      console.error('Error sharing invoice via WhatsApp:', error);
+      console.error('Error generating PDF:', error);
       toast({
         title: t('error'),
-        description: t('sharing_failed'),
+        description: t('pdf_generation_failed'),
         variant: 'destructive'
       });
     }
+  };
+  
+  // مشاركة الفاتورة عبر واتساب (قديم - النص فقط)
+  const shareInvoiceWhatsApp = async (invoice: any) => {
+    // استخدام وظيفة مشاركة PDF بدلاً من النص
+    shareInvoicePDF(invoice);
   };
   
   // طباعة الفاتورة
@@ -603,6 +989,10 @@ export default function InvoiceManagement() {
                             <DropdownMenuItem onClick={() => openInvoiceDetails(invoice)}>
                               <FileText className="h-4 w-4 me-2" />
                               {t('view_details')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openEditInvoiceModal(invoice)}>
+                              <Pencil className="h-4 w-4 me-2" />
+                              {t('edit')}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => printInvoice(invoice)}>
                               <Printer className="h-4 w-4 me-2" />
@@ -839,6 +1229,181 @@ export default function InvoiceManagement() {
             >
               <Trash2 className="h-4 w-4 me-2" />
               {t('delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* نافذة تعديل الفاتورة */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="gradient-heading">{t('edit_invoice')}</DialogTitle>
+            <DialogDescription>
+              {invoiceToEdit && `${t('invoice')} #${invoiceToEdit.id} - ${formatDate(invoiceToEdit.date)}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* معلومات العميل */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">{t('customer_information')}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customerName">{t('name')}</Label>
+                  <Input
+                    id="customerName"
+                    placeholder={t('customer_name')}
+                    value={editedCustomerName}
+                    onChange={(e) => setEditedCustomerName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customerPhone">{t('phone')}</Label>
+                  <Input
+                    id="customerPhone"
+                    placeholder={t('customer_phone')}
+                    value={editedCustomerPhone}
+                    onChange={(e) => setEditedCustomerPhone(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customerAddress">{t('address')}</Label>
+                  <Input
+                    id="customerAddress"
+                    placeholder={t('customer_address')}
+                    value={editedCustomerAddress}
+                    onChange={(e) => setEditedCustomerAddress(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            {/* جدول المنتجات */}
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-semibold">{t('products')}</h3>
+                <Select onValueChange={(value) => addProductToEditedInvoice(parseInt(value))}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder={t('add_product')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isLoadingProducts ? (
+                      <div className="flex justify-center p-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    ) : availableProducts.length === 0 ? (
+                      <div className="p-2 text-center text-sm text-muted-foreground">
+                        {t('no_products')}
+                      </div>
+                    ) : (
+                      availableProducts.map(product => (
+                        <SelectItem key={product.id} value={product.id.toString()}>
+                          {product.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="border rounded-md overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('product')}</TableHead>
+                      <TableHead className="text-center">{t('price')}</TableHead>
+                      <TableHead className="text-center">{t('quantity')}</TableHead>
+                      <TableHead className="text-right">{t('total')}</TableHead>
+                      <TableHead className="w-[80px]">{t('actions')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {editedProducts.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
+                          {t('no_products_in_invoice')}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      editedProducts.map((product, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <div className="font-medium">{product.productName}</div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {formatCurrency(product.price)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => updateProductQuantity(index, Math.max(1, product.quantity - 1))}
+                              >
+                                <span>-</span>
+                              </Button>
+                              <span className="w-8 text-center">{product.quantity}</span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => updateProductQuantity(index, product.quantity + 1)}
+                              >
+                                <span>+</span>
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {formatCurrency(product.total)}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-destructive"
+                              onClick={() => removeProductFromEditedInvoice(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+            
+            {/* ملخص المجموع */}
+            <div className="flex justify-end">
+              <div className="bg-muted/40 p-4 rounded-lg w-full max-w-[250px]">
+                <div className="flex justify-between items-center text-lg font-semibold">
+                  <span>{t('total')}:</span>
+                  <span className="text-primary">{formatCurrency(calculateEditedInvoiceTotal())}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setIsEditModalOpen(false)}
+            >
+              {t('cancel')}
+            </Button>
+            
+            <Button 
+              variant="default" 
+              onClick={saveInvoiceEdit}
+              disabled={editedProducts.length === 0}
+            >
+              <CheckCircle className="h-4 w-4 me-2" />
+              {t('save_changes')}
             </Button>
           </DialogFooter>
         </DialogContent>
