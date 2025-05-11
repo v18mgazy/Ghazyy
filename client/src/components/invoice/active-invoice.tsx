@@ -51,6 +51,12 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
   const { language } = useLocale();
   const isRtl = language === 'ar';
   
+  // استرجاع جميع المنتجات من قاعدة البيانات للتحقق من الكميات المتاحة
+  const productsQuery = useQuery({
+    queryKey: ['/api/products'],
+    staleTime: 30000, // تحديث البيانات كل 30 ثانية
+  });
+  
   const [invoiceDate, setInvoiceDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
@@ -215,12 +221,47 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
   
   const updateProduct = (index: number, field: keyof Product, value: any) => {
     const updatedProducts = [...products];
-    updatedProducts[index] = { 
-      ...updatedProducts[index], 
-      [field]: field === 'sellingPrice' || field === 'quantity' || field === 'discount' 
-        ? Number(value) || 0 
-        : value 
-    };
+    
+    // إذا كان الحقل هو الكمية، نتحقق من الكمية المتاحة
+    if (field === 'quantity') {
+      const numValue = Number(value) || 0;
+      
+      // الحصول على المنتج من قائمة المنتجات في قاعدة البيانات للتحقق من الكمية المتاحة
+      const currentProduct = updatedProducts[index];
+      const allProducts = productsQuery.data || [];
+      const productInDb = allProducts.find((p: any) => p.id.toString() === currentProduct.id.toString());
+      
+      if (productInDb && numValue > productInDb.quantity) {
+        // تنبيه المستخدم أن الكمية المطلوبة تتجاوز المتاح
+        toast({
+          title: t('quantity_exceeds_available'),
+          description: t('available_quantity_is', { available: productInDb.quantity }),
+          variant: 'destructive'
+        });
+        
+        // تعيين الكمية إلى الحد الأقصى المتوفر
+        updatedProducts[index] = { 
+          ...updatedProducts[index], 
+          quantity: productInDb.quantity
+        };
+      } else {
+        // تأكد من أن الكمية على الأقل 1
+        const safeQuantity = Math.max(1, numValue);
+        updatedProducts[index] = { 
+          ...updatedProducts[index], 
+          quantity: safeQuantity
+        };
+      }
+    } else {
+      // تحديث أي حقل آخر بشكل طبيعي
+      updatedProducts[index] = { 
+        ...updatedProducts[index], 
+        [field]: field === 'sellingPrice' || field === 'discount' 
+          ? Number(value) || 0 
+          : value 
+      };
+    }
+    
     setProducts(updatedProducts);
     
     // إذا كان الحقل هو اسم المنتج وليس هناك تحرير حالي
