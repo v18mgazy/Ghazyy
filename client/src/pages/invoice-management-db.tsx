@@ -105,25 +105,44 @@ export default function InvoiceManagementDB() {
   const { toast } = useToast();
   
   // استخدام useQuery لجلب البيانات من الخادم
-  const { data: dbInvoices, isLoading: isLoadingInvoices } = useQuery({
+  const { data: dbInvoices = [], isLoading: isLoadingInvoices } = useQuery<Invoice[]>({
     queryKey: ['/api/invoices'],
     staleTime: 30000
   });
   
   // استخدام useQuery لجلب بيانات العملاء وتحويلها إلى قائمة
-  const { data: customersData } = useQuery({
+  const { data: customersData = [] } = useQuery<Customer[]>({
     queryKey: ['/api/customers'],
+    staleTime: 60000
+  });
+  
+  // استخدام useQuery لجلب بيانات المنتجات
+  const { data: productsData = [] } = useQuery<Product[]>({
+    queryKey: ['/api/products'],
     staleTime: 60000
   });
   
   // تحويل بيانات العملاء إلى قاموس للوصول السريع
   const customersMap = React.useMemo(() => {
-    if (!customersData) return {};
-    return customersData.reduce((acc: Record<number, Customer>, customer: Customer) => {
-      acc[customer.id] = customer;
+    if (!customersData || !customersData.length) return {};
+    return customersData.reduce<Record<number, Customer>>((acc, customer) => {
+      if (customer && customer.id) {
+        acc[customer.id] = customer;
+      }
       return acc;
     }, {});
   }, [customersData]);
+  
+  // تحويل بيانات المنتجات إلى قاموس للوصول السريع
+  const productsMap = React.useMemo(() => {
+    if (!productsData || !productsData.length) return {};
+    return productsData.reduce<Record<number, Product>>((acc, product) => {
+      if (product && product.id) {
+        acc[product.id] = product;
+      }
+      return acc;
+    }, {});
+  }, [productsData]);
   
   // معالجة وتحويل بيانات الفواتير القادمة من قاعدة البيانات
   const processedInvoices = React.useMemo(() => {
@@ -244,12 +263,15 @@ export default function InvoiceManagementDB() {
         // إذا استطعنا جلب العناصر، نعد تنسيقها للعرض
         if (items && items.length > 0) {
           const formattedItems = items.map((item: InvoiceItem) => {
+            // استرجاع بيانات المنتج من قاموس المنتجات
+            const product = productsMap[item.productId];
+            
             return {
               id: `item-${item.id}`,
               product: {
                 id: `prod-${item.productId}`,
-                name: item.productName || t('unknown_product'),
-                barcode: item.barcode || '000000',
+                name: product ? product.name : t('unknown_product'),
+                barcode: product ? product.barcode : '000000',
                 price: item.price
               },
               quantity: item.quantity,

@@ -67,7 +67,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   const [scannedProduct, setScannedProduct] = useState<ProductSearchResult | null>(null);
   
   // استرجاع العملاء من قاعدة البيانات
-  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery({
+  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
     queryKey: ['/api/customers'],
   });
   
@@ -112,7 +112,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   };
   
   // استرجاع المنتجات من قاعدة البيانات
-  const { data: products = [], isLoading: isLoadingProducts } = useQuery({
+  const { data: products = [], isLoading: isLoadingProducts } = useQuery<ProductSearchResult[]>({
     queryKey: ['/api/products'],
   });
   
