@@ -226,5 +226,10 @@
   "items": "Items",
   "thank_you_message": "Thank you for your business!",
   "invoice_updated_successfully": "Invoice updated successfully",
-  "invoice_update_error": "Error updating invoice"
+  "invoice_update_error": "Error updating invoice",
+  "customer_updated": "Customer Updated",
+  "customer_updated_successfully": "Customer information updated successfully",
+  "error_updating_customer": "Error occurred while updating customer information",
+  "edit_customer": "Edit Customer",
+  "edit_customer_description": "Edit customer information"
 }
