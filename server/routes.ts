@@ -1080,6 +1080,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Employee Deductions routes
+  app.get('/api/employee-deductions', async (req, res) => {
+    try {
+      const deductions = await storage.getAllEmployeeDeductions();
+      res.json(deductions);
+    } catch (error) {
+      console.error('Error fetching employee deductions:', error);
+      res.status(500).json({ message: 'Error fetching employee deductions' });
+    }
+  });
+  
+  app.get('/api/employee-deductions/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deduction = await storage.getEmployeeDeduction(id);
+      
+      if (!deduction) {
+        return res.status(404).json({ message: 'Employee deduction not found' });
+      }
+      
+      res.json(deduction);
+    } catch (error) {
+      console.error('Error fetching employee deduction:', error);
+      res.status(500).json({ message: 'Error fetching employee deduction' });
+    }
+  });
+  
+  app.get('/api/employees/:employeeId/deductions', async (req, res) => {
+    try {
+      const employeeId = req.params.employeeId;
+      const deductions = await storage.getEmployeeDeductions(employeeId);
+      res.json(deductions);
+    } catch (error) {
+      console.error('Error fetching employee deductions:', error);
+      res.status(500).json({ message: 'Error fetching employee deductions' });
+    }
+  });
+  
+  app.post('/api/employee-deductions', async (req, res) => {
+    try {
+      const deductionData = insertEmployeeDeductionSchema.parse(req.body);
+      const deduction = await storage.createEmployeeDeduction(deductionData);
+      res.status(201).json(deduction);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid deduction data', errors: error.errors });
+      }
+      console.error('Error creating employee deduction:', error);
+      res.status(500).json({ message: 'Error creating employee deduction' });
+    }
+  });
+  
+  app.patch('/api/employee-deductions/:id', async (req, res) => {
+    // Check admin permissions in session
+    if (!req.session?.userRole || req.session.userRole !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    
+    try {
+      const id = parseInt(req.params.id);
+      const deductionData = req.body;
+      
+      const updatedDeduction = await storage.updateEmployeeDeduction(id, deductionData);
+      
+      if (!updatedDeduction) {
+        return res.status(404).json({ message: 'Employee deduction not found' });
+      }
+      
+      res.json(updatedDeduction);
+    } catch (error) {
+      console.error('Error updating employee deduction:', error);
+      res.status(500).json({ message: 'Error updating employee deduction' });
+    }
+  });
+  
+  app.delete('/api/employee-deductions/:id', async (req, res) => {
+    // Check admin permissions in session
+    if (!req.session?.userRole || req.session.userRole !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    
+    try {
+      const id = parseInt(req.params.id);
+      
+      // First check if the deduction exists
+      const deduction = await storage.getEmployeeDeduction(id);
+      if (!deduction) {
+        return res.status(404).json({ message: 'Employee deduction not found' });
+      }
+      
+      await storage.deleteEmployeeDeduction(id);
+      res.status(200).json({ message: 'Employee deduction deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting employee deduction:', error);
+      res.status(500).json({ message: 'Error deleting employee deduction' });
+    }
+  });
+  
   // Damaged items routes
   app.get('/api/damaged-items', async (req, res) => {
     try {
