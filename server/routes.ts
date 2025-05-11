@@ -423,16 +423,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/invoices/:invoiceId/items', async (req, res) => {
     try {
       const { invoiceId } = req.params;
-      const items = await storage.getInvoiceItems(parseInt(invoiceId));
+      console.log(`Getting items for invoice: ${invoiceId}`);
+      
+      const parsedInvoiceId = parseInt(invoiceId);
+      if (isNaN(parsedInvoiceId)) {
+        return res.status(400).json({ message: 'Invalid invoice ID format' });
+      }
+      
+      const items = await storage.getInvoiceItems(parsedInvoiceId);
+      console.log(`Found ${items.length} items for invoice ${invoiceId}`);
       
       // Enhance items with product details
       const enhancedItems = await Promise.all(items.map(async (item) => {
         const product = await storage.getProduct(item.productId);
+        console.log(`Found product ${product?.id} (${product?.name}) for item ${item.id}`);
+        
         return {
           ...item,
           product: product || { name: 'Unknown Product', barcode: '' }
         };
       }));
+      
+      console.log('Returning enhanced items:', enhancedItems);
       
       res.json(enhancedItems);
     } catch (err) {

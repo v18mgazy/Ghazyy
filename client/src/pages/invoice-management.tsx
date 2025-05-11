@@ -167,23 +167,45 @@ export default function InvoiceManagement() {
       return []; // لا نستخدم بيانات مزيفة
     }
     
-    console.log('Processing invoices:', dbInvoices); // للتشخيص
-    console.log('Customers map:', customersMap); // للتشخيص
+    if (!customersData || !Array.isArray(customersData)) {
+      console.log('No customers data available:', customersData);
+      return [];
+    }
+    
+    console.log('Processing invoices:', dbInvoices); 
+    
+    // تحويل بيانات العملاء إلى قاموس للوصول السريع
+    const customersMap: Record<number, any> = {};
+    customersData.forEach((customer: any) => {
+      if (customer && customer.id) {
+        customersMap[customer.id] = customer;
+      }
+    });
+    
+    console.log('Built customers map:', customersMap); 
     
     return dbInvoices.map((invoice: any) => {
+      if (!invoice) {
+        console.warn('Found null invoice in data');
+        return null;
+      }
+      
       // البحث عن بيانات العميل المرتبط بالفاتورة
-      console.log('Invoice customer ID:', invoice.customerId); // للتشخيص
+      console.log('Processing invoice:', invoice);
+      console.log('Invoice customer ID:', invoice.customerId);
       
-      const customer = invoice.customerId && customersMap[invoice.customerId] 
-        ? customersMap[invoice.customerId] 
-        : null;
-      
-      console.log('Found customer:', customer); // للتشخيص
+      let customer = null;
+      if (invoice.customerId && customersMap[invoice.customerId]) {
+        customer = customersMap[invoice.customerId];
+        console.log('Found customer for invoice:', customer);
+      } else {
+        console.warn(`No customer found for ID: ${invoice.customerId}`);
+      }
       
       return {
         id: invoice.invoiceNumber || `INV-${invoice.id}`,
         dbId: invoice.id,
-        date: new Date(invoice.date),
+        date: new Date(invoice.date || Date.now()),
         customer: customer ? {
           id: customer.id.toString(),
           name: customer.name,
@@ -195,14 +217,14 @@ export default function InvoiceManagement() {
           phone: '',
           address: ''
         },
-        total: invoice.total,
-        status: invoice.paymentStatus,
-        paymentMethod: invoice.paymentMethod,
+        total: invoice.total || 0,
+        status: invoice.paymentStatus || 'unknown',
+        paymentMethod: invoice.paymentMethod || 'unknown',
         // سنقوم بجلب العناصر التفصيلية للفاتورة لاحقًا عند الطلب
         items: []
       };
-    });
-  }, [dbInvoices, customersMap, t]);
+    }).filter(Boolean); // إزالة القيم الفارغة
+  }, [dbInvoices, customersData, t]);
   
   // استخدام البيانات المعالجة أو البيانات المزيفة في حالة عدم وجود بيانات
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -268,6 +290,8 @@ export default function InvoiceManagement() {
 
   // Open invoice details dialog with items
   const openInvoiceDetails = async (invoice: any) => {
+    console.log('Opening invoice details:', invoice);
+    
     // First set invoice with empty items to show loading state
     setSelectedInvoice({
       ...invoice,
@@ -277,21 +301,48 @@ export default function InvoiceManagement() {
     
     try {
       // Fetch items for this invoice
+      console.log('Fetching items for invoice ID:', invoice.dbId);
       const items = await fetchInvoiceItems(invoice.dbId);
+      console.log('Fetched items:', items);
+      
+      if (!items || !Array.isArray(items)) {
+        console.error('Invalid items data received:', items);
+        throw new Error('Invalid items data');
+      }
       
       // Format items for display
-      const formattedItems = items.map((item: any) => ({
-        id: `item-${item.id}`,
-        product: {
-          id: item.productId,
-          name: item.product?.name || t('unknown_product'),
-          code: item.product?.barcode || '',
-          price: item.price
-        },
-        quantity: item.quantity,
-        price: item.price,
-        total: item.quantity * item.price
-      }));
+      const formattedItems = items.map((item: any) => {
+        if (!item) {
+          console.warn('Null or undefined item in results');
+          return null;
+        }
+        
+        console.log('Processing item:', item);
+        
+        // Ensure we have product details
+        const productName = item.product?.name || t('unknown_product');
+        const productCode = item.product?.barcode || '';
+        
+        console.log('Product info:', {
+          name: productName,
+          code: productCode
+        });
+        
+        return {
+          id: `item-${item.id}`,
+          product: {
+            id: item.productId,
+            name: productName,
+            code: productCode,
+            price: item.price
+          },
+          quantity: item.quantity,
+          price: item.price,
+          total: item.total || (item.quantity * item.price)
+        };
+      }).filter(Boolean); // Remove any null items
+      
+      console.log('Formatted items for display:', formattedItems);
       
       // Update selectedInvoice with items
       setSelectedInvoice({
