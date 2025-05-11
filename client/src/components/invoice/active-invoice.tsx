@@ -337,29 +337,8 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
       }))
     };
     
-    // إرسال الفاتورة إلى الخادم
-    fetch('/api/invoices', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(invoiceData),
-    })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('فشل في حفظ الفاتورة');
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log('تم حفظ الفاتورة بنجاح مع موافقة الدفع الآجل:', data);
-        // إظهار معاينة الفاتورة
-        setShowInvoicePreview(true);
-      })
-      .catch(error => {
-        console.error('خطأ:', error);
-        alert(t('invoice_save_error'));
-      });
+    // استخدام mutation لإرسال الفاتورة إلى الخادم
+    createInvoiceMutation.mutate(invoiceData);
   };
   
   return (

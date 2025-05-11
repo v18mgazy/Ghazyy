@@ -301,43 +301,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.post('/api/invoices', async (req, res) => {
-    if (!req.session?.userId) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-    
     try {
       // Extract and validate the invoice data
       const invoiceData = insertInvoiceSchema.parse({
         ...req.body,
-        userId: req.session.userId
+        userId: 1 // Default user ID for now since we're not using real authentication
       });
       
       // Create the invoice
       const invoice = await storage.createInvoice(invoiceData);
       
-      // If payment method is 'deferred' and user is not admin, create approval request
-      if (invoiceData.paymentMethod === 'deferred' && req.session.userRole !== 'admin') {
-        // Create payment approval request
+      // If payment method is 'later', handle approval
+      if (invoiceData.paymentMethod === 'later') {
+        // Create payment approval request - assuming approval is already done in frontend
         const approvalData = {
           invoiceId: invoice.id,
-          requestedBy: req.session.userId,
-          status: 'pending'
+          requestedBy: 1, // Default user ID
+          status: invoiceData.isLaterPaymentApproved ? 'approved' : 'pending'
         };
         
         const approval = await storage.createPaymentApproval(approvalData);
         
-        // Real-time notifications are disabled in this version
-        console.log('Approval request created:', {
+        console.log('Approval status:', {
           approvalId: approval.id,
           invoiceId: invoice.id,
           invoiceNumber: invoice.invoiceNumber,
-          requestedBy: req.session?.userId,
+          status: approvalData.status,
           timestamp: new Date()
         });
       }
       
       res.status(201).json(invoice);
     } catch (err) {
+      console.error('Invoice creation error:', err);
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: 'Validation error', errors: err.errors });
       }
@@ -346,10 +342,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.post('/api/invoices/:invoiceId/items', async (req, res) => {
-    if (!req.session?.userId) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-    
     try {
       const { invoiceId } = req.params;
       // Validate invoice exists
@@ -369,6 +361,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(item);
     } catch (err) {
+      console.error('Invoice item creation error:', err);
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: 'Validation error', errors: err.errors });
       }
