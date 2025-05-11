@@ -133,6 +133,8 @@ export default function InvoiceManagement() {
   const { language } = useLocale();
   const { user } = useAuthContext();
   const { toast } = useToast();
+  const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState<any>(null);
   
   // استخدام useQuery لجلب البيانات من الخادم
   const { data: dbInvoices, isLoading: isLoadingInvoices, error: invoicesError } = useQuery({
@@ -964,6 +966,30 @@ export default function InvoiceManagement() {
     // فتح الرابط في نافذة جديدة
     window.open(whatsappURL, '_blank');
   };
+  
+  // فتح نافذة مسح الباركود
+  const openBarcodeScanner = () => {
+    setIsBarcodeDialogOpen(true);
+    setScannedProduct(null);
+  };
+  
+  // معالجة المنتج الذي تم مسحه
+  const handleProductScanned = async (product: any) => {
+    console.log('Product scanned:', product);
+    try {
+      // البحث عن المعلومات الكاملة للمنتج من قاعدة البيانات
+      const response = await fetch(`/api/products/${product.id}`);
+      if (response.ok) {
+        const fullProductData = await response.json();
+        setScannedProduct(fullProductData);
+      } else {
+        setScannedProduct(product);
+      }
+    } catch (error) {
+      console.error('Error fetching product details:', error);
+      setScannedProduct(product);
+    }
+  };
 
   const renderInvoiceDetails = () => {
     if (!selectedInvoice) return null;
@@ -1159,6 +1185,10 @@ export default function InvoiceManagement() {
                 setFilterPayment('all');
               }}>
                 <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" onClick={openBarcodeScanner} className="flex items-center gap-2">
+                <Scan className="h-4 w-4" />
+                {t('scan_barcode')}
               </Button>
             </div>
           </div>
