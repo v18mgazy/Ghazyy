@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
   insertUserSchema, insertProductSchema, insertCustomerSchema, 
-  insertInvoiceSchema, insertInvoiceItemSchema, insertDamagedItemSchema,
+  insertInvoiceSchema, insertDamagedItemSchema,
   insertEmployeeSchema, insertPaymentApprovalSchema, insertReportDataSchema,
   insertNotificationSchema
 } from "@shared/schema";
@@ -340,53 +340,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // تحديث الفاتورة
       const updatedInvoice = await storage.updateInvoice(invoiceId, updateData);
       
-      // تحديث عناصر الفاتورة إذا تم تقديمها
+      // تحديث منتجات الفاتورة إذا تم تقديمها
       if (req.body.products && Array.isArray(req.body.products) && req.body.products.length > 0) {
         console.log(`Processing ${req.body.products.length} products for invoice update`);
         
-        // 1. احصل على العناصر الحالية للفاتورة
-        const existingItems = await storage.getInvoiceItems(invoiceId);
-        console.log(`Found ${existingItems.length} existing items`);
-        
-        // 2. في نسخة مستقبلية، يمكننا إضافة منطق لمقارنة الكميات القديمة والجديدة
-        // وتحديث مخزون المنتجات وفقًا لذلك
-
-        // 3. في هذه النسخة المبسطة، سنحدث فقط عناصر الفاتورة دون التأثير على المخزون
-        for (const item of req.body.products) {
-          // العثور على العنصر الموجود (إذا كان موجودًا)
-          const existingItem = existingItems.find(i => i.productId === item.productId);
-          
-          try {
-            if (existingItem) {
-              // تحديث العنصر الموجود
-              const updatedItem = {
-                quantity: item.quantity,
-                price: item.price,
-                discount: item.discount || 0,
-                total: item.total
-              };
-              
-              await storage.updateInvoiceItem(existingItem.id, updatedItem);
-              console.log(`Updated invoice item ${existingItem.id}`);
-            } else {
-              // إنشاء عنصر جديد
-              const newItem = {
-                invoiceId,
-                productId: item.productId,
-                quantity: item.quantity,
-                price: item.price,
-                discount: item.discount || 0,
-                total: item.total
-              };
-              
-              await storage.createInvoiceItem(newItem);
-              console.log(`Created new invoice item for product ${item.productId}`);
-            }
-          } catch (itemError) {
-            console.error('Error updating invoice item:', itemError);
-            // استمر بالتحديث رغم وجود خطأ في عنصر واحد
+        // 1. احصل على المنتجات الموجودة في الفاتورة
+        let existingProducts = [];
+        try {
+          if (existingInvoice.productsData) {
+            existingProducts = JSON.parse(existingInvoice.productsData);
+            console.log(`Found ${existingProducts.length} existing products in invoice`);
           }
+        } catch (parseError) {
+          console.error('Error parsing existing products data:', parseError);
         }
+        
+        // 2. تحضير منتجات الفاتورة المحدثة
+        const updatedProducts = await Promise.all(req.body.products.map(async (item) => {
+          // معرف المنتج والتأكد من أنه رقم صحيح
+          let productId = item.productId;
+          if (typeof productId === 'string') {
+            productId = parseInt(productId);
+          }
+          
+          if (isNaN(productId)) {
+            console.error('Invalid product ID:', item.productId);
+            return null;
+          }
+          
+          // البحث عن المنتج في قائمة المنتجات الموجودة
+          const existingItem = existingProducts.find(p => p.productId === productId);
+          const oldQuantity = existingItem ? existingItem.quantity : 0;
+          const newQuantity = item.quantity;
+          
+          // تحديث المخزون بناءً على الفرق في الكمية
+          // إذا كانت الكمية الجديدة أكبر، نأخذ من المخزون
+          // إذا كانت أقل، نعيد للمخزون
+          try {
+            const product = await storage.getProduct(productId);
+            if (product) {
+              const quantityDiff = oldQuantity - newQuantity;
+              const updatedStock = Math.max(0, (product.stock || 0) + quantityDiff);
+              
+              await storage.updateProduct(productId, { 
+                stock: updatedStock 
+              });
+              
+              console.log(`Updated product ${product.name} stock to ${updatedStock} (diff: ${quantityDiff})`);
+              
+              // إعداد بيانات المنتج للفاتورة المحدثة
+              return {
+                productId,
+                productName: product.name,
+                barcode: product.barcode || '',
+                quantity: newQuantity,
+                price: item.price,
+                discount: item.discount || 0,
+                total: item.total || (newQuantity * item.price * (1 - (item.discount || 0) / 100))
+              };
+            } else {
+              console.warn(`Product with ID ${productId} not found`);
+              return {
+                productId,
+                productName: item.productName || 'Unknown Product',
+                barcode: '',
+                quantity: newQuantity,
+                price: item.price,
+                discount: item.discount || 0,
+                total: item.total || (newQuantity * item.price * (1 - (item.discount || 0) / 100))
+              };
+            }
+          } catch (productError) {
+            console.error(`Error processing product ${productId} for invoice update:`, productError);
+            return null;
+          }
+        }));
+        
+        // تصفية العناصر الفارغة
+        const filteredProducts = updatedProducts.filter(p => p !== null);
+        
+        // تحديث منتجات الفاتورة
+        const productsData = JSON.stringify(filteredProducts);
+        await storage.updateInvoice(invoiceId, { productsData });
+        console.log(`Updated invoice products data with ${filteredProducts.length} items`);
       }
       
       res.json(updatedInvoice || { id: invoiceId, ...updateData });
@@ -419,14 +455,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Found invoice to delete:`, invoice);
       
-      // 1. حذف عناصر الفاتورة واستعادة المخزون
+      // 1. استعادة المخزون للمنتجات التي تم بيعها في هذه الفاتورة
       try {
-        // الحصول على جميع عناصر الفاتورة
-        const invoiceItems = await storage.getInvoiceItems(invoiceId);
-        console.log(`Found ${invoiceItems.length} items for invoice ${invoiceId}`);
+        // استخراج بيانات المنتجات من حقل productsData
+        let products = [];
+        if (invoice.productsData) {
+          try {
+            products = JSON.parse(invoice.productsData);
+            console.log(`Parsed ${products.length} products from invoice data`);
+          } catch (parseError) {
+            console.error('Error parsing products data:', parseError);
+            products = [];
+          }
+        }
         
         // استعادة المخزون للمنتجات التي تم بيعها في هذه الفاتورة
-        for (const item of invoiceItems) {
+        for (const item of products) {
           try {
             // الحصول على المنتج الحالي
             const product = await storage.getProduct(item.productId);
@@ -441,6 +485,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
               
               console.log(`Restored ${item.quantity} units to product ${product.name} (ID: ${product.id}). New stock: ${updatedStock}`);
+            } else {
+              console.warn(`Product with ID ${item.productId} not found during stock restoration`);
             }
           } catch (productError) {
             console.error(`Error restoring stock for product ID ${item.productId}:`, productError);
@@ -448,7 +494,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       } catch (itemError) {
-        console.error('Error processing invoice items during deletion:', itemError);
+        console.error('Error processing products during invoice deletion:', itemError);
         // قد نستمر بالحذف رغم الخطأ
       }
       
@@ -560,6 +606,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updatedAt: new Date().toISOString()
       };
       
+      // تحضير بيانات المنتجات للتخزين في الفاتورة
+      let productsDataArray = [];
+      
+      if (req.body.products && Array.isArray(req.body.products)) {
+        // تحضير بيانات المنتجات وتحويلها إلى JSON
+        productsDataArray = await Promise.all(req.body.products.map(async (item) => {
+          // معرف المنتج والتأكد من أنه رقم صحيح
+          let productId = item.productId;
+          if (typeof productId === 'string') {
+            productId = parseInt(productId);
+          }
+          
+          if (isNaN(productId)) {
+            console.error('Invalid product ID:', item.productId);
+            return null; // سيتم تصفية القيم الفارغة لاحقًا
+          }
+          
+          // الحصول على تفاصيل المنتج كاملة لتضمينها وتحديث المخزون
+          const product = await storage.getProduct(productId);
+          if (!product) {
+            console.warn(`Product with ID ${productId} not found`);
+            return {
+              productId: productId,
+              productName: item.productName || 'Unknown Product',
+              barcode: '',
+              quantity: item.quantity,
+              price: item.price,
+              discount: item.discount || 0,
+              total: item.total || (item.quantity * item.price * (1 - (item.discount || 0) / 100))
+            };
+          }
+          
+          console.log(`Processing product ${productId}:`, product.name);
+          
+          // تحديث المخزون
+          const newStock = Math.max(0, (product.stock || 0) - item.quantity);
+          await storage.updateProduct(productId, { 
+            stock: newStock 
+          });
+          console.log(`Updated product ${product.name} stock to ${newStock}`);
+          
+          // إرجاع بيانات المنتج المعالجة
+          return {
+            productId: productId,
+            productName: product.name,
+            barcode: product.barcode,
+            quantity: item.quantity,
+            price: item.price,
+            discount: item.discount || 0,
+            total: item.total || (item.quantity * item.price * (1 - (item.discount || 0) / 100))
+          };
+        }));
+        
+        // تصفية أي قيم فارغة (null)
+        productsDataArray = productsDataArray.filter(item => item !== null);
+      }
+      
       // إعداد بيانات الفاتورة مع التأكد من أخذ بيانات العميل مباشرة من الطلب
       const invoiceData = {
         invoiceNumber: req.body.invoiceNumber,
@@ -575,6 +678,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentStatus: req.body.paymentStatus,
         notes: customerInfo.notes,
         date: req.body.date || new Date().toISOString(),
+        // تخزين بيانات المنتجات كنص JSON
+        productsData: JSON.stringify(productsDataArray),
         userId: userId,
         isDeleted: false,
         createdAt: new Date().toISOString(),
@@ -586,57 +691,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // إنشاء الفاتورة
       const invoice = await storage.createInvoice(invoiceData);
       console.log('Created invoice:', invoice);
-      
-      // معالجة عناصر الفاتورة وتحديث كميات المنتجات
-      if (req.body.products && Array.isArray(req.body.products)) {
-        for (const item of req.body.products) {
-          try {
-            // حساب إجمالي العنصر
-            const itemTotal = item.quantity * item.price * (1 - (item.discount || 0) / 100);
-            
-            // معرف المنتج والتأكد من أنه رقم صحيح
-            let productId = item.productId;
-            if (typeof productId === 'string') {
-              productId = parseInt(productId);
-            }
-            
-            if (isNaN(productId)) {
-              console.error('Invalid product ID:', item.productId);
-              continue; // تخطي هذا العنصر والانتقال إلى العنصر التالي
-            }
-            
-            // الحصول على تفاصيل المنتج كاملة لتحديث المخزون
-            const product = await storage.getProduct(productId);
-            if (!product) {
-              console.warn(`Product with ID ${productId} not found when creating invoice item`);
-            } else {
-              console.log(`Creating invoice item for product ${productId}:`, product.name);
-            }
-            
-            // إنشاء عنصر الفاتورة
-            await storage.createInvoiceItem({
-              invoiceId: invoice.id,
-              productId: productId,
-              quantity: item.quantity,
-              price: item.price,
-              discount: item.discount || 0,
-              total: itemTotal
-            });
-            
-            // تحديث المخزون إذا كان المنتج موجودًا
-            if (product) {
-              const newStock = Math.max(0, (product.stock || 0) - item.quantity);
-              await storage.updateProduct(productId, { 
-                stock: newStock 
-              });
-              console.log(`Updated product ${product.name} stock to ${newStock}`);
-            }
-          } catch (itemError) {
-            console.error('Error processing invoice item:', itemError);
-            // Continue processing other items even if one fails
-          }
-        }
-      }
       
       // إرسال إشعار للمدير بإنشاء فاتورة جديدة - فقط إذا كان منشئ الفاتورة هو الكاشير
       if (userRole === 'cashier') {

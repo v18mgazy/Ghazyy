@@ -76,6 +76,8 @@ export const invoices = pgTable("invoices", {
   paymentMethod: text("payment_method").notNull(),
   paymentStatus: text("payment_status").notNull(),
   notes: text("notes"),
+  // أضف حقول المنتجات مباشرة في الفاتورة
+  productsData: text("products_data"), // سيتم تخزين بيانات المنتجات كنص JSON
   isDeleted: boolean("is_deleted").default(false),
   userId: integer("user_id").references(() => users.id).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -94,30 +96,13 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   paymentMethod: true,
   paymentStatus: true,
   notes: true,
+  productsData: true, // إضافة حقل البيانات الجديد
   isDeleted: true,
   userId: true,
   updatedAt: true,
 });
 
-// Invoice Items
-export const invoiceItems = pgTable("invoice_items", {
-  id: serial("id").primaryKey(),
-  invoiceId: integer("invoice_id").references(() => invoices.id).notNull(),
-  productId: integer("product_id").references(() => products.id).notNull(),
-  quantity: integer("quantity").notNull(),
-  price: real("price").notNull(),
-  total: real("total").notNull(),
-  discount: real("discount").default(0),
-});
-
-export const insertInvoiceItemSchema = createInsertSchema(invoiceItems).pick({
-  invoiceId: true,
-  productId: true,
-  quantity: true,
-  price: true,
-  total: true,
-  discount: true,
-});
+// حذفنا جدول InvoiceItems لأننا سنستخدم حقل productsData في جدول الفواتير مباشرة
 
 // Damaged Items
 export const damagedItems = pgTable("damaged_items", {
@@ -211,8 +196,16 @@ export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type Invoice = typeof invoices.$inferSelect;
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 
-export type InvoiceItem = typeof invoiceItems.$inferSelect;
-export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
+// إضافة نوع بيانات للمنتجات داخل الفاتورة
+export type InvoiceProduct = {
+  productId: number;
+  productName: string;
+  barcode?: string;
+  quantity: number;
+  price: number;
+  discount: number;
+  total: number;
+};
 
 export type DamagedItem = typeof damagedItems.$inferSelect;
 export type InsertDamagedItem = z.infer<typeof insertDamagedItemSchema>;
