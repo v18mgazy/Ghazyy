@@ -12,6 +12,18 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
+// تعريف واجهة البيانات من الخادم
+interface CustomerResponse {
+  id: number;
+  name: string;
+  phone: string;
+  address: string;
+  isPotential: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// واجهة البيانات التي يستخدمها المكون
 interface Customer {
   id: string;
   name: string;
@@ -32,10 +44,20 @@ export default function CustomersPage() {
     isPotential: true
   });
   
-  // Fetch customers
-  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery({
+  // استدعاء بيانات العملاء من الخادم
+  const { data: customersResponse = [], isLoading: isLoadingCustomers } = useQuery<CustomerResponse[]>({
     queryKey: ['/api/customers']
   });
+  
+  // تحويل البيانات من شكل الاستجابة إلى الشكل الذي يستخدمه المكون
+  const customers: Customer[] = customersResponse.map(customer => ({
+    id: customer.id.toString(),
+    name: customer.name,
+    phone: customer.phone || '',
+    address: customer.address || '',
+    isPotential: customer.isPotential || false,
+    totalPurchases: 0 // قيمة افتراضية حيث لا نحتفظ بهذه البيانات في قاعدة البيانات الآن
+  }));
   
   // Export customers to Excel
   const exportToExcel = () => {
@@ -47,21 +69,25 @@ export default function CustomersPage() {
     });
   };
   
-  // Add customer mutation
+  // دالة إضافة عميل جديد - mutation
   const addCustomerMutation = useMutation({
     mutationFn: async (customer: Omit<Customer, 'id' | 'totalPurchases'>) => {
       // استخدام واجهة برمجة التطبيقات لإضافة العميل
       console.log('Adding customer:', customer);
       const response = await apiRequest('POST', '/api/customers', customer);
-      return await response.json();
+      return await response.json() as CustomerResponse;
     },
-    onSuccess: () => {
+    onSuccess: (newCustomer) => {
+      console.log('Customer added successfully:', newCustomer);
+      
       // تحديث استعلام العملاء لجلب البيانات الجديدة
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      
       toast({
         title: t('customer_added'),
         description: t('customer_added_successfully'),
       });
+      
       setAddCustomerOpen(false);
       setNewCustomer({
         name: '',
