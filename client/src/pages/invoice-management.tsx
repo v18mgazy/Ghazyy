@@ -233,20 +233,17 @@ export default function InvoiceManagement() {
         }
       }
       
+      // استخدام معلومات العميل المحفوظة في الفاتورة نفسها إذا كانت متوفرة
       return {
         id: invoice.invoiceNumber || `INV-${invoice.id}`,
         dbId: invoice.id,
         date: new Date(invoice.date || Date.now()),
-        customer: customer ? {
-          id: customer.id.toString(),
-          name: customer.name,
-          phone: customer.phone || '',
-          address: customer.address || ''
-        } : {
-          id: 'unknown',
-          name: t('unknown_customer'),
-          phone: '',
-          address: ''
+        customer: {
+          id: customer?.id?.toString() || invoice.customerId?.toString() || 'unknown',
+          // استخدام اسم العميل من الفاتورة إذا كان متوفرًا، وإلا استخدام اسم العميل من جدول العملاء
+          name: invoice.customerName || (customer?.name || t('unknown_customer')),
+          phone: invoice.customerPhone || (customer?.phone || ''),
+          address: invoice.customerAddress || (customer?.address || '')
         },
         total: invoice.total || 0,
         status: invoice.paymentStatus || 'unknown',
