@@ -418,20 +418,6 @@ export default function CustomerList({
               {selectedCustomer?.address && <div>{selectedCustomer.address}</div>}
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="flex justify-end mb-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={exportPurchaseHistoryToExcel}
-              className="flex items-center gap-1"
-              disabled={purchaseHistory.length === 0}
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              {t('export_to_excel')}
-            </Button>
-          </div>
-          
           <div className="overflow-y-auto max-h-[400px]">
             <Table>
               <TableHeader>
