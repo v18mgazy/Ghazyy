@@ -330,27 +330,19 @@ export default function InvoiceManagementDB() {
   };
   
   const confirmDeleteInvoice = (invoice: any) => {
-    setInvoiceToDelete(invoice.dbId || invoice.id);
+    console.log('Confirming deletion of invoice:', invoice);
+    // استخدام معرف قاعدة البيانات الفعلي
+    setInvoiceToDelete(invoice.id);
     setIsDeleteDialogOpen(true);
   };
   
   const deleteInvoice = () => {
     if (!invoiceToDelete) return;
     
-    // التمييز بين الفواتير المخزنة في قاعدة البيانات والفواتير الافتراضية
-    if (typeof invoiceToDelete === 'number') {
-      // الفواتير المخزنة في قاعدة البيانات
-      deleteMutation.mutate(invoiceToDelete);
-    } else {
-      // الفواتير الافتراضية
-      setInvoices(invoices.filter(invoice => invoice.id !== invoiceToDelete));
-      setIsDeleteDialogOpen(false);
-      setInvoiceToDelete(null);
-      toast({
-        title: t('success'),
-        description: t('invoice_deleted_successfully'),
-      });
-    }
+    console.log('Attempting to delete invoice with ID:', invoiceToDelete);
+    
+    // جميع الفواتير الآن مخزنة في قاعدة البيانات
+    deleteMutation.mutate(Number(invoiceToDelete));
   };
   
   // Function to get status badge color and text
