@@ -255,7 +255,11 @@ export const employeeDeductions = pgTable("employee_deductions", {
 
 export const insertEmployeeDeductionSchema = z.object({
   employeeId: z.string(),  // In Firebase we use string IDs
-  amount: z.number().positive(),
+  amount: z.union([z.number().positive(), z.string().transform(val => {
+    const parsed = Number(val);
+    if (isNaN(parsed) || parsed <= 0) throw new Error("Amount must be a positive number");
+    return parsed;
+  })]),
   reason: z.string().min(3),
   date: z.date().optional()
 });
