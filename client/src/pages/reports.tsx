@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -64,11 +64,26 @@ export default function ReportsPage() {
   const [month, setMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   const [year, setYear] = useState<string>(format(new Date(), 'yyyy'));
   
+  // تحديد تنسيق التاريخ المستخدم في طلب البيانات
+  const formattedDate = useMemo(() => {
+    if (period === 'daily') {
+      return formatDate(date, 'yyyy-MM-dd');
+    } else if (period === 'monthly') {
+      return month;
+    } else {
+      return year;
+    }
+  }, [period, date, month, year]);
+  
   // استرجاع بيانات التقارير من قاعدة البيانات بناءً على نوع الفترة
   const { data: reportData, isLoading } = useQuery<ReportData>({
-    queryKey: ['/api/reports', period, period === 'daily' ? formatDate(date, 'yyyy-MM-dd') : period === 'monthly' ? month : year],
-    onError: (error) => {
-      console.error('Error fetching report data:', error);
+    queryKey: ['/api/reports'],
+    queryFn: async () => {
+      const response = await fetch(`/api/reports?type=${period}&date=${formattedDate}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch report data: ${response.statusText}`);
+      }
+      return await response.json();
     }
   });
   

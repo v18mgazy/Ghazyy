@@ -164,15 +164,24 @@ export default function InvoiceManagement() {
   // معالجة وتحويل بيانات الفواتير القادمة من قاعدة البيانات
   const processedInvoices = React.useMemo(() => {
     if (!dbInvoices || !dbInvoices.length) {
-      return mockInvoices;
+      return []; // لا نستخدم بيانات مزيفة
     }
     
-    return dbInvoices.map((invoice: Invoice) => {
+    console.log('Processing invoices:', dbInvoices); // للتشخيص
+    console.log('Customers map:', customersMap); // للتشخيص
+    
+    return dbInvoices.map((invoice: any) => {
       // البحث عن بيانات العميل المرتبط بالفاتورة
-      const customer = invoice.customerId ? customersMap[invoice.customerId] : null;
+      console.log('Invoice customer ID:', invoice.customerId); // للتشخيص
+      
+      const customer = invoice.customerId && customersMap[invoice.customerId] 
+        ? customersMap[invoice.customerId] 
+        : null;
+      
+      console.log('Found customer:', customer); // للتشخيص
       
       return {
-        id: invoice.invoiceNumber,
+        id: invoice.invoiceNumber || `INV-${invoice.id}`,
         dbId: invoice.id,
         date: new Date(invoice.date),
         customer: customer ? {
