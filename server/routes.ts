@@ -430,21 +430,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid invoice ID format' });
       }
       
+      // Get all products first for faster lookup
+      const allProducts = await storage.getAllProducts();
+      console.log(`Loaded ${allProducts.length} products for lookup`);
+      
+      // Create a map of product id -> product for faster lookup
+      const productMap = allProducts.reduce((map: {[key: number]: any}, product: any) => {
+        map[product.id] = product;
+        return map;
+      }, {});
+      
+      console.log('Product map created with keys:', Object.keys(productMap));
+      
+      // Get invoice items
       const items = await storage.getInvoiceItems(parsedInvoiceId);
-      console.log(`Found ${items.length} items for invoice ${invoiceId}`);
+      console.log(`Found ${items.length} items for invoice ${invoiceId} with product IDs:`, items.map(item => item.productId));
       
       // Enhance items with product details
-      const enhancedItems = await Promise.all(items.map(async (item) => {
-        const product = await storage.getProduct(item.productId);
-        console.log(`Found product ${product?.id} (${product?.name}) for item ${item.id}`);
+      const enhancedItems = items.map((item) => {
+        const productId = typeof item.productId === 'string' ? parseInt(item.productId) : item.productId;
+        const product = productMap[productId];
+        
+        console.log(`Looking up product for item ${item.id} with productId ${productId}:`, product ? `Found: ${product.name}` : 'Not found');
         
         return {
           ...item,
-          product: product || { name: 'Unknown Product', barcode: '' }
+          product: product || { 
+            id: item.productId,
+            name: `منتج (${item.productId})`, 
+            barcode: '',
+            sellingPrice: item.price
+          }
         };
-      }));
+      });
       
-      console.log('Returning enhanced items:', enhancedItems);
+      console.log('Returning enhanced items:', enhancedItems.length);
       
       res.json(enhancedItems);
     } catch (err) {

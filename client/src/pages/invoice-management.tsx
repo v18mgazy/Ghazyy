@@ -312,22 +312,29 @@ export default function InvoiceManagement() {
         throw new Error('Invalid items data');
       }
       
-      // Format items for display
+      // Format items for display - with improved product details handling
       const formattedItems = items.map((item: any) => {
         if (!item) {
           console.warn('Null or undefined item in results');
           return null;
         }
         
-        console.log('Processing item:', item);
+        console.log('Processing item with product:', item);
         
-        // Ensure we have product details
-        const productName = item.product?.name || t('unknown_product');
+        // الآن وبفضل التحسينات التي أجريناها، المنتج يجب أن يكون متوفرًا في item.product
+        if (!item.product) {
+          console.warn('No product details found for item:', item);
+        }
+        
+        // استخدام تفاصيل المنتج المعززة من الخادم
+        const productName = item.product?.name || `منتج رقم ${item.productId}`;
         const productCode = item.product?.barcode || '';
+        const productPrice = item.price || item.product?.sellingPrice || 0;
         
-        console.log('Product info:', {
+        console.log('Enhanced product info:', {
           name: productName,
-          code: productCode
+          code: productCode,
+          price: productPrice
         });
         
         return {
@@ -336,11 +343,11 @@ export default function InvoiceManagement() {
             id: item.productId,
             name: productName,
             code: productCode,
-            price: item.price
+            price: productPrice
           },
           quantity: item.quantity,
-          price: item.price,
-          total: item.total || (item.quantity * item.price)
+          price: productPrice,
+          total: item.total || (item.quantity * productPrice)
         };
       }).filter(Boolean); // Remove any null items
       
