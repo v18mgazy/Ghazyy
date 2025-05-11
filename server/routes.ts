@@ -1344,7 +1344,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // تجميع المبيعات حسب الشهر
       for (const invoice of invoices) {
-        if (!invoice.date) continue;
+        // تجاهل الفواتير المحذوفة أو التي لا تحتوي على تاريخ
+        if (!invoice.date || invoice.isDeleted) continue;
         
         const invoiceDate = new Date(invoice.date);
         const invoiceYear = formatDateForReportType(invoiceDate, 'yearly');
@@ -1425,42 +1426,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
     
-    // تجميع المبيعات لكل منتج من خلال الفواتير وعناصرها
-    (async () => {
-      for (const invoice of invoices) {
-        if (invoice.id) {
-          try {
-            // جلب عناصر الفاتورة
-            const invoiceItems = await storage.getInvoiceItems(invoice.id);
-            
-            for (const item of invoiceItems) {
-              if (item.productId && productSalesMap.has(item.productId)) {
-                const productData = productSalesMap.get(item.productId);
+    // تجميع المبيعات لكل منتج من خلال بيانات المنتجات في الفواتير
+    for (const invoice of invoices) {
+      // تجاهل الفواتير المحذوفة
+      if (invoice.isDeleted) continue;
+      
+      if (invoice.id && invoice.productsData) {
+        try {
+          // استخراج منتجات الفاتورة من حقل productsData
+          const products = JSON.parse(invoice.productsData);
+          
+          if (Array.isArray(products)) {
+            for (const item of products) {
+              const productId = item.productId;
+              if (productId && productSalesMap.has(productId)) {
+                const productData = productSalesMap.get(productId);
                 if (productData) {
                   // تحديث بيانات المبيعات للمنتج
                   productData.soldQuantity += item.quantity || 0;
                   productData.revenue += item.total || 0;
                   
-                  // حساب الربح باستخدام سعر الشراء إذا كان متاحًا
-                  const product = await storage.getProduct(item.productId);
-                  if (product && product.purchasePrice) {
-                    const itemProfit = (item.price - product.purchasePrice) * item.quantity;
-                    productData.profit += itemProfit;
+                  // حساب الربح باستخدام الربح المحسوب مسبقًا أو سعر الشراء والبيع
+                  if (item.profit !== undefined) {
+                    productData.profit += item.profit;
+                  } else if (item.purchasePrice !== undefined && item.price) {
+                    const profit = (item.price - item.purchasePrice) * (item.quantity || 0);
+                    productData.profit += profit;
                   } else {
-                    // استخدام متوسط هامش ربح 30% إذا لم يكن سعر الشراء متاحًا
+                    // استخدام هامش ربح تقديري 30٪ فقط إذا لم تتوفر البيانات
                     productData.profit += (item.total || 0) * 0.3;
                   }
                   
-                  productSalesMap.set(item.productId, productData);
+                  productSalesMap.set(productId, productData);
                 }
               }
             }
-          } catch (err) {
-            console.error(`Error processing invoice items for invoice ${invoice.id}:`, err);
           }
+        } catch (err) {
+          console.error(`Error processing productsData for invoice ${invoice.id}:`, err);
         }
       }
-    })();
+    }
     
     // ترتيب أفضل 5 منتجات حسب الإيرادات
     return Array.from(productSalesMap.values())
@@ -1476,6 +1482,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // إضافة تقارير مفصلة للفواتير
     for (const invoice of invoices) {
+      // تجاهل الفواتير المحذوفة
+      if (invoice.isDeleted) continue;
+      
       const invoiceDate = new Date(invoice.date);
       const formattedDate = formatDateForReportType(invoiceDate, type);
       
