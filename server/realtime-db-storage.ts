@@ -1,4 +1,5 @@
 import { database, ref, set, get, remove, update, query, orderByChild, equalTo } from "./firebase-rtdb";
+import * as admin from "./firebase-rtdb"; // استخدم هذا المتغير للوصول إلى Firebase Admin
 import type {
   User, InsertUser,
   Product, InsertProduct,
@@ -10,7 +11,8 @@ import type {
   PaymentApproval, InsertPaymentApproval,
   ReportData, InsertReportData,
   EmployeeDeduction, InsertEmployeeDeduction,
-  Notification, InsertNotification
+  Notification, InsertNotification,
+  Expense, InsertExpense
 } from "@shared/schema";
 import { IStorage } from "./storage";
 

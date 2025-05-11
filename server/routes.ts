@@ -1199,6 +1199,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Expenses routes (مصاريف ونثريات)
+  app.get('/api/expenses', async (req, res) => {
+    try {
+      const expenses = await storage.getAllExpenses();
+      res.json(expenses);
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+      res.status(500).json({ message: 'Error fetching expenses' });
+    }
+  });
+
+  app.post('/api/expenses', async (req, res) => {
+    try {
+      // الحصول على بيانات المستخدم الحالي
+      const userId = req.body.userId || 1; // استخدام المستخدم رقم 1 كافتراضي إذا لم يتم توفير معرف المستخدم
+      
+      // التحقق من صحة البيانات
+      const { date, amount, details } = req.body;
+      
+      if (!amount || !details) {
+        return res.status(400).json({ message: 'المبلغ والتفاصيل مطلوبة' });
+      }
+      
+      // تحويل المبلغ إلى رقم إذا كان نصًا
+      const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+      
+      if (isNaN(numAmount) || numAmount <= 0) {
+        return res.status(400).json({ message: 'المبلغ يجب أن يكون رقمًا موجبًا' });
+      }
+      
+      // إنشاء كائن المصاريف
+      const expenseData = {
+        date: date ? new Date(date) : new Date(),
+        amount: numAmount,
+        details,
+        userId
+      };
+      
+      // حفظ المصاريف في قاعدة البيانات
+      const expense = await storage.createExpense(expenseData);
+      
+      res.status(201).json(expense);
+    } catch (error) {
+      console.error('Error creating expense:', error);
+      res.status(500).json({ message: 'Error creating expense' });
+    }
+  });
+
+  app.patch('/api/expenses/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // التحقق من وجود المصروف
+      const existingExpense = await storage.getExpense(id);
+      if (!existingExpense) {
+        return res.status(404).json({ message: 'المصروف غير موجود' });
+      }
+      
+      // تحديث المصروف
+      const updatedExpense = await storage.updateExpense(id, req.body);
+      
+      res.json(updatedExpense);
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      res.status(500).json({ message: 'Error updating expense' });
+    }
+  });
+
+  app.delete('/api/expenses/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // التحقق من وجود المصروف
+      const existingExpense = await storage.getExpense(id);
+      if (!existingExpense) {
+        return res.status(404).json({ message: 'المصروف غير موجود' });
+      }
+      
+      // حذف المصروف
+      await storage.deleteExpense(id);
+      
+      res.json({ message: 'تم حذف المصروف بنجاح' });
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      res.status(500).json({ message: 'Error deleting expense' });
+    }
+  });
+  
   // Damaged items routes
   app.get('/api/damaged-items', async (req, res) => {
     try {
