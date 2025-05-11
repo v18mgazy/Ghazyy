@@ -521,14 +521,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Found customer:', customer);
       }
       
-      // سجل معلومات العميل المفصلة إذا كانت متوفرة في الطلب
-      console.log('Customer details from request:', req.body.customerDetails);
+      // سجل معلومات العميل المفصلة
+      console.log('Customer info:', {
+        name: req.body.customerName || customer?.name,
+        phone: req.body.customerPhone || customer?.phone,
+        address: req.body.customerAddress || customer?.address
+      });
       
-      // تخزين معلومات العميل المفصلة في الفاتورة لضمان ظهورها
+      // استخدام بيانات العميل مباشرة من الطلب أو من قاعدة البيانات
       const customerInfo = {
-        customerName: req.body.customerDetails?.name || customer.name,
-        customerPhone: req.body.customerDetails?.phone || customer.phone || '',
-        customerAddress: req.body.customerDetails?.address || customer.address || '',
+        customerName: req.body.customerName || (customer ? customer.name : 'عميل نقدي'),
+        customerPhone: req.body.customerPhone || (customer ? customer.phone || '' : ''),
+        customerAddress: req.body.customerAddress || (customer ? customer.address || '' : ''),
         notes: req.body.notes || '',
         updatedAt: new Date().toISOString()
       };

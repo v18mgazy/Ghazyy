@@ -398,6 +398,9 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
     const invoiceData = {
       invoiceNumber,
       customerId: parseInt(customer.id),
+      customerName: customer.name, // تضمين بيانات العميل مباشرة
+      customerPhone: customer.phone || '',
+      customerAddress: customer.address || '',
       subtotal,
       discount: totalDiscount,
       total,
