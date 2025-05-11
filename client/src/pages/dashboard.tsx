@@ -40,6 +40,9 @@ export default function Dashboard() {
   // Fetch dashboard stats
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ['/api/dashboard/stats'],
+    refetchInterval: 60 * 1000,     // تحديث البيانات كل دقيقة
+    refetchOnWindowFocus: true,     // تحديث البيانات عند العودة للصفحة
+    staleTime: 30 * 1000,           // اعتبار البيانات قديمة بعد 30 ثانية
     queryFn: async () => {
       // For demo purposes
       return {
