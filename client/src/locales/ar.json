@@ -1,4 +1,11 @@
 {
+  "store_information": "معلومات المتجر",
+  "store_name": "اسم المتجر",
+  "store_address": "عنوان المتجر",
+  "store_phone": "رقم هاتف المتجر",
+  "store_info_updated_successfully": "تم تحديث معلومات المتجر بنجاح",
+  "failed_to_update_store_info": "فشل تحديث معلومات المتجر",
+  "edit_store_info": "تعديل معلومات المتجر",
   "notifications": {
     "title": "الإشعارات",
     "empty": "لا توجد إشعارات",

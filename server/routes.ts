@@ -1288,6 +1288,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // معلومات المتجر (Store Information)
+  app.get('/api/store-info', async (req, res) => {
+    try {
+      const storeInfo = await storage.getStoreInfo();
+      
+      if (!storeInfo) {
+        // إذا لم تكن هناك معلومات للمتجر موجودة، نرسل قيمة افتراضية
+        return res.json({
+          id: 1,
+          name: "Sales Ghazy",
+          address: "العنوان الرئيسي",
+          phone: "01xxxxxxxxx",
+          updatedAt: new Date()
+        });
+      }
+      
+      res.json(storeInfo);
+    } catch (error) {
+      console.error('Error fetching store information:', error);
+      res.status(500).json({ message: 'Failed to fetch store information', error: error.message });
+    }
+  });
+  
+  app.post('/api/store-info', async (req, res) => {
+    try {
+      const data = insertStoreInfoSchema.parse(req.body);
+      const storeInfo = await storage.updateStoreInfo(data);
+      res.status(200).json(storeInfo);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Validation error', errors: err.errors });
+      }
+      console.error('Error updating store information:', err);
+      res.status(500).json({ message: 'Failed to update store information', error: err.message });
+    }
+  });
+  
   // Damaged items routes
   app.get('/api/damaged-items', async (req, res) => {
     try {

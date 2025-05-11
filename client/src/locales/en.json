@@ -1,4 +1,11 @@
 {
+  "store_information": "Store Information",
+  "store_name": "Store Name",
+  "store_address": "Store Address",
+  "store_phone": "Store Phone",
+  "store_info_updated_successfully": "Store information updated successfully",
+  "failed_to_update_store_info": "Failed to update store information",
+  "edit_store_info": "Edit Store Information",
   "notifications": {
     "title": "Notifications",
     "empty": "No notifications",
