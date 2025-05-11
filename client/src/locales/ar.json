@@ -426,5 +426,27 @@
   "approved": "موافق عليه",
   "rejected": "مرفوض",
   "menu": "القائمة",
-  "items": "الأصناف"
+  "items": "الأصناف",
+  
+  "expenses_management": "مصاريف ونثريات",
+  "total_expenses": "إجمالي المصاريف",
+  "add_expense": "إضافة مصروف",
+  "edit_expense": "تعديل مصروف",
+  "expense_id": "رقم المصروف",
+  "expenses": "المصاريف",
+  "no_expenses_found": "لا توجد مصاريف",
+  "expense_added_successfully": "تم إضافة المصروف بنجاح",
+  "expense_updated_successfully": "تم تحديث المصروف بنجاح",
+  "expense_deleted_successfully": "تم حذف المصروف بنجاح",
+  "add_expense_error": "حدث خطأ أثناء إضافة المصروف",
+  "edit_expense_error": "حدث خطأ أثناء تعديل المصروف",
+  "delete_expense_error": "حدث خطأ أثناء حذف المصروف",
+  "expense_details_placeholder": "تفاصيل المصروف...",
+  "amount_must_be_positive": "يجب أن يكون المبلغ رقماً موجباً",
+  "details_min_length": "يجب أن تحتوي التفاصيل على 3 أحرف على الأقل",
+  "details_max_length": "يجب ألا تتجاوز التفاصيل 500 حرف",
+  "date_required": "التاريخ مطلوب",
+  "pick_date": "اختر تاريخاً",
+  "details": "التفاصيل",
+  "delete_expense_confirmation": "هل أنت متأكد من حذف هذا المصروف؟ لا يمكن التراجع عن هذا الإجراء."
 }

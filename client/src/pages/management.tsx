@@ -685,6 +685,70 @@ export default function ManagementPage() {
     }
   });
   
+  // Expense mutations
+  const addExpenseMutation = useMutation({
+    mutationFn: async (expense: any) => {
+      const response = await apiRequest('POST', '/api/expenses', expense);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
+      toast({
+        title: t('success'),
+        description: t('expense_added_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('add_expense_error'),
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  const editExpenseMutation = useMutation({
+    mutationFn: async (expense: any) => {
+      const response = await apiRequest('PATCH', `/api/expenses/${expense.id}`, expense);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
+      toast({
+        title: t('success'),
+        description: t('expense_updated_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('edit_expense_error'),
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  const deleteExpenseMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest('DELETE', `/api/expenses/${id}`);
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
+      toast({
+        title: t('success'),
+        description: t('expense_deleted_successfully'),
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: t('error'),
+        description: error.message || t('delete_expense_error'),
+        variant: 'destructive',
+      });
+    }
+  });
+  
   const resetPasswordMutation = useMutation({
     mutationFn: async (userId: string) => {
       const response = await apiRequest('POST', `/api/users/${userId}/reset-password`);
@@ -744,6 +808,17 @@ export default function ManagementPage() {
           </TabsTrigger>
           
           <TabsTrigger 
+            value="expenses" 
+            className="flex items-center gap-2 transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white hover:bg-indigo-100 data-[state=active]:hover:bg-indigo-700 relative overflow-hidden group"
+          >
+            <span className="absolute inset-0 bg-gradient-to-r from-indigo-400/20 to-indigo-400/0 group-hover:opacity-100 opacity-0 transition-opacity duration-300"></span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+            </svg>
+            {t('expenses_management')}
+          </TabsTrigger>
+          
+          <TabsTrigger 
             value="users" 
             className="flex items-center gap-2 transition-all data-[state=active]:bg-purple-600 data-[state=active]:text-white hover:bg-purple-100 data-[state=active]:hover:bg-purple-700 relative overflow-hidden group"
           >
@@ -788,6 +863,16 @@ export default function ManagementPage() {
             onAddItem={(item) => addDamagedItemMutation.mutate(item)}
             onEditItem={(item) => editDamagedItemMutation.mutate(item)}
             onDeleteItem={(id) => deleteDamagedItemMutation.mutate(id)}
+          />
+        </TabsContent>
+        
+        <TabsContent value="expenses">
+          <ExpenseList 
+            expenses={expenses}
+            isLoading={isLoadingExpenses}
+            onAddExpense={(expense) => addExpenseMutation.mutate(expense)}
+            onEditExpense={(expense) => editExpenseMutation.mutate(expense)}
+            onDeleteExpense={(id) => deleteExpenseMutation.mutate(id)}
           />
         </TabsContent>
         
