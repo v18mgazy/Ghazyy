@@ -5,7 +5,7 @@ import {
   insertUserSchema, insertProductSchema, insertCustomerSchema, 
   insertInvoiceSchema, insertDamagedItemSchema,
   insertEmployeeSchema, insertPaymentApprovalSchema, insertReportDataSchema,
-  insertNotificationSchema
+  insertNotificationSchema, insertEmployeeDeductionSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { type ZodError } from "zod-validation-error";

@@ -9,6 +9,8 @@ import type {
   Employee, InsertEmployee,
   PaymentApproval, InsertPaymentApproval,
   ReportData, InsertReportData,
+  EmployeeDeduction, InsertEmployeeDeduction,
+  Notification, InsertNotification
 } from "@shared/schema";
 import { IStorage } from "./storage";
 
@@ -1219,6 +1221,237 @@ export class RealtimeDBStorage implements IStorage {
       await remove(ref(database, `notifications/${id}`));
     } catch (error) {
       console.error('Error deleting notification:', error);
+      throw error;
+    }
+  }
+
+  // Employee Deduction Management
+  async getEmployeeDeduction(id: number): Promise<EmployeeDeduction | undefined> {
+    try {
+      const deductionRef = ref(database, `employee_deductions/${id}`);
+      const snapshot = await get(deductionRef);
+      
+      if (snapshot.exists()) {
+        const deductionData = snapshot.val();
+        // Convert date string to Date object if available
+        if (deductionData.date) {
+          deductionData.date = new Date(deductionData.date);
+        }
+        return deductionData as EmployeeDeduction;
+      }
+      return undefined;
+    } catch (error) {
+      console.error('Error getting employee deduction:', error);
+      return undefined;
+    }
+  }
+
+  async getEmployeeDeductions(employeeId: string): Promise<EmployeeDeduction[]> {
+    try {
+      const deductionsRef = ref(database, 'employee_deductions');
+      const snapshot = await get(deductionsRef);
+      
+      if (snapshot.exists()) {
+        const deductions: EmployeeDeduction[] = [];
+        const deductionsData = snapshot.val();
+        
+        // Loop through all deductions
+        Object.keys(deductionsData).forEach(key => {
+          const deduction = deductionsData[key];
+          // Check if this deduction belongs to the specified employee
+          if (deduction.employeeId === employeeId) {
+            // Convert date string to Date object if available
+            if (deduction.date) {
+              deduction.date = new Date(deduction.date);
+            }
+            deductions.push({
+              ...deduction,
+              id: parseInt(key)
+            });
+          }
+        });
+        
+        // Sort by date, newest first
+        return deductions.sort((a, b) => {
+          if (!a.date || !b.date) return 0;
+          return b.date.getTime() - a.date.getTime();
+        });
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error getting employee deductions:', error);
+      return [];
+    }
+  }
+
+  async getAllEmployeeDeductions(): Promise<EmployeeDeduction[]> {
+    try {
+      const deductionsRef = ref(database, 'employee_deductions');
+      const snapshot = await get(deductionsRef);
+      
+      if (snapshot.exists()) {
+        const deductions: EmployeeDeduction[] = [];
+        const deductionsData = snapshot.val();
+        
+        // Loop through all deductions
+        Object.keys(deductionsData).forEach(key => {
+          const deduction = deductionsData[key];
+          // Convert date string to Date object if available
+          if (deduction.date) {
+            deduction.date = new Date(deduction.date);
+          }
+          deductions.push({
+            ...deduction,
+            id: parseInt(key)
+          });
+        });
+        
+        // Sort by date, newest first
+        return deductions.sort((a, b) => {
+          if (!a.date || !b.date) return 0;
+          return b.date.getTime() - a.date.getTime();
+        });
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error getting all employee deductions:', error);
+      return [];
+    }
+  }
+
+  async createEmployeeDeduction(deduction: InsertEmployeeDeduction): Promise<EmployeeDeduction> {
+    try {
+      // Generate ID for the new deduction
+      const id = this.generateId('employee_deductions');
+      
+      // Ensure date is set
+      if (!deduction.date) {
+        deduction.date = new Date();
+      }
+      
+      // Save to database
+      const deductionData = {
+        ...deduction,
+        id,
+        date: deduction.date.toISOString() // Convert Date to string for storage
+      };
+      
+      const deductionRef = ref(database, `employee_deductions/${id}`);
+      await set(deductionRef, deductionData);
+      
+      // Update employee's total deductions
+      try {
+        const employeeRef = ref(database, `employees/${deduction.employeeId}`);
+        const employeeSnapshot = await get(employeeRef);
+        
+        if (employeeSnapshot.exists()) {
+          const employee = employeeSnapshot.val();
+          const currentDeductions = employee.deductions || 0;
+          const newDeductions = currentDeductions + deduction.amount;
+          
+          // Update employee record
+          await update(employeeRef, { deductions: newDeductions });
+        }
+      } catch (error) {
+        console.error('Error updating employee deductions:', error);
+        // Continue even if updating the employee record fails
+      }
+      
+      // Return with date as Date object
+      return {
+        ...deductionData,
+        date: new Date(deductionData.date)
+      };
+    } catch (error) {
+      console.error('Error creating employee deduction:', error);
+      throw error;
+    }
+  }
+
+  async updateEmployeeDeduction(id: number, deductionData: Partial<EmployeeDeduction>): Promise<EmployeeDeduction | undefined> {
+    try {
+      // Get current deduction
+      const currentDeduction = await this.getEmployeeDeduction(id);
+      if (!currentDeduction) {
+        return undefined;
+      }
+      
+      // Handle date conversion if provided
+      if (deductionData.date) {
+        deductionData.date = deductionData.date.toISOString();
+      }
+      
+      // Update record
+      const deductionRef = ref(database, `employee_deductions/${id}`);
+      await update(deductionRef, deductionData);
+      
+      // If amount changed, update employee's total deductions
+      if (deductionData.amount !== undefined && deductionData.amount !== currentDeduction.amount) {
+        try {
+          const employeeId = currentDeduction.employeeId;
+          const amountDifference = deductionData.amount - currentDeduction.amount;
+          
+          const employeeRef = ref(database, `employees/${employeeId}`);
+          const employeeSnapshot = await get(employeeRef);
+          
+          if (employeeSnapshot.exists()) {
+            const employee = employeeSnapshot.val();
+            const currentDeductions = employee.deductions || 0;
+            const newDeductions = currentDeductions + amountDifference;
+            
+            // Update employee record
+            await update(employeeRef, { deductions: newDeductions });
+          }
+        } catch (error) {
+          console.error('Error updating employee deductions after deduction update:', error);
+          // Continue even if updating the employee record fails
+        }
+      }
+      
+      // Retrieve updated record
+      return await this.getEmployeeDeduction(id);
+    } catch (error) {
+      console.error('Error updating employee deduction:', error);
+      return undefined;
+    }
+  }
+
+  async deleteEmployeeDeduction(id: number): Promise<void> {
+    try {
+      // Get current deduction before deleting
+      const deduction = await this.getEmployeeDeduction(id);
+      if (!deduction) {
+        return;
+      }
+      
+      // Delete the deduction
+      const deductionRef = ref(database, `employee_deductions/${id}`);
+      await remove(deductionRef);
+      
+      // Update employee's total deductions
+      try {
+        const employeeId = deduction.employeeId;
+        const deductionAmount = deduction.amount;
+        
+        const employeeRef = ref(database, `employees/${employeeId}`);
+        const employeeSnapshot = await get(employeeRef);
+        
+        if (employeeSnapshot.exists()) {
+          const employee = employeeSnapshot.val();
+          const currentDeductions = employee.deductions || 0;
+          const newDeductions = Math.max(0, currentDeductions - deductionAmount);
+          
+          // Update employee record
+          await update(employeeRef, { deductions: newDeductions });
+        }
+      } catch (error) {
+        console.error('Error updating employee deductions after deduction deletion:', error);
+        // Continue even if updating the employee record fails
+      }
+    } catch (error) {
+      console.error('Error deleting employee deduction:', error);
       throw error;
     }
   }
