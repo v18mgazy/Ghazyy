@@ -5,7 +5,6 @@ import { useAuthContext } from '@/context/auth-context';
 import { useLocale } from '@/hooks/use-locale';
 import Sidebar from './sidebar';
 import Header from './header';
-import NotificationPanel from './notification-panel';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -17,7 +16,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { direction } = useLocale();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Get current section name based on location
   const getCurrentSection = () => {
@@ -46,9 +44,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <Header 
           title={getCurrentSection()} 
           onMenuClick={() => setSidebarOpen(true)}
-          onNotificationsClick={() => setNotificationsOpen(true)}
           username={user.name}
           isAdmin={isAdmin}
+          userId={parseInt(user.id)}
         />
 
         {/* Main content container */}
@@ -57,11 +55,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         </main>
       </div>
 
-      {/* Notification panel */}
-      <NotificationPanel 
-        isOpen={notificationsOpen} 
-        onClose={() => setNotificationsOpen(false)} 
-      />
+      {/* لا حاجة لمكون الإشعارات القديم حيث تم استبداله بمكون dropdown في الهيدر */}
     </div>
   );
 }
