@@ -65,37 +65,17 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [scannedProduct, setScannedProduct] = useState<ProductSearchResult | null>(null);
   
-  // قائمة بالعملاء للاختيار (ستكون من API في التطبيق الحقيقي)
-  const mockCustomers: Customer[] = [
-    {
-      id: 'c1',
-      name: 'أحمد محمد',
-      phone: '0123456789',
-      address: 'القاهرة، مصر',
-      isPotential: false
-    },
-    {
-      id: 'c2',
-      name: 'سارة علي',
-      phone: '0198765432',
-      address: 'الإسكندرية، مصر',
-      isPotential: false
-    },
-    {
-      id: 'c3',
-      name: 'محمد أحمد',
-      phone: '0112233445',
-      address: 'الجيزة، مصر',
-      isPotential: true
-    }
-  ];
+  // استرجاع العملاء من قاعدة البيانات
+  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery({
+    queryKey: ['/api/customers'],
+  });
   
   // فلترة العملاء حسب البحث
   const filteredCustomers = searchTerm.trim() === '' 
-    ? mockCustomers 
-    : mockCustomers.filter(c => 
-        c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        c.phone.includes(searchTerm)
+    ? customers 
+    : customers.filter((c: any) => 
+        c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (c.phone && c.phone.includes(searchTerm))
       );
   
   // اختيار عميل
@@ -130,49 +110,10 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
     onOpenChange(false);
   };
   
-  // بيانات المنتجات للبحث (ستكون من API في التطبيق الحقيقي)
-  const mockProducts: ProductSearchResult[] = [
-    {
-      id: 'p1',
-      name: 'هاتف سامسونج جالكسي S21',
-      barcode: '8801643992941',
-      code: 'SM-G991',
-      sellingPrice: 12999.99,
-      category: 'الإلكترونيات'
-    },
-    {
-      id: 'p2',
-      name: 'ايفون 13 برو',
-      barcode: '194252705841',
-      code: 'IP-13PRO',
-      sellingPrice: 16999.99,
-      category: 'الإلكترونيات'
-    },
-    {
-      id: 'p3',
-      name: 'لابتوب لينوفو ثينكباد',
-      barcode: '195713147532',
-      code: 'LT-T14',
-      sellingPrice: 11499.99,
-      category: 'الإلكترونيات'
-    },
-    {
-      id: 'p4',
-      name: 'ساعة أبل الذكية',
-      barcode: '190199269033',
-      code: 'AW-S7',
-      sellingPrice: 3999.99,
-      category: 'الإلكترونيات'
-    },
-    {
-      id: 'p5',
-      name: 'سماعات سوني اللاسلكية',
-      barcode: '027242916852',
-      code: 'SH-WH1000',
-      sellingPrice: 1899.99,
-      category: 'الإلكترونيات'
-    }
-  ];
+  // استرجاع المنتجات من قاعدة البيانات
+  const { data: products = [], isLoading: isLoadingProducts } = useQuery({
+    queryKey: ['/api/products'],
+  });
   
   // اختيار منتج من نتائج البحث
   const handleSelectProduct = (product: ProductSearchResult) => {
