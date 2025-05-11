@@ -463,15 +463,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log(`Looking up product for item ${item.id} with productId ${productId}:`, product ? `Found: ${product.name}` : 'Not found');
         
-        // تعزيز عنصر الفاتورة بتفاصيل المنتج الكاملة
-        return {
+        // حساب بيانات العنصر وإضافة بيانات إضافية للتشخيص
+        const enhancedItem = {
           id: item.id,
           invoiceId: item.invoiceId,
           quantity: item.quantity,
           price: item.price,
           discount: item.discount || 0,
           total: item.total,
-          createdAt: item.createdAt,
           productId: productId,
           // إضافة تفاصيل المنتج الكاملة
           product: product ? {
@@ -491,6 +490,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             stock: 0
           }
         };
+        
+        console.log('Created enhanced item:', enhancedItem);
+        return enhancedItem;
       });
       
       console.log('Returning enhanced items with full product details:', enhancedItems.length);

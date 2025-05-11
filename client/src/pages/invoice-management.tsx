@@ -137,14 +137,18 @@ export default function InvoiceManagement() {
   const { data: dbInvoices, isLoading: isLoadingInvoices, error: invoicesError } = useQuery({
     queryKey: ['/api/invoices'],
     staleTime: 30000,
-    onError: () => {
+  });
+  
+  // استعراض أي خطأ حدث أثناء جلب البيانات
+  React.useEffect(() => {
+    if (invoicesError) {
       toast({
         title: t('error'),
         description: t('invoices_fetch_error'),
         variant: 'destructive'
       });
     }
-  });
+  }, [invoicesError, toast, t]);
   
   // استخدام useQuery لجلب بيانات العملاء وتحويلها إلى قائمة
   const { data: customersData } = useQuery({
@@ -154,7 +158,7 @@ export default function InvoiceManagement() {
   
   // تحويل بيانات العملاء إلى قاموس للوصول السريع
   const customersMap = React.useMemo(() => {
-    if (!customersData) return {};
+    if (!customersData || !Array.isArray(customersData)) return {};
     return customersData.reduce((acc: Record<number, Customer>, customer: Customer) => {
       acc[customer.id] = customer;
       return acc;
@@ -163,28 +167,37 @@ export default function InvoiceManagement() {
   
   // معالجة وتحويل بيانات الفواتير القادمة من قاعدة البيانات
   const processedInvoices = React.useMemo(() => {
-    if (!dbInvoices || !dbInvoices.length) {
+    // التأكد من أن كل من الفواتير والعملاء متاحان كمصفوفة
+    const invoices = Array.isArray(dbInvoices) ? dbInvoices : [];
+    const customers = Array.isArray(customersData) ? customersData : [];
+    
+    if (invoices.length === 0) {
+      console.log('No invoices available from database');
       return []; // لا نستخدم بيانات مزيفة
     }
     
-    if (!customersData || !Array.isArray(customersData)) {
-      console.log('No customers data available:', customersData);
+    if (customers.length === 0) {
+      console.log('No customers data available');
       return [];
     }
     
-    console.log('Processing invoices:', dbInvoices); 
+    console.log('Processing invoices:', invoices); 
+    console.log('Available customers:', customers);
     
     // تحويل بيانات العملاء إلى قاموس للوصول السريع
-    const customersMap: Record<number, any> = {};
-    customersData.forEach((customer: any) => {
+    const customersMap: Record<string, any> = {};
+    customers.forEach((customer: any) => {
       if (customer && customer.id) {
+        // تخزين العميل بمعرف رقمي ونصي للمطابقة المرنة
+        const stringId = customer.id.toString();
+        customersMap[stringId] = customer;
         customersMap[customer.id] = customer;
       }
     });
     
-    console.log('Built customers map:', customersMap); 
+    console.log('Built customers map with keys:', Object.keys(customersMap)); 
     
-    return dbInvoices.map((invoice: any) => {
+    return invoices.map((invoice: any) => {
       if (!invoice) {
         console.warn('Found null invoice in data');
         return null;
@@ -192,14 +205,32 @@ export default function InvoiceManagement() {
       
       // البحث عن بيانات العميل المرتبط بالفاتورة
       console.log('Processing invoice:', invoice);
-      console.log('Invoice customer ID:', invoice.customerId);
+      console.log('Invoice customer ID:', invoice.customerId, 'Type:', typeof invoice.customerId);
       
+      // محاولة العثور على العميل بأكثر من طريقة
       let customer = null;
-      if (invoice.customerId && customersMap[invoice.customerId]) {
-        customer = customersMap[invoice.customerId];
-        console.log('Found customer for invoice:', customer);
+      const customerId = invoice.customerId;
+      const customerIdStr = customerId?.toString();
+      
+      if (customerId && customersMap[customerId]) {
+        customer = customersMap[customerId];
+        console.log('Found customer for invoice by numeric ID:', customer);
+      } else if (customerIdStr && customersMap[customerIdStr]) {
+        customer = customersMap[customerIdStr];
+        console.log('Found customer for invoice by string ID:', customer);
       } else {
-        console.warn(`No customer found for ID: ${invoice.customerId}`);
+        console.warn(`No customer found for ID: ${customerId} (${typeof customerId})`);
+        // محاولة البحث في جميع العملاء
+        if (customersData.length > 0) {
+          console.log('Attempting to find customer in all data...');
+          const possibleCustomer = customersData.find((c: any) => 
+            c.id === customerId || c.id === parseInt(customerIdStr || '0')
+          );
+          if (possibleCustomer) {
+            customer = possibleCustomer;
+            console.log('Found customer through full search:', customer);
+          }
+        }
       }
       
       return {
@@ -245,7 +276,7 @@ export default function InvoiceManagement() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
   const [invoiceToDeleteDbId, setInvoiceToDeleteDbId] = useState<number | undefined>();
-  const queryClient = useQueryClient();
+  // استخدام queryClient من ملف استيراد بدلا من useQueryClient
   
   // Filter invoices based on search term and filters
   const filteredInvoices = invoices.filter(invoice => {
