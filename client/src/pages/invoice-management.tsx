@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   FileText, Search, Pencil, Trash2, Printer, ExternalLink, Filter, CheckCircle, XCircle, Clock, 
-  RefreshCw, ArrowUpDown, Download, ChevronRight, ChevronLeft
+  RefreshCw, ArrowUpDown, Download, ChevronRight, ChevronLeft, Loader2
 } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useAuthContext } from '@/context/auth-context';
 import { useLocale } from '@/hooks/use-locale';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+
+// استيراد أنواع البيانات
+import { Invoice, InvoiceItem, Customer, Product } from "@shared/schema";
 
 // UI Components
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -31,7 +36,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 
-// Mock invoices for initial display
+// بيانات احتياطية تستخدم فقط في حالة عدم وجود بيانات في قاعدة البيانات
 const mockInvoices = [
   {
     id: 'INV-2025-1001',
@@ -128,7 +133,78 @@ export default function InvoiceManagement() {
   const { user } = useAuthContext();
   const { toast } = useToast();
   
-  const [invoices, setInvoices] = useState(mockInvoices);
+  // استخدام useQuery لجلب البيانات من الخادم
+  const { data: dbInvoices, isLoading: isLoadingInvoices, error: invoicesError } = useQuery({
+    queryKey: ['/api/invoices'],
+    staleTime: 30000,
+    onError: () => {
+      toast({
+        title: t('error'),
+        description: t('invoices_fetch_error'),
+        variant: 'destructive'
+      });
+    }
+  });
+  
+  // استخدام useQuery لجلب بيانات العملاء وتحويلها إلى قائمة
+  const { data: customersData } = useQuery({
+    queryKey: ['/api/customers'],
+    staleTime: 60000
+  });
+  
+  // تحويل بيانات العملاء إلى قاموس للوصول السريع
+  const customersMap = React.useMemo(() => {
+    if (!customersData) return {};
+    return customersData.reduce((acc: Record<number, Customer>, customer: Customer) => {
+      acc[customer.id] = customer;
+      return acc;
+    }, {});
+  }, [customersData]);
+  
+  // معالجة وتحويل بيانات الفواتير القادمة من قاعدة البيانات
+  const processedInvoices = React.useMemo(() => {
+    if (!dbInvoices || !dbInvoices.length) {
+      return mockInvoices;
+    }
+    
+    return dbInvoices.map((invoice: Invoice) => {
+      // البحث عن بيانات العميل المرتبط بالفاتورة
+      const customer = invoice.customerId ? customersMap[invoice.customerId] : null;
+      
+      return {
+        id: invoice.invoiceNumber,
+        dbId: invoice.id,
+        date: new Date(invoice.date),
+        customer: customer ? {
+          id: customer.id.toString(),
+          name: customer.name,
+          phone: customer.phone || '',
+          address: customer.address || ''
+        } : {
+          id: 'unknown',
+          name: t('unknown_customer'),
+          phone: '',
+          address: ''
+        },
+        total: invoice.total,
+        status: invoice.paymentStatus,
+        paymentMethod: invoice.paymentMethod,
+        // سنقوم بجلب العناصر التفصيلية للفاتورة لاحقًا عند الطلب
+        items: []
+      };
+    });
+  }, [dbInvoices, customersMap, t]);
+  
+  // استخدام البيانات المعالجة أو البيانات المزيفة في حالة عدم وجود بيانات
+  const [invoices, setInvoices] = useState<any[]>([]);
+  
+  // تحديث حالة الفواتير عندما تتغير البيانات المعالجة
+  useEffect(() => {
+    if (processedInvoices && processedInvoices.length > 0) {
+      setInvoices(processedInvoices);
+    }
+  }, [processedInvoices]);
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState('all');
