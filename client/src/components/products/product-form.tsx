@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { generateBarcodeNumber, generateBarcodeSVG } from '@/lib/utils';
 import { startBarcodeScanner, stopBarcodeScanner } from '@/lib/barcode';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 interface Product {
   id?: string;
@@ -37,6 +38,7 @@ export default function ProductForm({
   isLoading = false 
 }: ProductFormProps) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const isEditing = !!product?.id;
   const scannerRef = useRef<HTMLDivElement>(null);
   
@@ -136,6 +138,13 @@ export default function ProductForm({
       stopScanner();
       
       console.log('Barcode detected:', barcode);
+      
+      // إضافة إشعار نجاح
+      toast({
+        title: t('barcode_scanned_successfully'),
+        description: barcode
+      });
+      
       // استخدام الباركود المكتشف
       setFormData({
         ...formData,
@@ -153,10 +162,19 @@ export default function ProductForm({
         [id]: parseFloat(value) || 0
       });
     } else {
-      setFormData({
+      // تحديث القيمة
+      const updatedFormData = {
         ...formData,
         [id]: value
-      });
+      };
+      
+      // إذا كان الحقل هو الباركود، نتحقق أنه صالح
+      if (id === 'barcode' && value.trim() === '') {
+        // إذا كان فارغاً، نولد باركود جديد
+        updatedFormData.barcode = generateBarcodeNumber('code128');
+      }
+      
+      setFormData(updatedFormData);
     }
   };
 
@@ -255,7 +273,7 @@ export default function ProductForm({
             
             <div className="col-span-2">
               <Label htmlFor="barcode" className="text-sm font-medium">
-                {t('barcode')} ({t('auto_generated')})
+                {t('barcode')}
               </Label>
               <div className="flex">
                 <Input
@@ -263,12 +281,12 @@ export default function ProductForm({
                   value={formData.barcode}
                   onChange={handleChange}
                   className="flex-1 rounded-r-none"
-                  readOnly={!isEditing}
                 />
                 <Button
                   type="button"
                   className="rounded-l-none rounded-r-none"
                   onClick={generateNewBarcode}
+                  title={t('generate_new_barcode')}
                 >
                   <RefreshCw className="h-4 w-4" />
                 </Button>
@@ -277,12 +295,13 @@ export default function ProductForm({
                   className="rounded-l-none"
                   onClick={startScanner}
                   disabled={isScanning}
+                  title={t('scan_existing_barcode')}
                 >
                   <Camera className="h-4 w-4" />
                 </Button>
               </div>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                {t('barcode_auto_generated_info')} {!isScanning && t('or_scan_existing_barcode')}
+                {t('barcode_manual_edit_info')} {!isScanning && t('or_scan_existing_barcode')}
               </p>
             </div>
             
