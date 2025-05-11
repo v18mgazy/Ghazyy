@@ -26,6 +26,9 @@ export default function SalesPage() {
   // استعلام للمنتجات
   const { data: products, isLoading: isProductsLoading } = useQuery({
     queryKey: ['/api/products'],
+    refetchInterval: 30 * 1000,     // تحديث البيانات كل 30 ثانية
+    refetchOnWindowFocus: true,     // تحديث البيانات عند العودة للصفحة
+    staleTime: 20 * 1000,           // اعتبار البيانات قديمة بعد 20 ثانية
     onError: (error) => {
       toast({
         title: t('error'),
@@ -39,6 +42,9 @@ export default function SalesPage() {
   // استعلام للعملاء
   const { data: customers, isLoading: isCustomersLoading } = useQuery({
     queryKey: ['/api/customers'],
+    refetchInterval: 45 * 1000,     // تحديث البيانات كل 45 ثانية
+    refetchOnWindowFocus: true,     // تحديث البيانات عند العودة للصفحة
+    staleTime: 30 * 1000,           // اعتبار البيانات قديمة بعد 30 ثانية
     onError: (error) => {
       toast({
         title: t('error'),
