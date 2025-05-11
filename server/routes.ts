@@ -279,34 +279,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post('/api/invoices', async (req, res) => {
     try {
-      // Extract and validate the invoice data
+      console.log('Creating invoice with data:', req.body);
+      
+      // Extract the user role from the request if available
+      const userRole = req.body.userRole || 'cashier'; // افتراض أن المستخدم كاشير إذا لم يتم تحديد الدور
+      const userId = req.body.userId || 1; // استخدام ID المستخدم من الطلب إذا كان متوفراً
+      
+      // استخراج معرف العميل والتأكد من أنه رقم صحيح
+      let customerId = req.body.customerId;
+      if (typeof customerId === 'string') {
+        customerId = parseInt(customerId);
+      }
+      
+      if (isNaN(customerId)) {
+        console.error('Invalid customer ID:', req.body.customerId);
+        return res.status(400).json({ message: 'Invalid customer ID format' });
+      }
+      
+      console.log('Parsed customer ID:', customerId);
+      
+      // تحقق من وجود العميل
+      const customer = await storage.getCustomer(customerId);
+      if (!customer) {
+        console.error('Customer not found:', customerId);
+        return res.status(404).json({ message: 'Customer not found' });
+      }
+      
+      console.log('Found customer:', customer);
+      
+      // إعداد بيانات الفاتورة مع التحقق من صحة البيانات
       const invoiceData = insertInvoiceSchema.parse({
         ...req.body,
-        userId: 1 // Default user ID for now since we're not using real authentication
+        customerId: customerId, // استخدام معرف العميل المحول
+        userId: userId
       });
       
-      // Create the invoice
+      // إنشاء الفاتورة
       const invoice = await storage.createInvoice(invoiceData);
+      console.log('Created invoice:', invoice);
       
-      // Process invoice items and update product quantities
+      // معالجة عناصر الفاتورة وتحديث كميات المنتجات
       if (req.body.products && Array.isArray(req.body.products)) {
         for (const item of req.body.products) {
           try {
-            // Calculate item total
+            // حساب إجمالي العنصر
             const itemTotal = item.quantity * item.price * (1 - (item.discount || 0) / 100);
             
+            // معرف المنتج والتأكد من أنه رقم صحيح
+            let productId = item.productId;
+            if (typeof productId === 'string') {
+              productId = parseInt(productId);
+            }
+            
+            if (isNaN(productId)) {
+              console.error('Invalid product ID:', item.productId);
+              continue; // تخطي هذا العنصر والانتقال إلى العنصر التالي
+            }
+            
             // الحصول على تفاصيل المنتج كاملة لتحديث المخزون
-            const product = await storage.getProduct(item.productId);
+            const product = await storage.getProduct(productId);
             if (!product) {
-              console.warn(`Product with ID ${item.productId} not found when creating invoice item`);
+              console.warn(`Product with ID ${productId} not found when creating invoice item`);
             } else {
-              console.log(`Creating invoice item for product ${item.productId}:`, product.name);
+              console.log(`Creating invoice item for product ${productId}:`, product.name);
             }
             
             // إنشاء عنصر الفاتورة
             await storage.createInvoiceItem({
               invoiceId: invoice.id,
-              productId: item.productId,
+              productId: productId,
               quantity: item.quantity,
               price: item.price,
               discount: item.discount || 0,
@@ -316,7 +357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // تحديث المخزون إذا كان المنتج موجودًا
             if (product) {
               const newStock = Math.max(0, (product.stock || 0) - item.quantity);
-              await storage.updateProduct(item.productId, { 
+              await storage.updateProduct(productId, { 
                 stock: newStock 
               });
               console.log(`Updated product ${product.name} stock to ${newStock}`);
@@ -328,25 +369,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // إرسال إشعار للمدير بإنشاء فاتورة جديدة
-      try {
-        // الحصول على معلومات العميل
-        const customer = await storage.getCustomer(invoiceData.customerId);
-        const customerName = customer ? customer.name : 'عميل غير معروف';
-        
-        // إنشاء إشعار للمدير (نفترض أن المدير له الـ ID = 1)
-        const adminUserId = 1; // يمكن تغييره إلى ID المدير الفعلي
-        
-        await storage.createNotification({
-          userId: adminUserId,
-          title: 'تم إنشاء فاتورة جديدة',
-          message: `تم إنشاء فاتورة جديدة برقم ${invoice.invoiceNumber} للعميل ${customerName} بقيمة ${invoice.total}`,
-          type: 'invoice_created',
-          referenceId: invoice.id.toString()
-        });
-      } catch (notifyError) {
-        console.error('Failed to send notification:', notifyError);
-        // نستمر في العملية حتى إذا فشل إرسال الإشعار
+      // إرسال إشعار للمدير بإنشاء فاتورة جديدة - فقط إذا كان منشئ الفاتورة هو الكاشير
+      if (userRole === 'cashier') {
+        try {
+          // استخدام معلومات العميل التي تم التحقق منها سابقًا
+          const customerName = customer.name;
+          
+          // إنشاء إشعار للمدير (نفترض أن المدير له الـ ID = 1)
+          const adminUserId = 1; // يمكن تغييره إلى ID المدير الفعلي
+          
+          console.log('Creating notification for admin about new invoice');
+          
+          await storage.createNotification({
+            userId: adminUserId,
+            title: 'تم إنشاء فاتورة جديدة',
+            message: `تم إنشاء فاتورة جديدة برقم ${invoice.invoiceNumber} للعميل ${customerName} بقيمة ${invoice.total}`,
+            type: 'invoice_created',
+            referenceId: invoice.id.toString()
+          });
+        } catch (notifyError) {
+          console.error('Failed to send notification:', notifyError);
+          // نستمر في العملية حتى إذا فشل إرسال الإشعار
+        }
+      } else {
+        console.log('Skipping notification creation - invoice created by admin');
       }
       
       // If payment method is 'later', handle approval

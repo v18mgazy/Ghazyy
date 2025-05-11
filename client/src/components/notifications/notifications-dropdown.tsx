@@ -101,13 +101,54 @@ export function NotificationsDropdown({ userId }: NotificationsDropdownProps) {
   // طلب لحذف الإشعار
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: number) => {
-      await apiRequest('DELETE', `/api/notifications/${notificationId}`);
+      console.log('Deleting notification with ID:', notificationId);
+      
+      try {
+        const response = await apiRequest('DELETE', `/api/notifications/${notificationId}`);
+        console.log('Delete notification response:', response.status);
+        
+        if (response.status !== 204) {
+          // محاولة قراءة نص الخطأ من الاستجابة
+          let errorText = 'Unknown error';
+          try {
+            const errorData = await response.json();
+            errorText = errorData.message || 'Error deleting notification';
+          } catch (e) {
+            // إذا لم يمكن قراءة JSON من الاستجابة
+            errorText = 'Error deleting notification';
+          }
+          throw new Error(errorText);
+        }
+        
+        return { success: true, id: notificationId };
+      } catch (error) {
+        console.error('Error in delete notification mutation:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
-      // تحديث قائمة الإشعارات
+    onSuccess: (result) => {
+      console.log('Successfully deleted notification:', result);
+      
+      // تحديث حالة الإشعارات في ذاكرة التخزين المؤقت عن طريق إزالة الإشعار المحذوف
+      queryClient.setQueryData(
+        [`/api/notifications/user/${userId}`],
+        (oldData: Notification[] | undefined) => {
+          if (!oldData) return [];
+          return oldData.filter(notification => notification.id !== result.id);
+        }
+      );
+      
+      // ثم إعادة جلب البيانات المحدثة من الخادم
       queryClient.invalidateQueries({ queryKey: [`/api/notifications/user/${userId}`] });
+      
+      // عرض رسالة نجاح للمستخدم
+      toast({
+        title: t('notifications.deleteSuccess'),
+        description: t('notifications.deleteSuccessMessage'),
+      });
     },
     onError: (error: Error) => {
+      console.error('Delete notification error:', error);
       toast({
         title: t('notifications.deleteError'),
         description: error.message,
