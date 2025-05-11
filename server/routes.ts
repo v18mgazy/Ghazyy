@@ -277,6 +277,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // تعديل الفاتورة
+  app.put('/api/invoices/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`Request to update invoice with ID: ${id}`);
+      
+      const invoiceId = parseInt(id);
+      if (isNaN(invoiceId)) {
+        console.error('Invalid invoice ID format:', id);
+        return res.status(400).json({ message: 'Invalid invoice ID format' });
+      }
+      
+      // فحص وجود الفاتورة قبل التحديث
+      const existingInvoice = await storage.getInvoice(invoiceId);
+      if (!existingInvoice) {
+        console.error(`Invoice with ID ${invoiceId} not found for update`);
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+      
+      console.log('Existing invoice:', existingInvoice);
+      console.log('Update data:', req.body);
+      
+      // استخراج معرف العميل إذا تم تغييره
+      let customerId = req.body.customerId;
+      if (customerId !== undefined && typeof customerId === 'string') {
+        customerId = parseInt(customerId);
+      }
+      
+      // التحقق من صحة معرف العميل إذا تم تقديمه
+      if (customerId !== undefined && isNaN(customerId)) {
+        console.error('Invalid customer ID:', req.body.customerId);
+        return res.status(400).json({ message: 'Invalid customer ID format' });
+      }
+      
+      // تخزين معلومات العميل في الفاتورة إذا تم تقديمها
+      let customerInfo = {};
+      if (req.body.customerDetails) {
+        customerInfo = {
+          customerName: req.body.customerDetails.name,
+          customerPhone: req.body.customerDetails.phone,
+          customerAddress: req.body.customerDetails.address,
+        };
+      }
+      
+      // إعداد بيانات التحديث
+      const updateData = {
+        ...(req.body.invoiceNumber && { invoiceNumber: req.body.invoiceNumber }),
+        ...(customerId !== undefined && { customerId }),
+        ...customerInfo,
+        ...(req.body.subtotal !== undefined && { subtotal: req.body.subtotal }),
+        ...(req.body.discount !== undefined && { discount: req.body.discount }),
+        ...(req.body.total !== undefined && { total: req.body.total }),
+        ...(req.body.paymentMethod && { paymentMethod: req.body.paymentMethod }),
+        ...(req.body.paymentStatus && { paymentStatus: req.body.paymentStatus }),
+        ...(req.body.notes && { notes: req.body.notes }),
+        updatedAt: new Date().toISOString()
+      };
+      
+      console.log('Updating invoice with data:', updateData);
+      
+      // تحديث الفاتورة
+      const updatedInvoice = await storage.updateInvoice(invoiceId, updateData);
+      
+      // تحديث عناصر الفاتورة إذا تم تقديمها
+      if (req.body.products && Array.isArray(req.body.products) && req.body.products.length > 0) {
+        console.log(`Processing ${req.body.products.length} products for invoice update`);
+        
+        // 1. احصل على العناصر الحالية للفاتورة
+        const existingItems = await storage.getInvoiceItems(invoiceId);
+        console.log(`Found ${existingItems.length} existing items`);
+        
+        // 2. في نسخة مستقبلية، يمكننا إضافة منطق لمقارنة الكميات القديمة والجديدة
+        // وتحديث مخزون المنتجات وفقًا لذلك
+
+        // 3. في هذه النسخة المبسطة، سنحدث فقط عناصر الفاتورة دون التأثير على المخزون
+        for (const item of req.body.products) {
+          // العثور على العنصر الموجود (إذا كان موجودًا)
+          const existingItem = existingItems.find(i => i.productId === item.productId);
+          
+          try {
+            if (existingItem) {
+              // تحديث العنصر الموجود
+              const updatedItem = {
+                quantity: item.quantity,
+                price: item.price,
+                discount: item.discount || 0,
+                total: item.total
+              };
+              
+              await storage.updateInvoiceItem(existingItem.id, updatedItem);
+              console.log(`Updated invoice item ${existingItem.id}`);
+            } else {
+              // إنشاء عنصر جديد
+              const newItem = {
+                invoiceId,
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.price,
+                discount: item.discount || 0,
+                total: item.total
+              };
+              
+              await storage.createInvoiceItem(newItem);
+              console.log(`Created new invoice item for product ${item.productId}`);
+            }
+          } catch (itemError) {
+            console.error('Error updating invoice item:', itemError);
+            // استمر بالتحديث رغم وجود خطأ في عنصر واحد
+          }
+        }
+      }
+      
+      res.json(updatedInvoice || { id: invoiceId, ...updateData });
+    } catch (error) {
+      console.error('Error updating invoice:', error);
+      res.status(500).json({ message: 'Failed to update invoice', error: error.message });
+    }
+  });
+  
   // حذف الفاتورة (أو تعليمها كمحذوفة)
   app.delete('/api/invoices/:id', async (req, res) => {
     try {

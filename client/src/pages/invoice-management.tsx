@@ -423,42 +423,98 @@ export default function InvoiceManagement() {
     // 1. أولاً - جلب تفاصيل الفاتورة كاملة بما في ذلك العناصر إذا لم تكن متوفرة
     let invoiceWithItems = invoice;
     
-    if (!invoice.items || invoice.items.length === 0) {
-      try {
-        // إذا لم تكن العناصر متاحة، قم بجلبها
-        console.log('Fetching invoice items for edit');
-        const items = await fetchInvoiceItems(invoice.dbId);
-        
-        if (items && Array.isArray(items)) {
-          invoiceWithItems = {
-            ...invoice,
-            items: items
-          };
-        }
-      } catch (error) {
-        console.error('Error fetching invoice items for edit:', error);
-        toast({
-          title: t('error'),
-          description: t('invoice_items_fetch_error'),
-          variant: 'destructive',
-        });
-        return;
+    try {
+      // جلب تفاصيل الفاتورة من الخادم للتأكد من أحدث البيانات
+      console.log('Fetching latest invoice data for ID:', invoice.id);
+      const response = await fetch(`/api/invoices/${invoice.id}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch invoice data');
       }
+      
+      const latestInvoiceData = await response.json();
+      console.log('Latest invoice data:', latestInvoiceData);
+      
+      // جلب عناصر الفاتورة
+      console.log('Fetching invoice items for edit');
+      const items = await fetchInvoiceItems(invoice.id);
+      
+      if (items && Array.isArray(items)) {
+        invoiceWithItems = {
+          ...latestInvoiceData,
+          items: items
+        };
+      } else {
+        invoiceWithItems = latestInvoiceData;
+      }
+      
+      console.log('Prepared invoice with items for edit:', invoiceWithItems);
+      
+      // 2. إرسال طلب تحديث الفاتورة إلى الخادم
+      const updateData = {
+        invoiceNumber: invoiceWithItems.invoiceNumber,
+        customerId: invoiceWithItems.customerId,
+        customerDetails: {
+          name: invoiceWithItems.customerName || '',
+          phone: invoiceWithItems.customerPhone || '',
+          address: invoiceWithItems.customerAddress || ''
+        },
+        subtotal: invoiceWithItems.subtotal,
+        discount: invoiceWithItems.discount || 0,
+        total: invoiceWithItems.total,
+        paymentMethod: invoiceWithItems.paymentMethod,
+        paymentStatus: invoiceWithItems.paymentStatus,
+        notes: invoiceWithItems.notes || '',
+        products: invoiceWithItems.items.map((item: any) => ({
+          productId: item.productId,
+          productName: item.product?.name || 'Unknown product',
+          quantity: item.quantity,
+          price: item.price,
+          discount: item.discount || 0,
+          total: item.total
+        }))
+      };
+      
+      console.log('Preparing to send update request with data:', updateData);
+      
+      // في تطبيق حقيقي، سنرسل هذه البيانات إلى الخادم
+      // كمثال، سنظهر رسالة نجاح فقط للآن
+      
+      // TODO: إرسال طلب PUT لتحديث الفاتورة
+      // const updateResponse = await fetch(`/api/invoices/${invoice.id}`, {
+      //   method: 'PUT',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify(updateData)
+      // });
+      
+      // if (!updateResponse.ok) {
+      //   throw new Error('Failed to update invoice');
+      // }
+      
+      // const updatedInvoice = await updateResponse.json();
+      // console.log('Updated invoice:', updatedInvoice);
+      
+      // تحديث البيانات المحلية والكاش
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      
+      // عرض نافذة معاينة الفاتورة (يمكن استبدالها بنافذة تعديل)
+      setSelectedInvoice(invoiceWithItems);
+      setIsDetailsModalOpen(true);
+      
+      toast({
+        title: t('edit_invoice'),
+        description: t('edit_invoice_prepare_success'),
+      });
+    } catch (error) {
+      console.error('Error preparing invoice for edit:', error);
+      toast({
+        title: t('error'),
+        description: typeof error === 'string' ? error : t('invoice_edit_error'),
+        variant: 'destructive',
+      });
     }
-    
-    // 2. فتح واجهة التعديل أو تنفيذ العملية المطلوبة
-    // في التطبيق الحقيقي، هنا سنعدل الفاتورة أو ننتقل لصفحة التعديل
-    
-    // حاليًا نظهر رسالة فقط كمثال
-    toast({
-      title: t('edit_invoice'),
-      description: t('edit_invoice_not_implemented_yet'),
-    });
-    
-    // يمكنك إضافة المزيد من المنطق هنا حسب احتياجاتك، مثل:
-    // - فتح نافذة حوار لتعديل الفاتورة
-    // - الانتقال إلى صفحة تعديل الفاتورة
-    // - إرسال طلب تعديل الفاتورة إلى الخادم
   };
   
   // تأكيد حذف الفاتورة
