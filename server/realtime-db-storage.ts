@@ -1461,8 +1461,8 @@ export class RealtimeDBStorage implements IStorage {
   // Expenses management (مصاريف ونثريات)
   async getExpense(id: number): Promise<Expense | undefined> {
     try {
-      const ref = admin.database().ref(`expenses/${id}`);
-      const snapshot = await ref.once('value');
+      const expenseRef = ref(database, `expenses/${id}`);
+      const snapshot = await get(expenseRef);
       
       if (!snapshot.exists()) return undefined;
       
@@ -1524,7 +1524,7 @@ export class RealtimeDBStorage implements IStorage {
         expenseType: expense.expenseType || 'miscellaneous'
       };
       
-      await this.db.ref(`expenses/${id}`).set(newExpense);
+      await set(ref(database, `expenses/${id}`), newExpense);
       
       return {
         id,
@@ -1543,8 +1543,8 @@ export class RealtimeDBStorage implements IStorage {
 
   async updateExpense(id: number, expenseData: Partial<Expense>): Promise<Expense | undefined> {
     try {
-      const ref = admin.database().ref(`expenses/${id}`);
-      const snapshot = await ref.once('value');
+      const expenseRef = ref(database, `expenses/${id}`);
+      const snapshot = await get(expenseRef);
       
       if (!snapshot.exists()) return undefined;
       
@@ -1565,7 +1565,11 @@ export class RealtimeDBStorage implements IStorage {
         updatedData.details = expenseData.details;
       }
       
-      await ref.update(updatedData);
+      if (expenseData.expenseType !== undefined) {
+        updatedData.expenseType = expenseData.expenseType;
+      }
+      
+      await update(expenseRef, updatedData);
       
       return {
         id,
@@ -1573,6 +1577,7 @@ export class RealtimeDBStorage implements IStorage {
         amount: updatedData.amount,
         details: updatedData.details,
         createdAt: new Date(updatedData.createdAt),
+        expenseType: updatedData.expenseType || 'miscellaneous',
         userId: updatedData.userId
       };
     } catch (error) {
