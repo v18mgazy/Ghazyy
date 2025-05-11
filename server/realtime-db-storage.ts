@@ -422,6 +422,21 @@ export class RealtimeDBStorage implements IStorage {
       return undefined;
     }
   }
+  
+  async deleteInvoice(id: number): Promise<void> {
+    try {
+      console.log(`Permanently deleting invoice with ID: ${id} from Realtime Database`);
+      
+      // حذف الفاتورة نهائيًا من قاعدة البيانات
+      const invoiceRef = ref(database, `invoices/${id}`);
+      await remove(invoiceRef);
+      
+      console.log(`Successfully deleted invoice ${id} from Realtime Database`);
+    } catch (error) {
+      console.error(`Error deleting invoice ${id} from Realtime Database:`, error);
+      throw new Error(`Failed to delete invoice: ${error.message}`);
+    }
+  }
 
   // Invoice Item Management
   async getInvoiceItem(id: number): Promise<InvoiceItem | undefined> {
