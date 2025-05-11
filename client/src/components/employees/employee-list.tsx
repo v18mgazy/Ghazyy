@@ -110,6 +110,11 @@ export default function EmployeeList({
   
   const handleSaveDeduction = (deduction: { amount: number; reason: string }) => {
     if (selectedEmployeeForDeduction) {
+      console.log('Adding deduction for employee:', {
+        employeeId: selectedEmployeeForDeduction.id,
+        amount: deduction.amount,
+        reason: deduction.reason
+      });
       onAddDeduction(selectedEmployeeForDeduction.id, deduction);
       toast({
         title: t('deduction_added'),

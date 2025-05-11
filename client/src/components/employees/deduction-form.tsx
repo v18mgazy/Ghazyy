@@ -54,6 +54,9 @@ export default function DeductionForm({
   });
 
   const onSubmit = (data: DeductionFormValues) => {
+    console.log('Form submitted with data:', data);
+    console.log('Amount type:', typeof data.amount);
+    
     onSave({
       amount: Number(data.amount), // تأكد من أن المبلغ هو رقم
       reason: data.reason,
@@ -81,8 +84,14 @@ export default function DeductionForm({
                     <Input
                       type="number"
                       placeholder="0.00"
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      value={field.value}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        console.log('Input value:', value);
+                        const numValue = parseFloat(value) || 0;
+                        console.log('Parsed value:', numValue);
+                        field.onChange(numValue);
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
