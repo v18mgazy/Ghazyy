@@ -35,12 +35,13 @@ interface Expense {
 
 interface ExpenseListProps {
   expenses: Expense[];
-  onDelete: (id: number) => void;
-  onUpdate: (expense: Expense) => void;
-  onAdd: (expense: any) => void;
+  isLoading?: boolean;
+  onDeleteExpense: (id: number) => void;
+  onEditExpense: (expense: Expense) => void;
+  onAddExpense: (expense: any) => void;
 }
 
-export default function ExpenseList({ expenses, onDelete, onUpdate, onAdd }: ExpenseListProps) {
+export default function ExpenseList({ expenses, isLoading = false, onDeleteExpense, onEditExpense, onAddExpense }: ExpenseListProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -61,7 +62,7 @@ export default function ExpenseList({ expenses, onDelete, onUpdate, onAdd }: Exp
 
   // Handle add expense
   const handleAddExpense = (expense: any) => {
-    onAdd(expense);
+    onAddExpense(expense);
     setIsAddDialogOpen(false);
     toast({
       title: t('expense_added_successfully'),
@@ -71,7 +72,7 @@ export default function ExpenseList({ expenses, onDelete, onUpdate, onAdd }: Exp
 
   // Handle edit expense
   const handleEditExpense = (expense: Expense) => {
-    onUpdate(expense);
+    onEditExpense(expense);
     setIsEditDialogOpen(false);
     setSelectedExpense(null);
     toast({
@@ -83,7 +84,7 @@ export default function ExpenseList({ expenses, onDelete, onUpdate, onAdd }: Exp
   // Handle delete expense
   const handleDeleteExpense = () => {
     if (selectedExpense) {
-      onDelete(selectedExpense.id);
+      onDeleteExpense(selectedExpense.id);
       setIsDeleteDialogOpen(false);
       setSelectedExpense(null);
       toast({

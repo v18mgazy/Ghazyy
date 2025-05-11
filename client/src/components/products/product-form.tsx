@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, RefreshCw, Loader2, QrCode } from 'lucide-react';
+import { X, RefreshCw, Loader2, QrCode, Camera, ScanLine, AlertCircle } from 'lucide-react';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
 } from '@/components/ui/dialog';
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { generateBarcodeNumber, generateBarcodeSVG } from '@/lib/utils';
+import { startBarcodeScanner, stopBarcodeScanner } from '@/lib/barcode';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface Product {
   id?: string;
