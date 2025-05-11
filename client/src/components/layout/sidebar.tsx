@@ -53,14 +53,14 @@ export default function Sidebar({ isOpen, onClose, isAdmin }: SidebarProps) {
       icon: <FileText className="h-5 w-5" />,
       description: t('invoice_management'),
       href: '/invoices',
-      adminOnly: false
+      adminOnly: true // تعديل: إخفاؤها عن الكاشير
     },
     {
       title: t('customers'),
       icon: <Users className="h-5 w-5" />,
       description: t('customer_management'),
       href: '/customers',
-      adminOnly: false
+      adminOnly: true // تعديل: إخفاؤها عن الكاشير
     },
     {
       title: t('management'),
@@ -74,7 +74,7 @@ export default function Sidebar({ isOpen, onClose, isAdmin }: SidebarProps) {
       icon: <BarChart2 className="h-5 w-5" />,
       description: t('view_reports'),
       href: '/reports',
-      adminOnly: false
+      adminOnly: true // تعديل: إخفاؤها عن الكاشير
     }
   ];
 

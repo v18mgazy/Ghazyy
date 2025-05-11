@@ -63,13 +63,13 @@ function ProtectedRoutes() {
         {() => <ProtectedRoute component={ManagementPage} adminOnly={true} />}
       </Route>
       <Route path="/reports">
-        {() => <ProtectedRoute component={ReportsPage} />}
+        {() => <ProtectedRoute component={ReportsPage} adminOnly={true} />}
       </Route>
       <Route path="/customers">
         {() => <ProtectedRoute component={CustomersPage} adminOnly={true} />}
       </Route>
       <Route path="/invoices">
-        {() => <ProtectedRoute component={InvoiceManagementDBPage} />}
+        {() => <ProtectedRoute component={InvoiceManagementDBPage} adminOnly={true} />}
       </Route>
       <Route path="/invoice/new">
         {() => <ProtectedRoute component={NewInvoicePage} />}
