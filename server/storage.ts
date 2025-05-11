@@ -10,7 +10,8 @@ import {
   type ReportData, type InsertReportData,
   type Notification, type InsertNotification,
   type EmployeeDeduction, type InsertEmployeeDeduction,
-  type Expense, type InsertExpense
+  type Expense, type InsertExpense,
+  type StoreInfo, type InsertStoreInfo
 } from "@shared/schema";
 import { db } from './lib/firebase';
 import { 
@@ -103,6 +104,10 @@ export interface IStorage {
   createExpense(expense: InsertExpense): Promise<Expense>;
   updateExpense(id: number, expenseData: Partial<Expense>): Promise<Expense | undefined>;
   deleteExpense(id: number): Promise<void>;
+  
+  // Store information management (معلومات المتجر)
+  getStoreInfo(): Promise<StoreInfo | undefined>;
+  updateStoreInfo(storeData: InsertStoreInfo): Promise<StoreInfo>;
 }
 
 export class FirebaseStorage implements IStorage {

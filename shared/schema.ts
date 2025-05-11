@@ -318,3 +318,21 @@ export const insertExpenseSchema = z.object({
 
 export type Expense = typeof expenses.$inferSelect;
 export type InsertExpense = z.infer<typeof insertExpenseSchema>;
+
+// Store Information (معلومات المتجر)
+export const storeInfo = pgTable("store_info", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  phone: text("phone").notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertStoreInfoSchema = z.object({
+  name: z.string().min(2, "اسم المتجر يجب أن يكون حرفين على الأقل"),
+  address: z.string().min(3, "عنوان المتجر يجب أن يكون 3 أحرف على الأقل"),
+  phone: z.string().min(5, "رقم الهاتف يجب أن يكون 5 أرقام على الأقل")
+});
+
+export type StoreInfo = typeof storeInfo.$inferSelect;
+export type InsertStoreInfo = z.infer<typeof insertStoreInfoSchema>;
