@@ -1597,4 +1597,51 @@ export class RealtimeDBStorage implements IStorage {
       throw error;
     }
   }
+
+  // Store Information Management
+  async getStoreInfo(): Promise<StoreInfo | undefined> {
+    try {
+      const storeInfoRef = ref(database, 'store_info/1'); // نستخدم معرف ثابت '1' لأن المتجر واحد فقط
+      const snapshot = await get(storeInfoRef);
+      
+      if (!snapshot.exists()) {
+        return undefined;
+      }
+      
+      const storeData = snapshot.val();
+      return {
+        id: 1,
+        name: storeData.name,
+        address: storeData.address,
+        phone: storeData.phone,
+        updatedAt: storeData.updatedAt ? new Date(storeData.updatedAt) : new Date()
+      };
+    } catch (error) {
+      console.error('Error getting store information:', error);
+      return undefined;
+    }
+  }
+
+  async updateStoreInfo(storeData: InsertStoreInfo): Promise<StoreInfo> {
+    try {
+      const storeInfoRef = ref(database, 'store_info/1'); // نستخدم معرف ثابت '1' لأن المتجر واحد فقط
+      const now = new Date().toISOString();
+      
+      const storeInfoToSave = {
+        ...storeData,
+        updatedAt: now
+      };
+      
+      await set(storeInfoRef, storeInfoToSave);
+      
+      return {
+        id: 1,
+        ...storeData,
+        updatedAt: new Date(now)
+      };
+    } catch (error) {
+      console.error('Error updating store information:', error);
+      throw error;
+    }
+  }
 }
