@@ -820,154 +820,24 @@ export default function InvoiceManagement() {
     shareInvoicePDF(invoice);
   };
   
-  // طباعة الفاتورة
-  const printInvoice = (invoice: any) => {
+  // طباعة الفاتورة - تستخدم وظيفة shareInvoicePDF مع تعديل مناسب
+  const printInvoice = async (invoice: any) => {
     try {
-      // تجهيز بيانات الفاتورة
-      const customerName = invoice.customer?.name || 'عميل';
-      const customerPhone = invoice.customer?.phone || '';
-      const customerAddress = invoice.customer?.address || '';
-      const invoiceDate = formatDate(invoice.date);
-      const invoiceNumber = invoice.id || '';
-      const invoiceItems = invoice.items || [];
-      const paymentMethod = invoice.paymentMethod || '';
+      // حفظ حالة الفاتورة الأصلية
+      const originalCustomer = invoice.customer;
+      const hasWhatsAppShare = originalCustomer && originalCustomer.phone;
       
-      // إعداد معلومات المتجر
-      const storeName = storeData?.name || 'Sales Ghazy';
-      const storeAddress = storeData?.address || '';
-      const storePhone = storeData?.phone || '';
+      // إنشاء نسخة من الفاتورة لمنع تشارك الواتساب
+      const printInvoice = { ...invoice };
       
-      // استخدام مكتبة jsPDF لإنشاء ملف PDF
-      try {
-        // إنشاء مستند PDF بحجم A4
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4'
-        });
-        
-        // تعيين خط للغة العربية (إذا كان متاحًا)
-        // إضافة رأس الصفحة - بيانات المتجر
-        pdf.setFontSize(18);
-        pdf.text(storeName, 105, 15, { align: 'center' });
-        pdf.setFontSize(10);
-        pdf.text(storeAddress, 105, 22, { align: 'center' });
-        pdf.text(storePhone, 105, 27, { align: 'center' });
-        
-        // خط فاصل بعد بيانات المتجر
-        pdf.setDrawColor(200, 200, 200);
-        pdf.line(20, 32, 190, 32);
-        
-        // عنوان الفاتورة
-        pdf.setFontSize(16);
-        pdf.setTextColor(50, 50, 50);
-        pdf.text(`${t('invoice')} #${invoiceNumber}`, 20, 40);
-        pdf.setFontSize(10);
-        pdf.setTextColor(100, 100, 100);
-        pdf.text(`${t('date')}: ${invoiceDate}`, 20, 46);
-        
-        // معلومات العميل
-        pdf.setFontSize(12);
-        pdf.setTextColor(50, 50, 50);
-        pdf.text(`${t('customer_information')}`, 20, 55);
-        pdf.setFontSize(10);
-        pdf.setTextColor(80, 80, 80);
-        pdf.text(`${t('name')}: ${customerName}`, 20, 62);
-        if (customerPhone) pdf.text(`${t('phone')}: ${customerPhone}`, 20, 67);
-        if (customerAddress) pdf.text(`${t('address')}: ${customerAddress}`, 20, 72);
-        
-        // جدول المنتجات
-        pdf.setFontSize(12);
-        pdf.setTextColor(50, 50, 50);
-        pdf.text(`${t('invoice_items')}`, 20, 82);
-        
-        // إنشاء مصفوفة لبيانات الجدول
-        const tableColumn = ["#", t('product_name'), t('quantity'), t('price'), t('total')];
-        let tableRows: any[] = [];
-        
-        // إضافة بيانات المنتجات
-        invoiceItems.forEach((item: any, index) => {
-          const itemData = [
-            index + 1,
-            item.productName || 'منتج',
-            item.quantity,
-            formatCurrency(item.price),
-            formatCurrency(item.total || item.price * item.quantity)
-          ];
-          tableRows.push(itemData);
-        });
-        
-        // إنشاء الجدول باستخدام jspdf-autotable
-        (pdf as any).autoTable({
-          head: [tableColumn],
-          body: tableRows,
-          startY: 85,
-          theme: 'grid',
-          styles: { 
-            fontSize: 9,
-            cellPadding: 3,
-            lineColor: [200, 200, 200],
-            lineWidth: 0.1,
-          },
-          headStyles: {
-            fillColor: [240, 240, 240],
-            textColor: [50, 50, 50],
-            fontStyle: 'bold'
-          }
-        });
-        
-        // الحصول على Y للصف الأخير
-        const finalY = (pdf as any).lastAutoTable.finalY + 10;
-        
-        // إضافة معلومات الإجمالي
-        pdf.setFontSize(10);
-        pdf.setTextColor(80, 80, 80);
-        pdf.text(`${t('subtotal')}:`, 140, finalY);
-        pdf.text(formatCurrency(invoice.subtotal || invoice.total), 180, finalY, { align: 'right' });
-        
-        // إضافة الخصم إذا وجد
-        let yOffset = 0;
-        if (invoice.discount && invoice.discount > 0) {
-          yOffset = 5;
-          pdf.text(`${t('discount')}:`, 140, finalY + yOffset);
-          pdf.text(formatCurrency(invoice.discount), 180, finalY + yOffset, { align: 'right' });
-        }
-        
-        // إجمالي الفاتورة
-        pdf.setFontSize(11);
-        pdf.setTextColor(50, 50, 50);
-        pdf.text(`${t('total')}:`, 140, finalY + yOffset + 7);
-        pdf.text(formatCurrency(invoice.total), 180, finalY + yOffset + 7, { align: 'right' });
-        
-        // طريقة الدفع
-        pdf.setFontSize(10);
-        pdf.setTextColor(80, 80, 80);
-        pdf.text(`${t('payment_method')}:`, 140, finalY + yOffset + 13);
-        pdf.text(t(paymentMethod), 180, finalY + yOffset + 13, { align: 'right' });
-        
-        // ملاحظات إذا وجدت
-        if (invoice.notes) {
-          pdf.setFontSize(11);
-          pdf.setTextColor(50, 50, 50);
-          pdf.text(`${t('notes')}:`, 20, finalY + yOffset + 20);
-          pdf.setFontSize(10);
-          pdf.setTextColor(80, 80, 80);
-          pdf.text(invoice.notes, 20, finalY + yOffset + 26);
-        }
-        
-        // رسالة الشكر
-        pdf.setFontSize(10);
-        pdf.setTextColor(100, 100, 100);
-        pdf.text(t('thank_you_message'), 105, finalY + yOffset + 35, { align: 'center' });
-        
-        // فتح PDF في نافذة جديدة
-        const pdfBlob = pdf.output('blob');
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        window.open(pdfUrl, '_blank');
-      } catch (pdfError) {
-        console.error('Error creating PDF:', pdfError);
-        throw pdfError;
+      // إزالة بيانات العميل مؤقتًا لمنع فتح واتساب
+      if (hasWhatsAppShare) {
+        printInvoice.customer = { ...originalCustomer, phone: '' };
       }
+      
+      // استخدام وظيفة مشاركة PDF ولكن بدون مشاركة واتساب
+      await shareInvoicePDF(printInvoice);
+      
     } catch (error) {
       console.error('Error printing invoice:', error);
       toast({
