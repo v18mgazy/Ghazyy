@@ -292,3 +292,27 @@ export const insertNotificationSchema = createInsertSchema(notifications).pick({
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+// Expenses (مصاريف ونثريات)
+export const expenses = pgTable("expenses", {
+  id: serial("id").primaryKey(),
+  date: timestamp("date").notNull().defaultNow(),
+  amount: real("amount").notNull(),
+  details: text("details").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+});
+
+export const insertExpenseSchema = z.object({
+  date: z.date().or(z.string().transform(str => new Date(str))),
+  amount: z.union([z.number().positive(), z.string().transform(val => {
+    const parsed = Number(val);
+    if (isNaN(parsed) || parsed <= 0) throw new Error("المبلغ يجب أن يكون رقمًا موجبًا");
+    return parsed;
+  })]),
+  details: z.string().min(3, "التفاصيل يجب أن تكون 3 أحرف على الأقل"),
+  userId: z.number()
+});
+
+export type Expense = typeof expenses.$inferSelect;
+export type InsertExpense = z.infer<typeof insertExpenseSchema>;

@@ -1455,4 +1455,134 @@ export class RealtimeDBStorage implements IStorage {
       throw error;
     }
   }
+  
+  // Expenses management (مصاريف ونثريات)
+  async getExpense(id: number): Promise<Expense | undefined> {
+    try {
+      const ref = admin.database().ref(`expenses/${id}`);
+      const snapshot = await ref.once('value');
+      
+      if (!snapshot.exists()) return undefined;
+      
+      const data = snapshot.val();
+      return {
+        id,
+        date: new Date(data.date),
+        amount: data.amount,
+        details: data.details,
+        createdAt: new Date(data.createdAt),
+        userId: data.userId
+      };
+    } catch (error) {
+      console.error('Error getting expense:', error);
+      return undefined;
+    }
+  }
+
+  async getAllExpenses(): Promise<Expense[]> {
+    try {
+      const ref = admin.database().ref('expenses');
+      const snapshot = await ref.once('value');
+      
+      if (!snapshot.exists()) return [];
+      
+      const expenses: Expense[] = [];
+      snapshot.forEach((childSnapshot) => {
+        const id = Number(childSnapshot.key);
+        const data = childSnapshot.val();
+        
+        expenses.push({
+          id,
+          date: new Date(data.date),
+          amount: data.amount,
+          details: data.details,
+          createdAt: new Date(data.createdAt),
+          userId: data.userId
+        });
+      });
+      
+      return expenses;
+    } catch (error) {
+      console.error('Error getting all expenses:', error);
+      return [];
+    }
+  }
+
+  async createExpense(expense: InsertExpense): Promise<Expense> {
+    try {
+      const id = this.generateId('expenses');
+      const now = new Date().toISOString();
+      
+      const newExpense = {
+        date: expense.date instanceof Date ? expense.date.toISOString() : expense.date,
+        amount: expense.amount,
+        details: expense.details,
+        createdAt: now,
+        userId: expense.userId
+      };
+      
+      await admin.database().ref(`expenses/${id}`).set(newExpense);
+      
+      return {
+        id,
+        date: expense.date instanceof Date ? expense.date : new Date(expense.date),
+        amount: expense.amount,
+        details: expense.details,
+        createdAt: new Date(now),
+        userId: expense.userId
+      };
+    } catch (error) {
+      console.error('Error creating expense:', error);
+      throw error;
+    }
+  }
+
+  async updateExpense(id: number, expenseData: Partial<Expense>): Promise<Expense | undefined> {
+    try {
+      const ref = admin.database().ref(`expenses/${id}`);
+      const snapshot = await ref.once('value');
+      
+      if (!snapshot.exists()) return undefined;
+      
+      const data = snapshot.val();
+      const updatedData: any = { ...data };
+      
+      if (expenseData.date) {
+        updatedData.date = expenseData.date instanceof Date 
+          ? expenseData.date.toISOString() 
+          : expenseData.date;
+      }
+      
+      if (expenseData.amount !== undefined) {
+        updatedData.amount = expenseData.amount;
+      }
+      
+      if (expenseData.details !== undefined) {
+        updatedData.details = expenseData.details;
+      }
+      
+      await ref.update(updatedData);
+      
+      return {
+        id,
+        date: new Date(updatedData.date),
+        amount: updatedData.amount,
+        details: updatedData.details,
+        createdAt: new Date(updatedData.createdAt),
+        userId: updatedData.userId
+      };
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      return undefined;
+    }
+  }
+
+  async deleteExpense(id: number): Promise<void> {
+    try {
+      await admin.database().ref(`expenses/${id}`).remove();
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      throw error;
+    }
+  }
 }
