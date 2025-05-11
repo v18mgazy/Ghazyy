@@ -105,7 +105,7 @@ export default function InvoiceManagementDB() {
   const { toast } = useToast();
   
   // استخدام useQuery لجلب البيانات من الخادم
-  const { data: dbInvoices = [], isLoading: isLoadingInvoices } = useQuery<Invoice[]>({
+  const { data: dbInvoices = [], isLoading: isLoadingInvoices, refetch } = useQuery<Invoice[]>({
     queryKey: ['/api/invoices'],
     staleTime: 30000
   });
@@ -628,11 +628,16 @@ export default function InvoiceManagementDB() {
               </CardDescription>
             </div>
             <Button 
-              variant="default" 
-              className="h-9"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/invoices'] })}
+              variant="outline"
+              onClick={() => {
+                refetch();
+                toast({
+                  title: t('refreshing'),
+                  description: t('refreshing_invoices_list'),
+                });
+              }}
             >
-              <RefreshCw className="mr-2 h-4 w-4" />
+              <RefreshCw className="h-4 w-4 mr-2" />
               {t('refresh')}
             </Button>
           </div>
