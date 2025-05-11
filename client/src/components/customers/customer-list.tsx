@@ -121,6 +121,57 @@ export default function CustomerList({
     enabled: false, // لا يتم تنفيذ الاستعلام تلقائيًا
   });
 
+  // دالة تصدير تاريخ المشتريات إلى إكسل
+  const exportPurchaseHistoryToExcel = async () => {
+    if (purchaseHistory.length === 0) {
+      toast({
+        title: t('no_data'),
+        description: t('no_purchase_history_to_export'),
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    try {
+      console.log('Exporting purchase history to Excel');
+      
+      // استخدام مكتبة XLSX للتصدير
+      const XLSX = await import('xlsx');
+      
+      // تجهيز البيانات للتصدير
+      const purchasesForExport = purchaseHistory.map(purchase => ({
+        [t('date')]: purchase.date,
+        [t('invoice_number')]: purchase.invoiceNumber,
+        [t('total')]: purchase.total
+      }));
+      
+      // إنشاء كتاب عمل جديد
+      const workbook = XLSX.utils.book_new();
+      
+      // إنشاء ورقة عمل جديدة
+      const worksheet = XLSX.utils.json_to_sheet(purchasesForExport);
+      
+      // إضافة ورقة العمل إلى الكتاب
+      const customerName = selectedCustomer?.name || 'customer';
+      XLSX.utils.book_append_sheet(workbook, worksheet, t('purchase_history'));
+      
+      // تصدير الملف
+      XLSX.writeFile(workbook, `${customerName}_purchase_history.xlsx`);
+      
+      toast({
+        title: t('export_successful'),
+        description: t('purchase_history_exported_to_excel')
+      });
+    } catch (error) {
+      console.error('Error exporting purchase history to Excel:', error);
+      toast({
+        title: t('export_failed'),
+        description: t('error_exporting_purchase_history'),
+        variant: 'destructive'
+      });
+    }
+  };
+  
   // عند طلب عرض تاريخ مشتريات العميل
   const viewHistory = async (customer: Customer) => {
     try {
