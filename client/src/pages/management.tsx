@@ -23,6 +23,11 @@ export default function ManagementPage() {
     queryKey: ['/api/employees'],
   });
   
+  // Employee Deductions
+  const { data: employeeDeductions = [], isLoading: isLoadingDeductions } = useQuery({
+    queryKey: ['/api/employee-deductions'],
+  });
+  
   // Damaged Items - استخدام البيانات الحقيقية من قاعدة البيانات
   const { data: damagedItems = [], isLoading: isLoadingDamagedItems } = useQuery({
     queryKey: ['/api/damaged-items'],
