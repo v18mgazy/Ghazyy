@@ -378,14 +378,23 @@ export default function InvoiceManagement() {
               </TableHeader>
               <TableBody>
                 {currentInvoices.length > 0 ? (
-                  currentInvoices.map((invoice) => (
-                    <TableRow key={invoice.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openInvoiceDetails(invoice)}>
-                      <TableCell className="font-medium">{invoice.id}</TableCell>
+                  currentInvoices.map((invoice, index) => (
+                    <TableRow 
+                      key={invoice.id} 
+                      className={`cursor-pointer transition-colors ${index % 2 === 0 ? 'bg-white dark:bg-gray-950' : 'bg-muted/20 dark:bg-gray-900'} hover:bg-primary-50 dark:hover:bg-primary-900/20`}
+                      onClick={() => openInvoiceDetails(invoice)}
+                    >
+                      <TableCell className="font-medium text-primary/90">{invoice.id}</TableCell>
                       <TableCell>{formatDate(invoice.date, 'PP', language)}</TableCell>
                       <TableCell>
-                        <div>
-                          <p className="font-medium">{invoice.customer.name}</p>
-                          <p className="text-xs text-muted-foreground">{invoice.customer.phone}</p>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                            {invoice.customer.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium">{invoice.customer.name}</p>
+                            <p className="text-xs text-muted-foreground">{invoice.customer.phone}</p>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(invoice.status)}</TableCell>
@@ -395,27 +404,27 @@ export default function InvoiceManagement() {
                         <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
+                              <Button variant="ghost" size="icon" className="hover:bg-primary-50 focus-visible:ring-primary">
                                 <ChevronRight className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuLabel>{t('invoice_actions')}</DropdownMenuLabel>
+                            <DropdownMenuContent align="end" className="w-56 shadow-lg">
+                              <DropdownMenuLabel className="text-primary font-semibold">{t('invoice_actions')}</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => openInvoiceDetails(invoice)}>
+                              <DropdownMenuItem className="focus:bg-primary-50 focus:text-primary-600" onClick={() => openInvoiceDetails(invoice)}>
                                 <ExternalLink className="mr-2 h-4 w-4" /> {t('view_details')}
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem className="focus:bg-primary-50 focus:text-primary-600">
                                 <Printer className="mr-2 h-4 w-4" /> {t('print_invoice')}
                               </DropdownMenuItem>
                               {user?.role === 'admin' && (
                                 <>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem>
+                                  <DropdownMenuItem className="focus:bg-primary-50 focus:text-primary-600">
                                     <Pencil className="mr-2 h-4 w-4" /> {t('edit_invoice')}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
-                                    className="text-red-600 focus:text-red-700 focus:bg-red-50"
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 focus:bg-red-50"
                                     onClick={() => confirmDeleteInvoice(invoice.id)}
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" /> {t('delete_invoice')}
@@ -430,8 +439,12 @@ export default function InvoiceManagement() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      <p className="text-muted-foreground">{t('no_invoices_found')}</p>
+                    <TableCell colSpan={7} className="text-center py-10">
+                      <div className="flex flex-col items-center">
+                        <FileText className="h-12 w-12 text-muted-foreground mb-3 opacity-20" />
+                        <p className="text-muted-foreground font-medium text-base">{t('no_invoices_found')}</p>
+                        <p className="text-muted-foreground text-sm mt-1">{t('try_different_filters')}</p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )}
@@ -441,32 +454,70 @@ export default function InvoiceManagement() {
           
           {/* Pagination */}
           {filteredInvoices.length > invoicesPerPage && (
-            <div className="flex items-center justify-between mt-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6 gap-4">
               <p className="text-sm text-muted-foreground">
-                {t('showing')} {indexOfFirstInvoice + 1}-{Math.min(indexOfLastInvoice, filteredInvoices.length)} {t('of')} {filteredInvoices.length} {t('invoices')}
+                {t('showing')} <span className="font-medium text-foreground">{indexOfFirstInvoice + 1}-{Math.min(indexOfLastInvoice, filteredInvoices.length)}</span> {t('of')} <span className="font-medium text-foreground">{filteredInvoices.length}</span> {t('invoices')}
               </p>
-              <div className="flex space-x-2">
+              <div className="flex space-x-1">
                 <Button
                   variant="outline"
                   size="sm"
+                  className="h-8 w-8 p-0 hover:bg-primary-50 focus-visible:ring-primary"
                   onClick={() => changePage(currentPage - 1)}
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <Button
-                    key={i}
-                    variant={currentPage === i + 1 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => changePage(i + 1)}
-                  >
-                    {i + 1}
-                  </Button>
-                ))}
+                
+                {/* Dynamic page numbers with ellipsis */}
+                {Array.from({ length: totalPages }, (_, i) => {
+                  const pageNumber = i + 1;
+                  
+                  // Always show first, last, and pages around current page
+                  if (
+                    pageNumber === 1 ||
+                    pageNumber === totalPages ||
+                    (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                  ) {
+                    return (
+                      <Button
+                        key={i}
+                        variant={currentPage === pageNumber ? "default" : "outline"}
+                        size="sm"
+                        className={`h-8 w-8 p-0 ${currentPage === pageNumber ? 'bg-primary hover:bg-primary' : 'hover:bg-primary-50 focus-visible:ring-primary'}`}
+                        onClick={() => changePage(pageNumber)}
+                      >
+                        {pageNumber}
+                      </Button>
+                    );
+                  }
+                  
+                  // Show ellipsis for breaks in sequence
+                  if (
+                    pageNumber === 2 ||
+                    pageNumber === totalPages - 1
+                  ) {
+                    return (
+                      <Button
+                        key={i}
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0 cursor-default hover:bg-background"
+                        disabled
+                      >
+                        ...
+                      </Button>
+                    );
+                  }
+                  
+                  // Hide other pages
+                  return null;
+                })}
+                
                 <Button
                   variant="outline"
                   size="sm"
+                  className="h-8 w-8 p-0 hover:bg-primary-50 focus-visible:ring-primary"
                   onClick={() => changePage(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >
