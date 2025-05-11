@@ -110,12 +110,16 @@ export default function EmployeeList({
   
   const handleSaveDeduction = (deduction: { amount: number; reason: string }) => {
     if (selectedEmployeeForDeduction) {
+      // تأكد من أن معرف الموظف هو نص (string)
+      const empId = String(selectedEmployeeForDeduction.id);
+      
       console.log('Adding deduction for employee:', {
-        employeeId: selectedEmployeeForDeduction.id,
+        employeeId: empId,
         amount: deduction.amount,
         reason: deduction.reason
       });
-      onAddDeduction(selectedEmployeeForDeduction.id, deduction);
+      
+      onAddDeduction(empId, deduction);
       toast({
         title: t('deduction_added'),
         description: t('deduction_added_success'),
