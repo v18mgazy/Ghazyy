@@ -675,13 +675,35 @@ export class RealtimeDBStorage implements IStorage {
   async createEmployee(employee: InsertEmployee): Promise<Employee> {
     try {
       const id = this.generateId('employees');
+      
+      // تحويل كائن Date إلى تاريخ صالح لـ Firebase
+      const hireDateIso = employee.hireDate instanceof Date ? 
+        employee.hireDate.toISOString() : 
+        new Date().toISOString();
+        
       const newEmployee: Employee = {
         id,
-        ...employee,
-        createdAt: new Date().toISOString()
+        name: employee.name,
+        hireDate: employee.hireDate,
+        salary: employee.salary,
+        deductions: employee.deductions || 0,
+        userId: employee.userId || null,
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
       
-      await set(ref(database, `employees/${id}`), newEmployee);
+      // تحضير البيانات للتخزين في Firebase مع معالجة كائنات التاريخ
+      const firebaseEmployee = {
+        ...newEmployee,
+        hireDate: hireDateIso,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      console.log('Saving employee to Firebase:', firebaseEmployee);
+      
+      await set(ref(database, `employees/${id}`), firebaseEmployee);
+      
       return newEmployee;
     } catch (error) {
       console.error('Error creating employee:', error);

@@ -149,12 +149,13 @@ export const employees = pgTable("employees", {
   userId: integer("user_id").references(() => users.id),
 });
 
-export const insertEmployeeSchema = createInsertSchema(employees).pick({
-  name: true,
-  hireDate: true,
-  salary: true,
-  deductions: true,
-  userId: true,
+// استخدام z.object مباشرة لتجاوز قيود Drizzle Zod
+export const insertEmployeeSchema = z.object({
+  name: z.string(),
+  hireDate: z.date().or(z.string().transform(str => new Date(str))),
+  salary: z.number(),
+  deductions: z.number().optional().default(0),
+  userId: z.number().optional().nullable(),
 });
 
 // Payment Approvals

@@ -1030,12 +1030,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.post('/api/employees', async (req, res) => {
-    
     try {
-      const employeeData = insertEmployeeSchema.parse(req.body);
+      // تحويل نص التاريخ إلى كائن Date
+      const employeeDataRaw = {
+        ...req.body,
+        hireDate: req.body.hireDate ? new Date(req.body.hireDate) : new Date()
+      };
+      
+      // التحقق من صحة البيانات
+      const employeeData = insertEmployeeSchema.parse(employeeDataRaw);
+      console.log('Creating employee with data:', employeeData);
+      
       const employee = await storage.createEmployee(employeeData);
       res.status(201).json(employee);
     } catch (err) {
+      console.error('Error creating employee:', err);
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: 'Validation error', errors: err.errors });
       }
