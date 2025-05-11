@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { useLocale } from '@/hooks/use-locale';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -75,49 +76,10 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
   const [isLaterPaymentApproved, setIsLaterPaymentApproved] = useState(false);
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   
-  // بيانات المنتجات للبحث (ستكون من API في التطبيق الحقيقي)
-  const mockProducts = [
-    {
-      id: 'p1',
-      name: 'هاتف سامسونج جالكسي S21',
-      barcode: '8801643992941',
-      code: 'SM-G991',
-      sellingPrice: 12999.99,
-      category: 'الإلكترونيات'
-    },
-    {
-      id: 'p2',
-      name: 'ايفون 13 برو',
-      barcode: '194252705841',
-      code: 'IP-13PRO',
-      sellingPrice: 16999.99,
-      category: 'الإلكترونيات'
-    },
-    {
-      id: 'p3',
-      name: 'لابتوب لينوفو ثينكباد',
-      barcode: '195713147532',
-      code: 'LT-T14',
-      sellingPrice: 11499.99,
-      category: 'الإلكترونيات'
-    },
-    {
-      id: 'p4',
-      name: 'ساعة أبل الذكية',
-      barcode: '190199269033',
-      code: 'AW-S7',
-      sellingPrice: 3999.99,
-      category: 'الإلكترونيات'
-    },
-    {
-      id: 'p5',
-      name: 'سماعات سوني اللاسلكية',
-      barcode: '027242916852',
-      code: 'SH-WH1000',
-      sellingPrice: 1899.99,
-      category: 'الإلكترونيات'
-    }
-  ];
+  // استعلام للحصول على المنتجات من قاعدة البيانات
+  const { data: allProducts = [], isLoading: isLoadingProducts } = useQuery<any[]>({
+    queryKey: ['/api/products'],
+  });
   
   // البحث عن المنتجات
   const searchProducts = (term: string) => {
@@ -128,11 +90,11 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
     
     setIsSearching(true);
     
-    // محاكاة طلب البحث
+    // البحث في المنتجات الحقيقية من قاعدة البيانات
     setTimeout(() => {
-      const results = mockProducts.filter(product => 
-        product.name.toLowerCase().includes(term.toLowerCase()) || 
-        product.code?.toLowerCase().includes(term.toLowerCase()) || 
+      const results = allProducts.filter((product: any) => 
+        product.name?.toLowerCase().includes(term.toLowerCase()) || 
+        product.alternativeCode?.toLowerCase().includes(term.toLowerCase()) || 
         product.barcode?.includes(term)
       );
       
@@ -144,11 +106,18 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
   // معالجة تغيير مصطلح البحث
   const handleProductSearchChange = (term: string) => {
     setSearchTerm(term);
-    // إذا كان المصطلح فارغًا، نعرض جميع المنتجات
+    
+    // إذا كان المصطلح فارغًا، نعرض جميع المنتجات الحقيقية
     if (!term.trim()) {
-      setSearchResults(mockProducts);
+      setSearchResults(allProducts);
     } else {
-      searchProducts(term);
+      // البحث في المنتجات الحقيقية
+      const filteredProducts = allProducts.filter((product: any) => 
+        product.name?.toLowerCase().includes(term.toLowerCase()) || 
+        product.barcode?.includes(term) ||
+        product.alternativeCode?.includes(term)
+      );
+      setSearchResults(filteredProducts);
     }
   };
   
@@ -171,7 +140,7 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
   // معالجة المنتج الممسوح ضوئيًا
   const handleProductScanned = (scannedProd: any) => {
     // البحث عن المنتج بالباركود
-    const foundProduct = mockProducts.find(p => p.barcode === scannedProd.barcode);
+    const foundProduct = allProducts.find((p: any) => p.barcode === scannedProd.barcode);
     
     if (foundProduct) {
       // إضافة المنتج مباشرة عند المسح
