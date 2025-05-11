@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   FileText, Search, Pencil, Trash2, Printer, ExternalLink, Filter, CheckCircle, XCircle, Clock, 
-  RefreshCw, ArrowUpDown, Download, ChevronRight, ChevronLeft, Loader2
+  RefreshCw, ArrowUpDown, Download, ChevronRight, ChevronLeft, Loader2, Share
 } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useAuthContext } from '@/context/auth-context';
@@ -584,6 +584,15 @@ export default function InvoiceManagementDB() {
               >
                 <Printer className="h-4 w-4 mr-1" />
                 {t('print')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mr-2"
+                onClick={() => handleShareInvoice(selectedInvoice)}
+              >
+                <Share className="h-4 w-4 mr-1" />
+                {t('share')}
               </Button>
               <Button
                 variant="secondary"
