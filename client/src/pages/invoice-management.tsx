@@ -213,6 +213,7 @@ export default function InvoiceManagement() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
   const [invoiceToDeleteDbId, setInvoiceToDeleteDbId] = useState<number | undefined>();
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   // استخدام queryClient من ملف استيراد بدلا من useQueryClient
   
   // Filter invoices based on search term and filters
