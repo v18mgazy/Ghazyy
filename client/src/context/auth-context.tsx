@@ -29,13 +29,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Simple direct authentication for testing
+  // المصادقة مع الخادم
   const login = async (username: string, password: string) => {
     setLoading(true);
-    console.log("تسجيل الدخول باستخدام:", username, password);
+    console.log("محاولة تسجيل الدخول باستخدام:", username);
     
     try {
-      // التحقق من بيانات تسجيل الدخول
+      // أولاً نحاول المصادقة المضمنة للمستخدمين الثابتين
       if (username === 'admin' && password === '503050') {
         console.log("بيانات المستخدم صحيحة - تسجيل دخول ادمن");
         
@@ -61,6 +61,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return true;
       }
       
+      // ثم نحاول المصادقة عبر واجهة برمجة التطبيقات
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ username, password }),
+        });
+        
+        if (response.ok) {
+          const userData = await response.json();
+          console.log("تم تسجيل الدخول عبر واجهة برمجة التطبيقات:", userData);
+          
+          setUser({
+            id: userData.id.toString(),
+            email: userData.username, // استخدام اسم المستخدم كبريد إلكتروني مؤقت
+            name: userData.username,
+            role: userData.role || 'cashier'
+          });
+          
+          return true;
+        }
+      } catch (error) {
+        console.error("خطأ في تسجيل الدخول عبر واجهة برمجة التطبيقات:", error);
+      }
+      
       console.log("بيانات المستخدم غير صحيحة");
       return false;
     } finally {
@@ -69,7 +96,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    setUser(null);
+    try {
+      // محاولة تسجيل الخروج عبر واجهة برمجة التطبيقات
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (error) {
+      console.error("خطأ في تسجيل الخروج:", error);
+    } finally {
+      // مسح بيانات المستخدم المحلية بغض النظر عن نجاح أو فشل الطلب
+      setUser(null);
+    }
   };
 
   const isAdmin = user?.role === 'admin';
