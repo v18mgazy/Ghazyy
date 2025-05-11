@@ -1621,6 +1621,5 @@ export class MemStorage implements IStorage {
 }
 
 // Choose which storage implementation to use
-// For production, use FirebaseStorage when Firestore API is enabled
-// For development/testing, use LocalFirebaseStorage as a temporary replacement
-export const storage = new LocalFirebaseStorage(); // Temporarily using local storage until Firestore API is enabled
+// Using FirebaseStorage as requested now that we have the correct API key
+export const storage = new FirebaseStorage(); // Using Firebase for data storage

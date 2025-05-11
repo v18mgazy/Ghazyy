@@ -4,7 +4,7 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "GOOGLE_API_KEY",
+  apiKey: "AIzaSyAzY3A4NMJH9wYQQULiZPoR0AuXBmvz1q0",
   authDomain: "sales-ghazy.firebaseapp.com",
   databaseURL: "https://sales-ghazy-default-rtdb.firebaseio.com",
   projectId: "sales-ghazy",
