@@ -198,11 +198,11 @@ export default function ManagementPage() {
         // Code 128 Start Code B (ASCII 32-127)
         const startPattern = "11010010000"; // START B (Code 104)
         
-        // Constants for the barcode
-        const height = 80;
-        const moduleWidth = 2; // Width of the thinnest bar
-        const fontSize = 14;
-        const padding = { top: 10, left: 15, bottom: 20, right: 15 };
+        // Constants for the barcode (تم تصغير الحجم لتناسب الطباعة)
+        const height = 60;
+        const moduleWidth = 1.5; // Width of the thinnest bar
+        const fontSize = 11;
+        const padding = { top: 5, left: 10, bottom: 12, right: 10 };
         const barHeight = height - padding.top - padding.bottom;
         
         // Calculate total width based on barcode content
@@ -318,12 +318,12 @@ export default function ManagementPage() {
           "LGGLLG", "LGGGLL", "LGLGLG", "LGLGGL", "LGGLGL"
         ];
         
-        // Constants for the barcode
-        const height = 80;
-        const width = 220;
-        const moduleWidth = 2; // Width of the thinnest bar
-        const fontSize = 14;
-        const padding = { top: 10, left: 10, bottom: 20, right: 10 };
+        // Constants for the barcode (تم تصغير الحجم لتناسب الطباعة)
+        const height = 60;
+        const width = 170;
+        const moduleWidth = 1.5; // Width of the thinnest bar
+        const fontSize = 11;
+        const padding = { top: 5, left: 10, bottom: 12, right: 10 };
         const guardBarHeight = height - padding.top - (padding.bottom / 2); // Guard bars are taller
         const normalBarHeight = height - padding.top - padding.bottom;
         
@@ -416,29 +416,49 @@ export default function ManagementPage() {
             .barcode-container { 
               display: flex;
               flex-wrap: wrap;
-              gap: 10px;
+              gap: 5px;
               justify-content: center;
             }
             .barcode-item {
               border: 1px solid #ccc;
-              padding: 10px;
+              padding: 5px;
               text-align: center;
-              width: 250px;
-              margin-bottom: 20px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              border-radius: 5px;
+              width: 180px;
+              margin-bottom: 5px;
+              box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+              border-radius: 3px;
             }
             .product-name {
               font-weight: bold;
-              margin-bottom: 5px;
+              margin-bottom: 2px;
+              font-size: 12px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
             .product-price {
-              font-size: 14px;
-              margin-bottom: 10px;
+              font-size: 11px;
+              margin-bottom: 3px;
             }
             @media print {
-              @page { margin: 0.5cm; }
-              .barcode-item { break-inside: avoid; }
+              @page { 
+                margin: 0.3cm; 
+                size: A4;
+              }
+              body { 
+                margin: 0; 
+                padding: 2px; 
+              }
+              .barcode-container {
+                gap: 2px;
+              }
+              .barcode-item { 
+                break-inside: avoid; 
+                margin: 2px;
+                padding: 3px;
+                border-width: 1px;
+                box-shadow: none;
+              }
               .no-print { display: none; }
             }
           </style>
@@ -461,8 +481,8 @@ export default function ManagementPage() {
           <div class="barcode-item">
             <div class="product-name">${product.name}</div>
             <div class="product-price">${formatCurrency(product.sellingPrice)}</div>
-            <div class="barcode-container-${product.id}" style="margin-bottom: 10px;"></div>
-            <div style="font-weight: bold; font-size: 14px; color: #444;">${product.barcode}</div>
+            <div class="barcode-container-${product.id}" style="margin-bottom: 2px; transform: scale(0.8); transform-origin: top center;"></div>
+            <div style="font-weight: bold; font-size: 11px; color: #444;">${product.barcode}</div>
           </div>
         `;
       });
