@@ -12,7 +12,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 
 // استيراد أنواع البيانات
-import { Invoice, InvoiceItem, Customer, Product } from "@shared/schema";
+import { Invoice, InvoiceProduct, Customer, Product } from "@shared/schema";
 
 // UI Components
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
