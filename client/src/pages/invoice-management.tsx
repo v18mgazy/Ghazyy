@@ -177,12 +177,55 @@ export default function InvoiceManagement() {
       
       // جلب المنتجات من الفاتورة إذا كانت متوفرة
       let products = [];
-      if (invoice.productsData) {
+      
+      // محاولة استخدام الحقول المنفصلة أولاً (الطريقة الجديدة)
+      if (invoice.productIds && invoice.productNames && invoice.productQuantities && invoice.productPrices) {
+        try {
+          // تقسيم البيانات إلى مصفوفات
+          const productIds = invoice.productIds.split(',').map(id => parseInt(id));
+          const productNames = invoice.productNames.split('|');
+          const productQuantities = invoice.productQuantities.split(',').map(qty => parseFloat(qty));
+          const productPrices = invoice.productPrices.split(',').map(price => parseFloat(price));
+          const productDiscounts = invoice.productDiscounts ? 
+            invoice.productDiscounts.split(',').map(discount => parseFloat(discount)) : 
+            productIds.map(() => 0);
+          const productTotals = invoice.productTotals ? 
+            invoice.productTotals.split(',').map(total => parseFloat(total)) : 
+            productIds.map((_, index) => productQuantities[index] * productPrices[index]);
+          
+          // تجميع بيانات كل منتج
+          products = productIds.map((id, index) => {
+            return {
+              productId: id,
+              productName: productNames[index] || t('unknown_product'),
+              quantity: productQuantities[index] || 0,
+              price: productPrices[index] || 0,
+              discount: productDiscounts[index] || 0,
+              total: productTotals[index] || 0
+            };
+          });
+          
+          console.log(`Successfully built products data from separate fields for invoice ${invoice.id}:`, products);
+        } catch (error) {
+          console.error(`Error processing separated product data for invoice ${invoice.id}:`, error);
+          // في حالة فشل الحقول المنفصلة، نحاول استخدام productsData
+          if (invoice.productsData) {
+            try {
+              products = JSON.parse(invoice.productsData);
+              console.log(`Falling back to JSON productsData for invoice ${invoice.id}:`, products);
+            } catch (jsonError) {
+              console.error(`Error parsing productsData JSON for invoice ${invoice.id}:`, jsonError);
+            }
+          }
+        }
+      } 
+      // إذا فشلت الطريقة الجديدة أو لم تكن متوفرة، نحاول الطريقة القديمة (productsData)
+      else if (invoice.productsData) {
         try {
           products = JSON.parse(invoice.productsData);
-          console.log(`Successfully parsed products data for invoice ${invoice.id}:`, products);
+          console.log(`Using JSON productsData for invoice ${invoice.id}:`, products);
         } catch (error) {
-          console.error(`Error parsing products data for invoice ${invoice.id}:`, error);
+          console.error(`Error parsing productsData JSON for invoice ${invoice.id}:`, error);
         }
       }
       

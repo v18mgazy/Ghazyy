@@ -670,6 +670,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         productsDataArray = productsDataArray.filter(item => item !== null);
       }
       
+      // إعداد بيانات المنتجات للتخزين في الحقول المنفصلة
+      const productIds: number[] = [];
+      const productNames: string[] = [];
+      const productQuantities: number[] = [];
+      const productPrices: number[] = [];
+      const productPurchasePrices: number[] = [];
+      const productDiscounts: number[] = [];
+      const productTotals: number[] = [];
+      const productProfits: number[] = [];
+      
+      // استخراج بيانات المنتجات وتخزينها في المصفوفات المنفصلة
+      if (productsDataArray && productsDataArray.length > 0) {
+        productsDataArray.forEach(product => {
+          if (product) {
+            productIds.push(product.productId);
+            productNames.push(product.productName);
+            productQuantities.push(product.quantity);
+            productPrices.push(product.price);
+            productPurchasePrices.push(product.purchasePrice || 0);
+            productDiscounts.push(product.discount || 0);
+            productTotals.push(product.total);
+            productProfits.push(product.profit || 0);
+          }
+        });
+      }
+      
       // إعداد بيانات الفاتورة مع التأكد من أخذ بيانات العميل مباشرة من الطلب
       const invoiceData = {
         invoiceNumber: req.body.invoiceNumber,
@@ -685,8 +711,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentStatus: req.body.paymentStatus,
         notes: customerInfo.notes,
         date: req.body.date || new Date().toISOString(),
-        // تخزين بيانات المنتجات كنص JSON
+        // تخزين بيانات المنتجات بالطريقتين للتوافق مع الإصدارات السابقة
         productsData: JSON.stringify(productsDataArray),
+        // تخزين بيانات المنتجات في حقول منفصلة
+        productIds: productIds.join(','),
+        productNames: productNames.join('|'),
+        productQuantities: productQuantities.join(','),
+        productPrices: productPrices.join(','),
+        productPurchasePrices: productPurchasePrices.join(','),
+        productDiscounts: productDiscounts.join(','),
+        productTotals: productTotals.join(','),
+        productProfits: productProfits.join(','),
         userId: userId,
         isDeleted: false,
         createdAt: new Date().toISOString(),

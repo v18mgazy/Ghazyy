@@ -76,8 +76,17 @@ export const invoices = pgTable("invoices", {
   paymentMethod: text("payment_method").notNull(),
   paymentStatus: text("payment_status").notNull(),
   notes: text("notes"),
-  // أضف حقول المنتجات مباشرة في الفاتورة
+  // 1. أولاً نحتفظ بالحقل القديم للتوافقية الخلفية
   productsData: text("products_data"), // سيتم تخزين بيانات المنتجات كنص JSON
+  // 2. نضيف حقول المنتجات كحقول منفصلة
+  productIds: text("product_ids"), // معرفات المنتجات كقائمة مفصولة بفواصل
+  productNames: text("product_names"), // أسماء المنتجات
+  productQuantities: text("product_quantities"), // كميات المنتجات
+  productPrices: text("product_prices"), // أسعار البيع
+  productPurchasePrices: text("product_purchase_prices"), // أسعار الشراء
+  productDiscounts: text("product_discounts"), // الخصومات
+  productTotals: text("product_totals"), // المجاميع
+  productProfits: text("product_profits"), // الأرباح
   isDeleted: boolean("is_deleted").default(false),
   userId: integer("user_id").references(() => users.id).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -96,7 +105,16 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   paymentMethod: true,
   paymentStatus: true,
   notes: true,
-  productsData: true, // إضافة حقل البيانات الجديد
+  productsData: true, // حقل البيانات القديم
+  // إضافة الحقول الجديدة
+  productIds: true,
+  productNames: true,
+  productQuantities: true,
+  productPrices: true,
+  productPurchasePrices: true,
+  productDiscounts: true,
+  productTotals: true,
+  productProfits: true,
   isDeleted: true,
   userId: true,
   updatedAt: true,
