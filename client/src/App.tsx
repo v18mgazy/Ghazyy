@@ -69,7 +69,7 @@ function ProtectedRoutes() {
         {() => <ProtectedRoute component={CustomersPage} adminOnly={true} />}
       </Route>
       <Route path="/invoices">
-        {() => <ProtectedRoute component={InvoiceManagementDBPage} adminOnly={true} />}
+        {() => <ProtectedRoute component={InvoiceManagementPage} adminOnly={true} />}
       </Route>
       <Route path="/invoice/new">
         {() => <ProtectedRoute component={NewInvoicePage} />}

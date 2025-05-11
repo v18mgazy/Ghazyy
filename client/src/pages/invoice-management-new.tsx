@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   FileText, Search, Pencil, Trash2, Printer, Filter, CheckCircle, XCircle, Clock, 
-  RefreshCw, ArrowUpDown, ChevronRight, ChevronLeft, Loader2, Share, Scan
+  RefreshCw, ArrowUpDown, ChevronRight, ChevronLeft, Loader2, Share, Scan, MoreVertical
 } from 'lucide-react';
 import BarcodeScanner from '@/components/barcode-scanner';
 import { formatDate, formatCurrency } from '@/lib/utils';
@@ -19,6 +19,7 @@ import { Invoice, InvoiceProduct, Customer, Product } from "@shared/schema";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from '@/components/ui/table';
@@ -566,13 +567,15 @@ export default function InvoiceManagement() {
                       <TableCell>
                         <Badge
                           variant={
-                            invoice.status === 'completed' ? 'success' :
-                            invoice.status === 'approved' ? 'success' :
-                            invoice.status === 'pending' ? 'warning' :
+                            invoice.status === 'completed' ? 'default' :
+                            invoice.status === 'approved' ? 'default' :
+                            invoice.status === 'pending' ? 'secondary' :
                             invoice.status === 'rejected' ? 'destructive' :
                             'outline'
                           }
-                          className="whitespace-nowrap"
+                          className={`whitespace-nowrap ${
+                            invoice.status === 'completed' || invoice.status === 'approved' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''
+                          }`}
                         >
                           {invoice.status === 'completed' ? (
                             <CheckCircle className="h-3.5 w-3.5 me-1" />
@@ -736,13 +739,15 @@ export default function InvoiceManagement() {
                     <h3 className="font-semibold mb-2">{t('payment_information')}</h3>
                     <Badge
                       variant={
-                        selectedInvoice.status === 'completed' ? 'success' :
-                        selectedInvoice.status === 'approved' ? 'success' :
-                        selectedInvoice.status === 'pending' ? 'warning' :
+                        selectedInvoice.status === 'completed' ? 'default' :
+                        selectedInvoice.status === 'approved' ? 'default' :
+                        selectedInvoice.status === 'pending' ? 'secondary' :
                         selectedInvoice.status === 'rejected' ? 'destructive' :
                         'outline'
                       }
-                      className="mb-2"
+                      className={`mb-2 ${
+                        selectedInvoice.status === 'completed' || selectedInvoice.status === 'approved' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''
+                      }`}
                     >
                       {t(selectedInvoice.status)}
                     </Badge>
