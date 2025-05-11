@@ -330,24 +330,23 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
     }
   };
   
-  // التحقق من موافقة المدير على الدفع الآجل
+  // معالجة طلب الموافقة على الدفع الآجل
   const handleAdminApproval = () => {
-    // هنا سيتم التحقق من بيانات اعتماد المدير في التطبيق الحقيقي
-    // ولكن الآن سنفترض أن المدير وافق
-    setIsLaterPaymentApproved(true);
+    // تغيير الحالة وإغلاق نافذة الحوار
     setShowApprovalDialog(false);
     
-    // إعداد بيانات الفاتورة مع الموافقة على الدفع الآجل
+    // إعداد بيانات الفاتورة مع حالة معلقة لطلب الموافقة
     const invoiceData = {
       invoiceNumber,
       customerId: parseInt(customer.id),
       subtotal,
       discount: totalDiscount,
       total,
-      paymentMethod,
-      paymentStatus: 'approved',
+      paymentMethod: 'deferred', // استخدام الدفع المؤجل
+      paymentStatus: 'pending', // حالة معلقة تحتاج موافقة
       date: invoiceDate,
-      notes,
+      notes: notes + ' [طلب موافقة دفع مؤجل]',
+      userId: 2, // رقم المستخدم الكاشير
       products: products.map(product => ({
         productId: parseInt(product.id),
         quantity: product.quantity,
@@ -359,6 +358,18 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
     
     // استخدام mutation لإرسال الفاتورة إلى الخادم
     createInvoiceMutation.mutate(invoiceData);
+    
+    // عرض رسالة توضح أنه تم إرسال طلب الموافقة
+    toast({
+      title: t('approval_request_sent'),
+      description: t('deferred_payment_waiting_approval'),
+      duration: 5000,
+    });
+    
+    // إغلاق نافذة الفاتورة النشطة بعد الإرسال
+    setTimeout(() => {
+      onClose();
+    }, 2000);
   };
   
   return (
