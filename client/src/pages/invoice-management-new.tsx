@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   FileText, Search, Pencil, Trash2, Printer, Filter, CheckCircle, XCircle, Clock, 
-  RefreshCw, ArrowUpDown, ChevronRight, ChevronLeft, Loader2, Share, Scan, MoreVertical
+  RefreshCw, ArrowUpDown, ChevronRight, ChevronLeft, Loader2, Share, Scan, MoreVertical,
+  Building, Store
 } from 'lucide-react';
 import BarcodeScanner from '@/components/barcode-scanner';
+import { StoreInfoDialog } from '@/components/store-info/store-info-dialog';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useAuthContext } from '@/context/auth-context';
 import { useLocale } from '@/hooks/use-locale';
@@ -61,6 +63,7 @@ export default function InvoiceManagement() {
   const [scannedProduct, setScannedProduct] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [invoiceToEdit, setInvoiceToEdit] = useState<any>(null);
+  const [isStoreInfoDialogOpen, setIsStoreInfoDialogOpen] = useState(false);
   
   // حالة تعديل الفاتورة
   const [editedCustomerName, setEditedCustomerName] = useState('');
@@ -846,6 +849,18 @@ export default function InvoiceManagement() {
             <RefreshCw className="h-4 w-4" />
             <span>{t('refresh')}</span>
           </Button>
+          
+          {user?.role === 'admin' && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setIsStoreInfoDialogOpen(true)}
+              className="flex items-center gap-1"
+            >
+              <Store className="h-4 w-4" />
+              <span>{t('edit_store_info')}</span>
+            </Button>
+          )}
           
           <Button 
             variant="outline" 
