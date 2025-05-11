@@ -240,16 +240,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/customer-invoices/:customerId', async (req, res) => {
     try {
       const { customerId } = req.params;
+      console.log(`Fetching invoices for customer ID: ${customerId}`);
+      
       // جلب جميع الفواتير
       const allInvoices = await storage.getAllInvoices();
+      console.log(`Total invoices found: ${allInvoices.length}`);
       
       // تصفية الفواتير حسب معرّف العميل
-      const customerInvoices = allInvoices.filter(invoice => 
-        invoice.customerId === parseInt(customerId)
-      );
+      // يجب مقارنة السلاسل النصية مع بعضها البعض لأن معرف العميل قد يكون رقمًا كبيرًا
+      const customerIdStr = customerId.toString();
+      const customerInvoices = allInvoices.filter(invoice => {
+        const invoiceCustomerId = invoice.customerId?.toString() || '';
+        const matches = invoiceCustomerId === customerIdStr;
+        if (matches) {
+          console.log(`Matched invoice: ${invoice.id} for customer: ${customerIdStr}`);
+        }
+        return matches;
+      });
       
+      console.log(`Found ${customerInvoices.length} invoices for customer ${customerId}`);
       res.json(customerInvoices);
     } catch (err) {
+      console.error('Error fetching customer invoices:', err);
       res.status(500).json({ message: 'Failed to fetch customer invoices' });
     }
   });

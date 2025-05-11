@@ -128,12 +128,18 @@ export default function CustomerList({
       // تصحيح: API تعيد المصفوفة مباشرة وليس داخل حقل data
       if (result && Array.isArray(result)) {
         // تحويل البيانات إلى النموذج المطلوب
-        const formattedHistory = result.map((invoice: any) => ({
-          id: invoice.id.toString(),
-          date: new Date(invoice.date || invoice.createdAt || Date.now()).toLocaleDateString(),
-          invoiceNumber: `INV-${invoice.id.toString().padStart(5, '0')}`,
-          total: invoice.total || 0
-        }));
+        const formattedHistory = result.map((invoice: any) => {
+          console.log('Processing invoice:', invoice);
+          
+          // استخراج الفاتورة بالشكل المناسب مع التعامل مع أي فروق في هيكل البيانات
+          return {
+            id: invoice.id.toString(),
+            date: new Date(invoice.date || invoice.createdAt || Date.now()).toLocaleDateString(),
+            invoiceNumber: invoice.invoiceNumber || `INV-${invoice.id.toString().padStart(5, '0')}`,
+            total: typeof invoice.total === 'number' ? invoice.total : 
+                  (typeof invoice.total === 'string' ? parseFloat(invoice.total) : 0)
+          };
+        });
         
         console.log('Formatted history:', formattedHistory);
         
