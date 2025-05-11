@@ -823,11 +823,198 @@ export default function InvoiceManagement() {
   // طباعة الفاتورة
   const printInvoice = (invoice: any) => {
     try {
-      // الانتقال إلى صفحة الفاتورة للطباعة
-      const printURL = `/invoice/${invoice.dbId}/print`;
-      window.open(printURL, '_blank');
+      // إنشاء نافذة الطباعة
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        throw new Error('Cannot open print window - popup blocked');
+      }
+      
+      // تجهيز بيانات الفاتورة
+      const customerName = invoice.customer?.name || 'عميل';
+      const customerPhone = invoice.customer?.phone || '';
+      const customerAddress = invoice.customer?.address || '';
+      const invoiceDate = formatDate(invoice.date);
+      const invoiceItems = invoice.items || [];
+      
+      // إعداد عنوان المتجر ومعلوماته (من بيانات المتجر)
+      const storeInfo = {
+        name: storeData?.name || 'Sales Ghazy',
+        address: storeData?.address || '',
+        phone: storeData?.phone || ''
+      };
+      
+      // بناء محتوى HTML لصفحة الطباعة
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html dir="${isRtl ? 'rtl' : 'ltr'}" lang="${language}">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Invoice #${invoice.id}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              margin: 0;
+              direction: ${isRtl ? 'rtl' : 'ltr'};
+            }
+            .invoice-container {
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 20px;
+              border: 1px solid #ddd;
+              border-radius: 5px;
+            }
+            .invoice-header {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 20px;
+              padding-bottom: 10px;
+              border-bottom: 1px solid #ddd;
+            }
+            .store-info, .customer-info {
+              margin-bottom: 20px;
+            }
+            .invoice-details {
+              margin-bottom: 20px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 20px;
+            }
+            th, td {
+              padding: 10px;
+              text-align: left;
+              border-bottom: 1px solid #ddd;
+            }
+            th {
+              background-color: #f8f9fa;
+            }
+            .totals {
+              margin-left: auto;
+              width: 300px;
+            }
+            .totals table {
+              width: 100%;
+            }
+            .footer {
+              margin-top: 30px;
+              text-align: center;
+              font-size: 14px;
+              color: #666;
+            }
+            @media print {
+              body {
+                padding: 0;
+              }
+              .invoice-container {
+                border: none;
+              }
+              button {
+                display: none;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-container">
+            <div class="invoice-header">
+              <div class="store-info">
+                <h2>${storeInfo.name}</h2>
+                <p>${storeInfo.address}</p>
+                <p>${storeInfo.phone}</p>
+              </div>
+              <div>
+                <h1>${t('invoice')}</h1>
+                <p>${t('invoice_number')}: ${invoice.id}</p>
+                <p>${t('date')}: ${invoiceDate}</p>
+              </div>
+            </div>
+            
+            <div class="customer-info">
+              <h3>${t('customer_information')}</h3>
+              <p>${t('name')}: ${customerName}</p>
+              ${customerPhone ? `<p>${t('phone')}: ${customerPhone}</p>` : ''}
+              ${customerAddress ? `<p>${t('address')}: ${customerAddress}</p>` : ''}
+            </div>
+            
+            <div class="invoice-details">
+              <h3>${t('invoice_items')}</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>${t('product_name')}</th>
+                    <th>${t('quantity')}</th>
+                    <th>${t('price')}</th>
+                    <th>${t('total')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${invoiceItems.map((item: any, index: number) => `
+                    <tr>
+                      <td>${index + 1}</td>
+                      <td>${item.productName || 'منتج'}</td>
+                      <td>${item.quantity}</td>
+                      <td>${formatCurrency(item.price)}</td>
+                      <td>${formatCurrency(item.total || item.price * item.quantity)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="totals">
+              <table>
+                <tr>
+                  <td>${t('subtotal')}</td>
+                  <td>${formatCurrency(invoice.subtotal || invoice.total)}</td>
+                </tr>
+                ${invoice.discount > 0 ? `
+                  <tr>
+                    <td>${t('discount')}</td>
+                    <td>${formatCurrency(invoice.discount)}</td>
+                  </tr>
+                ` : ''}
+                <tr>
+                  <th>${t('total')}</th>
+                  <th>${formatCurrency(invoice.total)}</th>
+                </tr>
+                <tr>
+                  <td>${t('payment_method')}</td>
+                  <td>${t(invoice.paymentMethod)}</td>
+                </tr>
+              </table>
+            </div>
+            
+            ${invoice.notes ? `
+              <div class="notes">
+                <h4>${t('notes')}</h4>
+                <p>${invoice.notes}</p>
+              </div>
+            ` : ''}
+            
+            <div class="footer">
+              <p>${t('thank_you_message')}</p>
+            </div>
+          </div>
+          
+          <script>
+            // طباعة الصفحة بمجرد تحميلها
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            };
+          </script>
+        </body>
+        </html>
+      `);
+      
+      printWindow.document.close();
     } catch (error) {
-      console.error('Error opening print view:', error);
+      console.error('Error printing invoice:', error);
       toast({
         title: t('error'),
         description: t('print_failed'),
