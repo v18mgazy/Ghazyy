@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useLocale } from '@/hooks/use-locale';
+import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -75,6 +77,37 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
   // حالة الموافقة على الدفع الآجل
   const [isLaterPaymentApproved, setIsLaterPaymentApproved] = useState(false);
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
+  
+  // استخدام hook الإشعارات
+  const { toast } = useToast();
+  
+  // إنشاء mutation لإرسال الفاتورة إلى الخادم
+  const createInvoiceMutation = useMutation({
+    mutationFn: (invoiceData: any) => 
+      apiRequest('POST', '/api/invoices', invoiceData)
+        .then(res => res.json()),
+    onSuccess: () => {
+      // عرض رسالة نجاح
+      toast({
+        title: t('success'),
+        description: t('saved_successfully'),
+        variant: 'default',
+      });
+      // إظهار معاينة الفاتورة بعد الحفظ بنجاح
+      setShowInvoicePreview(true);
+      // إعادة تحميل قائمة الفواتير
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+    },
+    onError: (error) => {
+      // عرض رسالة خطأ
+      toast({
+        title: t('error'),
+        description: t('invoice_save_error'),
+        variant: 'destructive',
+      });
+      console.error('Error saving invoice:', error);
+    }
+  });
   
   // استعلام للحصول على المنتجات من قاعدة البيانات
   const { data: allProducts = [], isLoading: isLoadingProducts } = useQuery<any[]>({
@@ -252,29 +285,8 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
       }))
     };
     
-    // إرسال الفاتورة إلى الخادم
-    fetch('/api/invoices', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(invoiceData),
-    })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('فشل في حفظ الفاتورة');
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log('تم حفظ الفاتورة بنجاح:', data);
-        // إظهار معاينة الفاتورة بعد الضغط على زر "تأكيد" بدلاً من إغلاق النافذة
-        setShowInvoicePreview(true);
-      })
-      .catch(error => {
-        console.error('خطأ:', error);
-        alert(t('invoice_save_error'));
-      });
+    // استخدام mutation لإرسال الفاتورة إلى الخادم
+    createInvoiceMutation.mutate(invoiceData);
   };
   
   // طباعة الفاتورة
