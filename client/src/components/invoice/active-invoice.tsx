@@ -336,17 +336,14 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
       address: customer.address
     });
     
-    // إنشاء كائن بيانات الفاتورة بمعلومات العميل الكاملة
+    // إنشاء كائن بيانات الفاتورة بمعلومات العميل المضمنة مباشرة
     const invoiceData = {
       invoiceNumber,
       customerId: customerIdValue,
-      // تضمين معلومات العميل مباشرة في بيانات الفاتورة لضمان الاحتفاظ بها
-      customerDetails: {
-        name: customer.name,
-        phone: customer.phone,
-        address: customer.address,
-        email: ''
-      },
+      // تضمين معلومات العميل مباشرة في حقول الفاتورة بدلاً من وضعها في كائن منفصل
+      customerName: customer.name,
+      customerPhone: customer.phone || '',
+      customerAddress: customer.address || '',
       subtotal,
       discount: totalDiscount,
       total,
@@ -354,8 +351,8 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
       paymentStatus: paymentMethod === 'later' ? 'pending' : 'paid',
       date: invoiceDate,
       notes,
-      userId: 1, // معرف المستخدم الذي ينشئ الفاتورة - سيتم تعيينه في الخادم
-      userRole: 'cashier', // دور المستخدم - سيتم تعيينه في الخادم
+      userId: 1, // معرف المستخدم الذي ينشئ الفاتورة
+      userRole: 'cashier', // دور المستخدم
       products: products.map(product => ({
         productId: parseInt(product.id),
         productName: product.name, // تضمين اسم المنتج
