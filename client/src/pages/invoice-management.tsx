@@ -237,9 +237,68 @@ export default function InvoiceManagement() {
     setCurrentPage(page);
   };
   
-  // Open invoice details dialog
-  const openInvoiceDetails = (invoice: any) => {
-    setSelectedInvoice(invoice);
+  // Function to fetch invoice items
+  const fetchInvoiceItems = async (invoiceId: number) => {
+    try {
+      const response = await fetch(`/api/invoices/${invoiceId}/items`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch invoice items');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching invoice items:', error);
+      toast({
+        title: t('error'),
+        description: t('invoice_items_fetch_error'),
+        variant: 'destructive',
+      });
+      return [];
+    }
+  };
+
+  // Open invoice details dialog with items
+  const openInvoiceDetails = async (invoice: any) => {
+    // First set invoice with empty items to show loading state
+    setSelectedInvoice({
+      ...invoice,
+      items: [],
+      isLoadingItems: true
+    });
+    
+    try {
+      // Fetch items for this invoice
+      const items = await fetchInvoiceItems(invoice.dbId);
+      
+      // Format items for display
+      const formattedItems = items.map((item: any) => ({
+        id: `item-${item.id}`,
+        product: {
+          id: item.productId,
+          name: item.product?.name || t('unknown_product'),
+          code: item.product?.barcode || '',
+          price: item.price
+        },
+        quantity: item.quantity,
+        price: item.price,
+        total: item.quantity * item.price
+      }));
+      
+      // Update selectedInvoice with items
+      setSelectedInvoice({
+        ...invoice,
+        items: formattedItems,
+        isLoadingItems: false
+      });
+    } catch (error) {
+      console.error('Error loading invoice details:', error);
+      setSelectedInvoice({
+        ...invoice,
+        items: [],
+        isLoadingItems: false,
+        loadError: true
+      });
+    }
   };
   
   // Handle printing invoice
@@ -356,19 +415,54 @@ export default function InvoiceManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {selectedInvoice.items.map((item: any) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{item.product.name}</p>
-                        <p className="text-xs text-neutral-500">{item.product.code}</p>
+                {selectedInvoice.isLoadingItems ? (
+                  // Loading state
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-6">
+                      <div className="flex flex-col items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                        <p>{t('loading_invoice_items')}</p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">{item.quantity}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(item.price)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(item.total)}</TableCell>
                   </TableRow>
-                ))}
+                ) : selectedInvoice.loadError ? (
+                  // Error state
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-6 text-destructive">
+                      <p>{t('invoice_items_load_error')}</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => openInvoiceDetails(selectedInvoice)}
+                        className="mt-2"
+                      >
+                        {t('retry')}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ) : selectedInvoice.items.length === 0 ? (
+                  // Empty state
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                      <p>{t('no_invoice_items')}</p>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  // Items list
+                  selectedInvoice.items.map((item: any) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{item.product.name}</p>
+                          <p className="text-xs text-neutral-500">{item.product.code}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">{item.quantity}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(item.price)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(item.total)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

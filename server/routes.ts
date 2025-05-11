@@ -384,6 +384,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all items for a specific invoice
+  app.get('/api/invoices/:invoiceId/items', async (req, res) => {
+    try {
+      const { invoiceId } = req.params;
+      const items = await storage.getInvoiceItems(parseInt(invoiceId));
+      
+      // Enhance items with product details
+      const enhancedItems = await Promise.all(items.map(async (item) => {
+        const product = await storage.getProduct(item.productId);
+        return {
+          ...item,
+          product: product || { name: 'Unknown Product', barcode: '' }
+        };
+      }));
+      
+      res.json(enhancedItems);
+    } catch (err) {
+      console.error('Failed to fetch invoice items:', err);
+      res.status(500).json({ message: 'Failed to fetch invoice items' });
+    }
+  });
+  
   // Payment approval routes
   app.get('/api/payment-approvals', async (req, res) => {
     // Check admin permissions in session
