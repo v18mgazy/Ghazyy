@@ -162,11 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.post('/api/products', async (req, res) => {
-    // Check admin permissions in session
-    if (!req.session?.userRole || req.session.userRole !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-    
+    // مؤقتاً تمت إزالة التحقق من الصلاحيات
     try {
       const productData = insertProductSchema.parse(req.body);
       const product = await storage.createProduct(productData);
@@ -180,11 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.patch('/api/products/:id', async (req, res) => {
-    // Check admin permissions in session
-    if (!req.session?.userRole || req.session.userRole !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-    
+    // مؤقتاً تمت إزالة التحقق من الصلاحيات
     try {
       const { id } = req.params;
       const product = await storage.updateProduct(parseInt(id), req.body);
@@ -198,11 +190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.delete('/api/products/:id', async (req, res) => {
-    // Check admin permissions in session
-    if (!req.session?.userRole || req.session.userRole !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-    
+    // مؤقتاً تمت إزالة التحقق من الصلاحيات
     try {
       const { id } = req.params;
       await storage.deleteProduct(parseInt(id));
