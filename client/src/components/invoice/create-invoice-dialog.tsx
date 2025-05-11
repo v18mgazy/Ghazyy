@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { ReceiptText, Search, X, ChevronRight, Users, PlusCircle, Scan } from 'lucide-react';
 import { useLocale } from '@/hooks/use-locale';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from '@/components/ui/dialog';
@@ -143,12 +144,12 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   const searchProducts = (term: string) => {
     setIsSearching(true);
     
-    // محاكاة طلب البحث
+    // البحث في المنتجات المستلمة من قاعدة البيانات
     setTimeout(() => {
-      const results = mockProducts.filter(product => 
-        product.name.toLowerCase().includes(term.toLowerCase()) || 
-        product.code?.toLowerCase().includes(term.toLowerCase()) || 
-        product.barcode?.includes(term)
+      const results = products.filter((product: any) => 
+        product.name?.toLowerCase().includes(term.toLowerCase()) || 
+        (product.code && product.code.toLowerCase().includes(term.toLowerCase())) || 
+        (product.barcode && product.barcode.includes(term))
       );
       
       setProductSearchResults(results);
@@ -167,7 +168,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   const handleShowProductSearch = () => {
     setShowProductSearch(true);
     setShowBarcodeScanner(false);
-    setProductSearchResults(mockProducts); // عرض جميع المنتجات مبدئيًا
+    setProductSearchResults(products || []); // عرض جميع المنتجات من قاعدة البيانات
   };
   
   // فتح ماسح الباركود
@@ -178,8 +179,8 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   
   // مع المنتج الممسوح ضوئيًا
   const handleProductScanned = (scannedProd: any) => {
-    // البحث عن المنتج بالباركود
-    const foundProduct = mockProducts.find(p => p.barcode === scannedProd.barcode);
+    // البحث عن المنتج بالباركود في المنتجات المستلمة من قاعدة البيانات
+    const foundProduct = products.find((p: any) => p.barcode === scannedProd.barcode);
     
     if (foundProduct) {
       // إضافة المنتج مباشرة إلى الفاتورة

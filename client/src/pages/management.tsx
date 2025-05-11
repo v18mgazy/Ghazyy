@@ -13,41 +13,9 @@ export default function ManagementPage() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('products');
   
-  // Products
+  // Products - استخدام البيانات الحقيقية من قاعدة البيانات
   const { data: products = [], isLoading: isLoadingProducts } = useQuery({
     queryKey: ['/api/products'],
-    queryFn: async () => {
-      // Mock data for demo
-      return [
-        {
-          id: '1',
-          name: 'Samsung Galaxy S21',
-          barcode: '7531598524567',
-          alternativeCode: 'SG21',
-          purchasePrice: 650,
-          sellingPrice: 899.99,
-          stock: 8
-        },
-        {
-          id: '2',
-          name: 'Lenovo ThinkPad X1',
-          barcode: '8590123456789',
-          alternativeCode: 'LTX1',
-          purchasePrice: 800,
-          sellingPrice: 1199.99,
-          stock: 15
-        },
-        {
-          id: '3',
-          name: 'Apple iPhone 13',
-          barcode: '6429815307452',
-          alternativeCode: 'IP13',
-          purchasePrice: 700,
-          sellingPrice: 999.99,
-          stock: 5
-        }
-      ];
-    }
   });
   
   // Employees
