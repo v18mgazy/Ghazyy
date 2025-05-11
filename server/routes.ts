@@ -1122,6 +1122,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // حساب إجمالي المبيعات والأرباح
       for (const invoice of invoices) {
+        // تجاهل الفواتير المحذوفة
+        if (invoice.isDeleted) {
+          continue;
+        }
+        
         const invoiceDate = new Date(invoice.date);
         const formattedDate = formatDateForReportType(invoiceDate, type as string);
         
@@ -1129,13 +1134,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalSales += invoice.total;
           salesCount++;
           
-          // جلب عناصر الفاتورة لحساب الربح
-          const items = await storage.getInvoiceItems(invoice.id);
-          for (const item of items) {
-            const product = await storage.getProduct(item.productId);
-            if (product) {
-              const profit = (item.price - product.purchasePrice) * item.quantity;
-              totalProfit += profit;
+          // استخدام بيانات المنتجات المخزنة مباشرة في الفاتورة
+          if (invoice.productsData) {
+            try {
+              const productsData = JSON.parse(invoice.productsData);
+              for (const product of productsData) {
+                // إضافة الربح - استخدام حقل الربح المحسوب مسبقًا (profit) إذا كان موجودًا
+                // أو حساب الربح من سعر الشراء وسعر البيع
+                if (product.profit) {
+                  totalProfit += product.profit;
+                } else if (product.purchasePrice) {
+                  const profit = (product.price - product.purchasePrice) * product.quantity;
+                  totalProfit += profit;
+                }
+              }
+            } catch (err) {
+              console.error(`Error parsing productsData for invoice ${invoice.id}:`, err);
             }
           }
         }
@@ -1340,10 +1354,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const monthKey = months[month];
           const current = salesData.get(monthKey) || { sales: 0, profit: 0 };
           
-          // إضافة المبيعات والأرباح
+          // إضافة المبيعات
           current.sales += invoice.total || 0;
-          current.profit += (invoice.total || 0) * 0.3;
           
+          // حساب الأرباح من بيانات المنتجات
+          let calculatedProfit = 0;
+          try {
+            if (invoice.productsData) {
+              const products = JSON.parse(invoice.productsData);
+              if (Array.isArray(products)) {
+                for (const product of products) {
+                  // استخدام الربح المحسوب مسبقًا أو حسابه من سعر الشراء والبيع
+                  if (product.profit !== undefined) {
+                    calculatedProfit += product.profit;
+                  } else if (product.purchasePrice !== undefined && product.price) {
+                    calculatedProfit += (product.price - product.purchasePrice) * product.quantity;
+                  } else {
+                    // استخدام هامش ربح تقديري 30% فقط إذا لم تتوفر البيانات
+                    calculatedProfit += (product.total || 0) * 0.3;
+                  }
+                }
+              }
+            } else {
+              // استخدام هامش ربح تقديري 30% فقط إذا لم تتوفر بيانات المنتجات
+              calculatedProfit = (invoice.total || 0) * 0.3;
+            }
+          } catch (error) {
+            console.error("Error calculating profit in chart data:", error);
+            calculatedProfit = (invoice.total || 0) * 0.3;
+          }
+          
+          current.profit += calculatedProfit;
           salesData.set(monthKey, current);
         }
       }
