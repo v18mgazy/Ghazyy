@@ -157,7 +157,7 @@ export default function InvoiceManagementDB() {
       return {
         id: invoice.invoiceNumber,
         dbId: invoice.id,
-        date: new Date(invoice.date),
+        date: invoice.date ? new Date(invoice.date) : new Date(),
         customer: customer ? {
           id: customer.id.toString(),
           name: customer.name,
@@ -606,7 +606,7 @@ export default function InvoiceManagementDB() {
                         {invoice.id}
                       </TableCell>
                       <TableCell>
-                        {formatDate(invoice.date, 'PP', language)}
+                        {invoice.date ? formatDate(invoice.date, 'PP', language) : '-'}
                       </TableCell>
                       <TableCell>
                         {invoice.customer.name}
