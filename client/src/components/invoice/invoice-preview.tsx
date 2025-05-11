@@ -267,9 +267,9 @@ export default function InvoicePreview({
             <span>{t('invoice_preview')}</span>
             <div className="flex items-center gap-2">
               <Button 
-                variant="outline" 
+                variant="secondary" 
                 size="sm" 
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 border-blue-200 shadow-sm"
                 onClick={handlePrint}
               >
                 <Printer className="h-4 w-4" />
@@ -277,9 +277,9 @@ export default function InvoicePreview({
               </Button>
               
               <Button 
-                variant="outline" 
+                variant="secondary" 
                 size="sm" 
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 border-emerald-200 shadow-sm"
                 onClick={handleDownloadPDF}
               >
                 <Download className="h-4 w-4" />
@@ -287,9 +287,9 @@ export default function InvoicePreview({
               </Button>
               
               <Button 
-                variant="outline" 
+                variant="secondary" 
                 size="sm" 
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 border-amber-200 shadow-sm"
                 onClick={handleShare}
               >
                 <Phone className="h-4 w-4" />
@@ -299,6 +299,7 @@ export default function InvoicePreview({
               <Button 
                 variant="ghost" 
                 size="sm" 
+                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full h-8 w-8 p-0 flex items-center justify-center ml-2"
                 onClick={() => onOpenChange(false)}
               >
                 <X className="h-4 w-4" />
@@ -423,37 +424,67 @@ export default function InvoicePreview({
             </table>
             
             {/* المجموع */}
-            <div className="flex justify-end">
-              <div className="w-60 space-y-2">
-                <div className="flex justify-between border-b pb-2">
-                  <span className="text-gray-600">{t('subtotal')}:</span>
-                  <span>{formatCurrency(subtotal)}</span>
+            <div className="flex justify-end mt-4">
+              <div className="w-72 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                  <h3 className="font-semibold text-gray-700 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-primary" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />
+                    </svg>
+                    {t('invoice_summary')}
+                  </h3>
                 </div>
-                {totalDiscount > 0 && (
-                  <div className="flex justify-between border-b pb-2">
-                    <span className="text-gray-600">{t('total_discount')}:</span>
-                    <span>{formatCurrency(totalDiscount)}</span>
+                <div className="p-4 space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 font-medium">{t('subtotal')}:</span>
+                    <span className="font-medium">{formatCurrency(subtotal)}</span>
                   </div>
-                )}
-                <div className="flex justify-between font-bold text-lg pt-2">
-                  <span>{t('total')}:</span>
-                  <span className="text-primary">{formatCurrency(total)}</span>
+                  {totalDiscount > 0 && (
+                    <div className="flex justify-between text-sm pb-2">
+                      <span className="text-amber-600 font-medium flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zm7-10a1 1 0 01.707.293l.707.707L10 7.414 13.586 4l.707-.707a1 1 0 111.414 1.414L13 8.414l2.707 2.707a1 1 0 11-1.414 1.414L14 9.414 10.414 13l3.293 3.293a1 1 0 11-1.414 1.414l-.707-.707L8 13.414l-3.293 3.293a1 1 0 01-1.414-1.414L6.586 12 3.293 8.707a1 1 0 011.414-1.414L8 10.586l3.586-3.586-.707-.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                        {t('total_discount')}:
+                      </span>
+                      <span className="text-amber-600 font-medium">- {formatCurrency(totalDiscount)}</span>
+                    </div>
+                  )}
+                  <div className="border-t border-gray-200 pt-3 mt-2">
+                    <div className="flex justify-between font-bold text-base">
+                      <span className="text-gray-800">{t('total')}:</span>
+                      <span className="text-primary text-lg">{formatCurrency(total)}</span>
+                    </div>
+                    <div className="text-xs text-gray-500 text-right mt-1">
+                      {t('payment_method')}: <span className="font-medium">{getPaymentMethodName()}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
             
             {/* الملاحظات */}
             {notes && (
-              <div className="mt-8 pt-4 border-t">
-                <h3 className="font-medium text-gray-700 mb-2">{t('notes')}:</h3>
-                <p className="text-gray-600 whitespace-pre-line">{notes}</p>
+              <div className="mt-8 pt-4 border-t border-gray-200">
+                <h3 className="font-medium text-gray-700 mb-2 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z" clipRule="evenodd" />
+                  </svg>
+                  {t('notes')}:
+                </h3>
+                <p className="text-gray-600 whitespace-pre-line bg-gray-50 p-3 rounded-md border border-gray-100">{notes}</p>
               </div>
             )}
             
             {/* تذييل الفاتورة */}
-            <div className="mt-10 pt-6 border-t text-center text-gray-500 text-sm">
-              <p>{t('thank_you_message')}</p>
-              <p className="mt-2">Sales Ghazy &copy; {new Date().getFullYear()}</p>
+            <div className="mt-10 pt-6 border-t border-gray-200 text-center">
+              <div className="flex flex-col items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary mb-2 opacity-80" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <p className="text-gray-600 font-medium">{t('thank_you_message')}</p>
+                <p className="mt-2 text-gray-500 text-sm">Sales Ghazy &copy; {new Date().getFullYear()}</p>
+              </div>
             </div>
           </div>
         </div>
