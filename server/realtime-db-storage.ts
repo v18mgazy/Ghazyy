@@ -579,7 +579,18 @@ export class RealtimeDBStorage implements IStorage {
       const snapshot = await get(damagedItemsRef);
       
       if (snapshot.exists()) {
-        return Object.values(snapshot.val()) as DamagedItem[];
+        const items = Object.values(snapshot.val()) as any[];
+        console.log('Found damaged items:', items.length);
+        
+        // تحويل حقل التاريخ من سلسلة نصية إلى كائن Date
+        return items.map(item => ({
+          id: item.id,
+          productId: item.productId,
+          quantity: item.quantity,
+          description: item.description || null,
+          valueLoss: item.valueLoss,
+          date: item.date ? new Date(item.date) : new Date()
+        }));
       }
       
       return [];

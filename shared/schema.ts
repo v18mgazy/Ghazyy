@@ -132,11 +132,13 @@ export const damagedItems = pgTable("damaged_items", {
   valueLoss: real("value_loss").notNull(),
 });
 
-export const insertDamagedItemSchema = createInsertSchema(damagedItems).pick({
-  productId: true,
-  quantity: true,
-  description: true,
-  valueLoss: true,
+// استخدام Zod مباشرة بدلاً من Drizzle Schema
+export const insertDamagedItemSchema = z.object({
+  productId: z.number().int().positive(),
+  quantity: z.number().int().positive(),
+  description: z.string().nullable().optional(),
+  valueLoss: z.number().positive(),
+  date: z.date().optional()
 });
 
 // Employees
