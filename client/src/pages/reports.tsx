@@ -77,8 +77,12 @@ export default function ReportsPage() {
   
   // استرجاع بيانات التقارير من قاعدة البيانات بناءً على نوع الفترة
   const { data: reportData, isLoading } = useQuery<ReportData>({
-    queryKey: ['/api/reports'],
-    queryFn: async () => {
+    queryKey: ['/api/reports', period, formattedDate],
+    staleTime: 30 * 1000,         // البيانات تعتبر قديمة بعد 30 ثانية
+    refetchInterval: 30 * 1000,   // إعادة تحميل البيانات كل 30 ثانية
+    refetchOnWindowFocus: true,   // إعادة التحميل عند التبديل للصفحة
+    queryFn: async ({ queryKey }) => {
+      console.log('تحديث بيانات التقارير...', period, formattedDate);
       const response = await fetch(`/api/reports?type=${period}&date=${formattedDate}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch report data: ${response.statusText}`);

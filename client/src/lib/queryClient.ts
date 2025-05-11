@@ -46,8 +46,9 @@ export const queryClient = new QueryClient({
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      refetchOnWindowFocus: true,      // تفعيل إعادة التحميل عند استعادة التركيز على الصفحة
+      staleTime: 60 * 1000,            // اعتبار البيانات قديمة بعد 60 ثانية
+      gcTime: 5 * 60 * 1000,           // الاحتفاظ بالبيانات المخزنة مؤقتاً لمدة 5 دقائق
       retry: false,
     },
     mutations: {
