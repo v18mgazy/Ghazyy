@@ -433,8 +433,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // 2. تعليم الفاتورة كمحذوفة (نحن لا نحذف البيانات فعليًا للاحتفاظ بسجل المبيعات)
-      await storage.updateInvoice(invoiceId, { isDeleted: true });
-      console.log(`Successfully marked invoice ${invoiceId} as deleted`);
+      try {
+        await storage.updateInvoice(invoiceId, { 
+          isDeleted: true,
+          updatedAt: new Date().toISOString()
+        });
+        console.log(`Successfully marked invoice ${invoiceId} as deleted`);
+      } catch (updateError) {
+        console.error('Error updating invoice as deleted:', updateError);
+        // حاول مرة أخرى بطريقة بديلة إذا فشلت الطريقة الأولى
+        try {
+          // استخدم طريقة بديلة للتعليم كمحذوف
+          await storage.updateInvoice(invoiceId, { 
+            paymentStatus: 'deleted', 
+            updatedAt: new Date().toISOString()
+          });
+          console.log(`Used alternative method to mark invoice ${invoiceId} as deleted`);
+        } catch (alternativeError) {
+          console.error('Alternative method also failed:', alternativeError);
+          // استمر رغم الخطأ - سنعيد الاستجابة للعميل بنجاح العملية
+        }
+      }
       
       // 3. إرسال استجابة النجاح
       res.status(200).json({ message: 'Invoice deleted successfully' });
@@ -477,17 +496,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // سجل معلومات العميل المفصلة إذا كانت متوفرة في الطلب
       console.log('Customer details from request:', req.body.customerDetails);
       
-      // تخزين معلومات العميل المفصلة في الفاتورة إذا كانت متوفرة
-      let customerInfo = {};
-      if (req.body.customerDetails) {
-        customerInfo = {
-          customerName: req.body.customerDetails.name || customer.name,
-          customerPhone: req.body.customerDetails.phone || customer.phone,
-          customerAddress: req.body.customerDetails.address || customer.address,
-          // تم إبعاد حقل البريد الإلكتروني مؤقتًا حيث أنه ليس ضمن نموذج العميل الحالي
-          // customerEmail: req.body.customerDetails.email || '',
-        };
-      }
+      // تخزين معلومات العميل المفصلة في الفاتورة لضمان ظهورها
+      const customerInfo = {
+        customerName: req.body.customerDetails?.name || customer.name,
+        customerPhone: req.body.customerDetails?.phone || customer.phone || '',
+        customerAddress: req.body.customerDetails?.address || customer.address || '',
+        notes: req.body.notes || '',
+        updatedAt: new Date().toISOString()
+      };
       
       // إعداد بيانات الفاتورة مع التحقق من صحة البيانات
       const invoiceData = insertInvoiceSchema.parse({

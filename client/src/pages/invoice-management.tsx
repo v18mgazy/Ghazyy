@@ -531,12 +531,12 @@ export default function InvoiceManagement() {
       try {
         console.log('Deleting invoice:', invoiceToDelete, 'with DB ID:', invoiceToDeleteDbId);
         
-        if (!invoiceToDeleteDbId) {
-          throw new Error(t('invoice_db_id_missing'));
-        }
-        
         // إرسال طلب إلى API لحذف الفاتورة من قاعدة البيانات
-        const response = await fetch(`/api/invoices/${invoiceToDeleteDbId}`, {
+        // يمكن استخدام معرف الفاتورة الأساسي أو معرف قاعدة البيانات
+        const idToUse = invoiceToDeleteDbId || invoiceToDelete;
+        console.log('Using ID for deletion:', idToUse);
+        
+        const response = await fetch(`/api/invoices/${idToUse}`, {
           method: 'DELETE',
         });
         
@@ -553,12 +553,27 @@ export default function InvoiceManagement() {
           throw new Error(errorMessage);
         }
         
-        // تحديث الواجهة وإزالة الفاتورة من القائمة المحلية
-        const updatedInvoices = invoices.filter(inv => inv.id !== invoiceToDelete);
-        console.log('Updating local invoices list, removing:', invoiceToDelete);
-        console.log('Invoices before:', invoices.length, 'After:', updatedInvoices.length);
+        // محاولة الحصول على جميع الفواتير المحدّثة من الخادم
+        try {
+          const freshInvoices = await fetch('/api/invoices').then(res => res.json());
+          
+          // تحديث القائمة المحلية بالبيانات الجديدة (الفواتير التي ليست محذوفة)
+          const nonDeletedInvoices = freshInvoices.filter((inv: any) => !inv.isDeleted);
+          
+          console.log('Refreshed invoices from server:', nonDeletedInvoices.length);
+          setInvoices(nonDeletedInvoices);
+        } catch (refreshError) {
+          console.error('Error refreshing invoices:', refreshError);
+          
+          // تحديث الواجهة وإزالة الفاتورة من القائمة المحلية كخطة بديلة
+          const updatedInvoices = invoices.filter(inv => inv.id !== invoiceToDelete);
+          console.log('Fallback: Updating local invoices list, removing:', invoiceToDelete);
+          console.log('Invoices before:', invoices.length, 'After:', updatedInvoices.length);
+          
+          setInvoices(updatedInvoices);
+        }
         
-        setInvoices(updatedInvoices);
+        // إغلاق مربع الحوار وإعادة تعيين الحالة
         setIsDeleteDialogOpen(false);
         setInvoiceToDelete(null);
         setInvoiceToDeleteDbId(undefined);

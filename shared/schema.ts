@@ -66,25 +66,37 @@ export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   invoiceNumber: text("invoice_number").notNull().unique(),
   customerId: integer("customer_id").references(() => customers.id),
+  customerName: text("customer_name"),
+  customerPhone: text("customer_phone"),
+  customerAddress: text("customer_address"),
   date: timestamp("date").notNull().defaultNow(),
   subtotal: real("subtotal").notNull(),
   discount: real("discount").default(0),
   total: real("total").notNull(),
   paymentMethod: text("payment_method").notNull(),
   paymentStatus: text("payment_status").notNull(),
+  notes: text("notes"),
+  isDeleted: boolean("is_deleted").default(false),
   userId: integer("user_id").references(() => users.id).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at"),
 });
 
 export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   invoiceNumber: true,
   customerId: true,
+  customerName: true,
+  customerPhone: true,
+  customerAddress: true,
   subtotal: true,
   discount: true,
   total: true,
   paymentMethod: true,
   paymentStatus: true,
+  notes: true,
+  isDeleted: true,
   userId: true,
+  updatedAt: true,
 });
 
 // Invoice Items
