@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   FileText, Search, Pencil, Trash2, Printer, ExternalLink, Filter, CheckCircle, XCircle, Clock, 
-  RefreshCw, ArrowUpDown, Download, ChevronRight, ChevronLeft, Loader2
+  RefreshCw, ArrowUpDown, Download, ChevronRight, ChevronLeft, Loader2, Share
 } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useAuthContext } from '@/context/auth-context';
@@ -322,7 +322,7 @@ export default function InvoiceManagement() {
   // Function to get invoice products from the invoice object itself
   const getInvoiceProducts = (invoice: any) => {
     try {
-      // نحاول استخراج بيانات المنتجات من حقل productsData
+      // Method 1: نحاول استخراج بيانات المنتجات من حقل productsData
       if (invoice && invoice.productsData) {
         try {
           // طباعة البيانات للتصحيح
@@ -345,13 +345,88 @@ export default function InvoiceManagement() {
         console.log('No productsData field in invoice:', invoice);
       }
       
-      // للتوافق مع الإصدارات السابقة - البحث عن حقل products
+      // Method 2: محاولة استخدام الحقول المنفصلة productIds, productNames, إلخ
+      console.log('Checking for separate product fields in invoice:', {
+        productIds: invoice?.productIds, 
+        productNames: invoice?.productNames,
+        productQuantities: invoice?.productQuantities,
+        productPrices: invoice?.productPrices
+      });
+      
+      if (invoice && invoice.productIds && invoice.productNames && 
+          invoice.productQuantities && invoice.productPrices) {
+        try {
+          console.log('Found separate product fields in invoice, attempting to reconstruct products');
+          
+          // تقسيم البيانات من السلاسل النصية إلى مصفوفات
+          const productIds = invoice.productIds.split(',').map((id: string) => parseInt(id.trim()));
+          const productNames = invoice.productNames.split('|');
+          const productQuantities = invoice.productQuantities.split(',').map((qty: string) => parseInt(qty.trim()));
+          const productPrices = invoice.productPrices.split(',').map((price: string) => parseFloat(price.trim()));
+          
+          // أرقام إضافية اختيارية
+          let productDiscounts: number[] = [];
+          let productTotals: number[] = [];
+          
+          if (invoice.productDiscounts) {
+            productDiscounts = invoice.productDiscounts.split(',').map((disc: string) => parseFloat(disc.trim() || '0'));
+          }
+          
+          if (invoice.productTotals) {
+            productTotals = invoice.productTotals.split(',').map((total: string) => parseFloat(total.trim() || '0'));
+          }
+          
+          console.log('Reconstructed arrays from separate fields:', {
+            productIds,
+            productNames,
+            productPrices,
+            productQuantities,
+            productDiscounts,
+            productTotals
+          });
+          
+          // التأكد من أن جميع المصفوفات لها نفس الطول
+          if (productIds.length === productNames.length && 
+              productIds.length === productPrices.length && 
+              productIds.length === productQuantities.length) {
+            
+            // إنشاء مصفوفة من كائنات المنتجات
+            const reconstructedProducts = productIds.map((id: number, index: number) => {
+              // حساب السعر الإجمالي إذا لم يكن متوفرًا
+              const total = index < productTotals.length && productTotals[index] 
+                ? productTotals[index] 
+                : (productPrices[index] * productQuantities[index]);
+                
+              // الخصم إذا كان متوفرًا
+              const discount = index < productDiscounts.length ? productDiscounts[index] : 0;
+              
+              return {
+                productId: id,
+                productName: productNames[index] || t('unknown_product'),
+                quantity: productQuantities[index] || 0,
+                price: productPrices[index] || 0,
+                total: total,
+                discount: discount
+              };
+            });
+            
+            console.log('Successfully reconstructed products from separate fields:', reconstructedProducts);
+            return reconstructedProducts;
+          } else {
+            console.warn('Separate product fields have inconsistent lengths');
+          }
+        } catch (reconstructError) {
+          console.error('Error reconstructing products from separate fields:', reconstructError);
+        }
+      }
+      
+      // Method 3: للتوافق مع الإصدارات السابقة - البحث عن حقل products
       if (invoice && invoice.products && Array.isArray(invoice.products)) {
         console.log('Using products array from invoice:', invoice.products);
         return invoice.products;
       }
       
-      // في حالة عدم وجود بيانات منتجات، نعرض إجمالي الفاتورة فقط
+      // Method 4: في حالة عدم وجود بيانات منتجات، نعرض إجمالي الفاتورة فقط
       console.log('No products data found in invoice, creating placeholder from total:', invoice?.total);
       return [
         {
