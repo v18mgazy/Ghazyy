@@ -1621,5 +1621,5 @@ export class MemStorage implements IStorage {
 }
 
 // Choose which storage implementation to use
-// Using FirebaseStorage as requested now that we have the correct API key
-export const storage = new FirebaseStorage(); // Using Firebase for data storage
+// Temporarily using MemStorage until Firestore API is enabled in the Google Cloud Console
+export const storage = new MemStorage(); // Temporarily using memory storage until Firestore API is enabled
