@@ -5,6 +5,7 @@ import ProductList from '@/components/products/product-list';
 import EmployeeList from '@/components/employees/employee-list';
 import DamagedItemList from '@/components/damaged-items/damaged-item-list';
 import UserList from '@/components/users/user-list';
+import ExpenseList from '@/components/expenses/expense-list';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { formatCurrency, generateBarcodeSVG } from '@/lib/utils';
@@ -67,6 +68,11 @@ export default function ManagementPage() {
   // Users - استخدام البيانات الحقيقية من قاعدة البيانات
   const { data: users = [], isLoading: isLoadingUsers } = useQuery({
     queryKey: ['/api/users'],
+  });
+  
+  // Expenses (مصاريف ونثريات) - استخدام البيانات الحقيقية من قاعدة البيانات
+  const { data: expenses = [], isLoading: isLoadingExpenses } = useQuery({
+    queryKey: ['/api/expenses'],
   });
   
   // تعريف الميوتيشن للعمليات على المنتجات
