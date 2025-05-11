@@ -295,7 +295,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Calculate item total
             const itemTotal = item.quantity * item.price * (1 - (item.discount || 0) / 100);
             
-            // Create invoice item
+            // الحصول على تفاصيل المنتج كاملة لتحديث المخزون
+            const product = await storage.getProduct(item.productId);
+            if (!product) {
+              console.warn(`Product with ID ${item.productId} not found when creating invoice item`);
+            } else {
+              console.log(`Creating invoice item for product ${item.productId}:`, product.name);
+            }
+            
+            // إنشاء عنصر الفاتورة
             await storage.createInvoiceItem({
               invoiceId: invoice.id,
               productId: item.productId,
@@ -305,8 +313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               total: itemTotal
             });
             
-            // Update product quantity in inventory
-            const product = await storage.getProduct(item.productId);
+            // تحديث المخزون إذا كان المنتج موجودًا
             if (product) {
               const newStock = Math.max(0, (product.stock || 0) - item.quantity);
               await storage.updateProduct(item.productId, { 
@@ -435,10 +442,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Loaded ${allProducts.length} products for lookup`);
       
       // Create a map of product id -> product for faster lookup
-      const productMap = allProducts.reduce((map: {[key: number]: any}, product: any) => {
-        map[product.id] = product;
-        return map;
-      }, {});
+      const productMap: Record<number, any> = {};
+      for (const product of allProducts) {
+        productMap[product.id] = product;
+      }
       
       console.log('Product map created with keys:', Object.keys(productMap));
       
@@ -446,25 +453,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const items = await storage.getInvoiceItems(parsedInvoiceId);
       console.log(`Found ${items.length} items for invoice ${invoiceId} with product IDs:`, items.map(item => item.productId));
       
-      // Enhance items with product details
+      // Enhance items with complete product details
       const enhancedItems = items.map((item) => {
+        // تأكد من أن معرف المنتج هو رقم
         const productId = typeof item.productId === 'string' ? parseInt(item.productId) : item.productId;
+        
+        // ابحث عن المنتج في المخزن المؤقت
         const product = productMap[productId];
         
         console.log(`Looking up product for item ${item.id} with productId ${productId}:`, product ? `Found: ${product.name}` : 'Not found');
         
+        // تعزيز عنصر الفاتورة بتفاصيل المنتج الكاملة
         return {
-          ...item,
-          product: product || { 
-            id: item.productId,
-            name: `منتج (${item.productId})`, 
+          id: item.id,
+          invoiceId: item.invoiceId,
+          quantity: item.quantity,
+          price: item.price,
+          discount: item.discount || 0,
+          total: item.total,
+          createdAt: item.createdAt,
+          productId: productId,
+          // إضافة تفاصيل المنتج الكاملة
+          product: product ? {
+            id: product.id,
+            name: product.name,
+            barcode: product.barcode,
+            alternativeCode: product.alternativeCode,
+            purchasePrice: product.purchasePrice,
+            sellingPrice: product.sellingPrice,
+            stock: product.stock
+          } : {
+            id: productId,
+            name: `منتج ${productId}`,
             barcode: '',
-            sellingPrice: item.price
+            sellingPrice: item.price,
+            purchasePrice: 0,
+            stock: 0
           }
         };
       });
       
-      console.log('Returning enhanced items:', enhancedItems.length);
+      console.log('Returning enhanced items with full product details:', enhancedItems.length);
       
       res.json(enhancedItems);
     } catch (err) {
