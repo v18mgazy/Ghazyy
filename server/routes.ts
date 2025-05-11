@@ -1403,7 +1403,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return chartData;
   }
   
-  function calculateTopProducts(invoices: any[], products: any[]): any[] {
+  function calculateTopProducts(invoices: any[], products: any[], type: string, date: string): any[] {
+    console.log(`Calculating top products for ${type}: ${date}`);
+    
     // حساب أفضل المنتجات مبيعًا بناءً على بيانات الفواتير الفعلية
     const productSalesMap = new Map<number, { 
       id: number, 
@@ -1430,6 +1432,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     for (const invoice of invoices) {
       // تجاهل الفواتير المحذوفة
       if (invoice.isDeleted) continue;
+      
+      // التحقق من تطابق الفترة المطلوبة
+      const invoiceDate = new Date(invoice.date);
+      const formattedInvoiceDate = formatDateForReportType(invoiceDate, type);
+      if (formattedInvoiceDate !== date) continue;
+      
+      console.log(`Processing invoice for top products: ${invoice.id}, ${invoice.invoiceNumber}`);
       
       if (invoice.id && invoice.productsData) {
         try {

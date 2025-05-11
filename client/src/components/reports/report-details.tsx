@@ -26,21 +26,22 @@ import {
 } from 'recharts';
 
 interface TopProduct {
-  id: string;
+  id: number;
   name: string;
   soldQuantity: number;
   revenue: number;
   profit: number;
 }
 
-interface DailyReport {
+interface DetailedReport {
+  id: number;
   date: string;
-  salesCount: number;
-  revenue: number;
-  cost: number;
-  discounts: number;
-  damages: number;
+  type: string;
+  amount: number;
   profit: number;
+  details: string;
+  customerName: string;
+  paymentStatus: string;
 }
 
 interface ChartData {
@@ -53,7 +54,7 @@ interface ReportDetailsProps {
   periodType: 'daily' | 'weekly' | 'monthly' | 'yearly';
   chartData: ChartData[];
   topProducts: TopProduct[];
-  detailedReports: DailyReport[];
+  detailedReports: DetailedReport[];
   isLoading?: boolean;
   onExport: () => void;
   onPrint: () => void;
@@ -237,25 +238,24 @@ export default function ReportDetails({
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="font-semibold">{t('date')}</TableHead>
-                    <TableHead className="font-semibold text-center">{t('sales_count')}</TableHead>
-                    <TableHead className="font-semibold">{t('total_revenue')}</TableHead>
-                    <TableHead className="font-semibold">{t('cost')}</TableHead>
-                    <TableHead className="font-semibold">{t('discounts')}</TableHead>
-                    <TableHead className="font-semibold">{t('damages')}</TableHead>
+                    <TableHead className="font-semibold">{t('customer')}</TableHead>
+                    <TableHead className="font-semibold">{t('details')}</TableHead>
+                    <TableHead className="font-semibold">{t('amount')}</TableHead>
+                    <TableHead className="font-semibold">{t('status')}</TableHead>
                     <TableHead className="font-semibold">{t('profit')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {detailedReports.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         {t('no_report_data')}
                       </TableCell>
                     </TableRow>
                   ) : (
                     detailedReports.map((report, index) => (
                       <TableRow 
-                        key={index}
+                        key={report.id}
                         className={index % 2 === 0 ? 'bg-muted/20' : ''}
                       >
                         <TableCell className="font-medium">
@@ -264,22 +264,19 @@ export default function ReportDetails({
                             {formatDate(report.date, 'PP', language)}
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                            {report.salesCount}
+                        <TableCell>
+                          {report.customerName || t('unknown_customer')}
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">
+                          {report.details}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {formatCurrency(report.amount)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={report.paymentStatus === 'paid' ? 'success' : report.paymentStatus === 'pending' ? 'warning' : 'outline'}>
+                            {t(report.paymentStatus)}
                           </Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">{formatCurrency(report.revenue)}</TableCell>
-                        <TableCell className="text-muted-foreground">{formatCurrency(report.cost)}</TableCell>
-                        <TableCell>
-                          <span className="text-amber-600 font-medium">
-                            {formatCurrency(report.discounts)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-red-600 font-medium">
-                            {formatCurrency(report.damages)}
-                          </span>
                         </TableCell>
                         <TableCell>
                           <div className="bg-green-50 text-green-700 px-2 py-1 rounded-md font-medium inline-block">
