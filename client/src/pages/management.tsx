@@ -6,7 +6,7 @@ import EmployeeList from '@/components/employees/employee-list';
 import DamagedItemList from '@/components/damaged-items/damaged-item-list';
 import UserList from '@/components/users/user-list';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { formatCurrency, generateBarcodeSVG } from '@/lib/utils';
 
 export default function ManagementPage() {
@@ -18,94 +18,81 @@ export default function ManagementPage() {
     queryKey: ['/api/products'],
   });
   
-  // Employees
+  // Employees - استخدام البيانات الحقيقية من قاعدة البيانات
   const { data: employees = [], isLoading: isLoadingEmployees } = useQuery({
     queryKey: ['/api/employees'],
-    queryFn: async () => {
-      // Mock data for demo
-      return [
-        {
-          id: '1',
-          name: 'Mohamed Ahmed',
-          hireDate: '2023-05-15',
-          salary: 800,
-          deductions: 50
-        },
-        {
-          id: '2',
-          name: 'Sara Hassan',
-          hireDate: '2023-01-10',
-          salary: 950,
-          deductions: 25
-        }
-      ];
-    }
   });
   
-  // Damaged Items
+  // Damaged Items - استخدام البيانات الحقيقية من قاعدة البيانات
   const { data: damagedItems = [], isLoading: isLoadingDamagedItems } = useQuery({
     queryKey: ['/api/damaged-items'],
-    queryFn: async () => {
-      // Mock data for demo
-      return [
-        {
-          id: '1',
-          productId: '3',
-          product: { name: 'Apple iPhone 13' },
-          quantity: 1,
-          date: '2023-08-10',
-          description: 'Screen cracked during unpacking',
-          valueLoss: 700
-        }
-      ];
-    }
   });
   
-  // Users
+  // Users - استخدام البيانات الحقيقية من قاعدة البيانات
   const { data: users = [], isLoading: isLoadingUsers } = useQuery({
     queryKey: ['/api/users'],
-    queryFn: async () => {
-      // Mock data for demo
-      return [
-        {
-          id: '1',
-          username: 'admin',
-          name: 'Ahmed Mahmoud',
-          role: 'admin',
-          status: 'active',
-          lastLogin: new Date('2023-08-23T14:35:00')
-        },
-        {
-          id: '2',
-          username: 'sara_h',
-          name: 'Sara Hassan',
-          role: 'cashier',
-          status: 'active',
-          lastLogin: new Date('2023-08-24T09:12:00')
-        }
-      ];
-    }
   });
   
-  // Add mock mutations
+  // تعريف الميوتيشن للعمليات على المنتجات
   const addProductMutation = useMutation({
-    mutationFn: (product: any) => Promise.resolve(product),
+    mutationFn: async (product: any) => {
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(product),
+      });
+      
+      if (!response.ok) {
+        throw new Error(t('add_product_error'));
+      }
+      
+      return await response.json();
+    },
     onSuccess: () => {
-      // In a real app, invalidate products query
+      // تحديث قائمة المنتجات بعد الإضافة
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
     }
   });
   
   const editProductMutation = useMutation({
-    mutationFn: (product: any) => Promise.resolve(product),
+    mutationFn: async (product: any) => {
+      const response = await fetch(`/api/products/${product.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(product),
+      });
+      
+      if (!response.ok) {
+        throw new Error(t('edit_product_error'));
+      }
+      
+      return await response.json();
+    },
     onSuccess: () => {
-      // In a real app, invalidate products query
+      // تحديث قائمة المنتجات بعد التعديل
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
     }
   });
   
   const deleteProductMutation = useMutation({
-    mutationFn: (productId: string) => Promise.resolve(productId),
+    mutationFn: async (productId: string) => {
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(t('delete_product_error'));
+      }
+      
+      return productId;
+    },
     onSuccess: () => {
-      // In a real app, invalidate products query
+      // تحديث قائمة المنتجات بعد الحذف
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
     }
   });
   
