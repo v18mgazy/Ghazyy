@@ -367,5 +367,11 @@
   "popup_blocked": "تم حظر النافذة المنبثقة، الرجاء السماح بالنوافذ المنبثقة لهذا الموقع",
   "print_error": "حدث خطأ أثناء الطباعة",
   "invoice_save_error": "حدث خطأ أثناء حفظ الفاتورة، يرجى التأكد من تسجيل الدخول والمحاولة مرة أخرى",
-  "unauthorized": "غير مصرح به"
+  "unauthorized": "غير مصرح به",
+  "feature_coming_soon": "هذه الميزة قادمة قريباً",
+  "invoice_edit_prepare_error": "خطأ في تحضير الفاتورة للتعديل",
+  "invoice_invalid_id": "معرف فاتورة غير صالح",
+  "invoice_deleted_successfully": "تم حذف الفاتورة بنجاح",
+  "invoice_delete_error": "خطأ في حذف الفاتورة",
+  "success": "نجاح"
 }
