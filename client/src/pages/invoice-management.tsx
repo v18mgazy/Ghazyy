@@ -242,14 +242,29 @@ export default function InvoiceManagement() {
   // Function to get invoice products from the invoice object itself
   const getInvoiceProducts = (invoice: any) => {
     try {
-      // Check if the invoice has products array
+      // Check if the invoice has productsData field
+      if (invoice.productsData) {
+        try {
+          console.log('Found productsData in invoice:', invoice.productsData);
+          // Parse the JSON string into an array of products
+          const parsedProducts = JSON.parse(invoice.productsData);
+          if (Array.isArray(parsedProducts) && parsedProducts.length > 0) {
+            console.log('Successfully parsed productsData:', parsedProducts);
+            return parsedProducts;
+          }
+        } catch (parseError) {
+          console.error('Error parsing productsData:', parseError);
+        }
+      }
+      
+      // Check if the invoice has products array (backward compatibility)
       if (invoice.products && Array.isArray(invoice.products)) {
         console.log('Using products directly from invoice:', invoice.products);
         return invoice.products;
       }
       
-      // If not, create a mock product from total for display
-      console.log('No products array found in invoice, creating placeholder');
+      // If no product data found, create a placeholder
+      console.log('No products data found in invoice, creating placeholder');
       return [
         {
           id: `item-${invoice.id}-1`,
@@ -339,13 +354,11 @@ export default function InvoiceManagement() {
   const handleEditInvoice = async (invoice: any) => {
     console.log('Editing invoice:', invoice);
     
-    // 1. أولاً - جلب تفاصيل الفاتورة كاملة بما في ذلك العناصر إذا لم تكن متوفرة
-    let invoiceWithItems = invoice;
-    
     try {
-      // جلب تفاصيل الفاتورة من الخادم للتأكد من أحدث البيانات
-      console.log('Fetching latest invoice data for ID:', invoice.id);
-      const response = await fetch(`/api/invoices/${invoice.id}`);
+      // 1. جلب أحدث بيانات الفاتورة من الخادم
+      console.log('Fetching latest invoice data for ID:', invoice.dbId || invoice.id);
+      
+      const response = await fetch(`/api/invoices/${invoice.dbId || invoice.id}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch invoice data');
@@ -354,81 +367,90 @@ export default function InvoiceManagement() {
       const latestInvoiceData = await response.json();
       console.log('Latest invoice data:', latestInvoiceData);
       
-      // جلب عناصر الفاتورة
-      console.log('Fetching invoice items for edit');
-      // استخدام المنتجات مباشرة من الفاتورة
-      const items = getInvoiceProducts(invoice);
+      // 2. استخراج المنتجات من productsData في الفاتورة
+      const products = getInvoiceProducts(latestInvoiceData);
+      console.log('Extracted products for edit:', products);
       
-      if (items && Array.isArray(items)) {
-        invoiceWithItems = {
-          ...latestInvoiceData,
-          items: items
+      // 3. إنشاء كائن المنتجات المنسق للتعديل
+      const formattedProducts = products.map((product: any) => {
+        const productId = product.productId || 0;
+        const productName = product.productName || t('unknown_product');
+        const productPrice = product.price || 0;
+        const quantity = product.quantity || 1;
+        const total = product.total || (quantity * productPrice);
+        
+        return {
+          id: productId,
+          name: productName,
+          barcode: product.barcode || '',
+          price: productPrice,
+          quantity: quantity,
+          total: total,
+          discount: product.discount || 0,
         };
-      } else {
-        invoiceWithItems = latestInvoiceData;
-      }
+      });
       
-      console.log('Prepared invoice with items for edit:', invoiceWithItems);
-      
-      // 2. إرسال طلب تحديث الفاتورة إلى الخادم
-      const updateData = {
-        invoiceNumber: invoiceWithItems.invoiceNumber,
-        customerId: invoiceWithItems.customerId,
-        customerDetails: {
-          name: invoiceWithItems.customerName || '',
-          phone: invoiceWithItems.customerPhone || '',
-          address: invoiceWithItems.customerAddress || ''
-        },
-        subtotal: invoiceWithItems.subtotal,
-        discount: invoiceWithItems.discount || 0,
-        total: invoiceWithItems.total,
-        paymentMethod: invoiceWithItems.paymentMethod,
-        paymentStatus: invoiceWithItems.paymentStatus,
-        notes: invoiceWithItems.notes || '',
-        products: invoiceWithItems.items.map((item: any) => ({
-          productId: item.productId,
-          productName: item.product?.name || 'Unknown product',
-          quantity: item.quantity,
-          price: item.price,
-          discount: item.discount || 0,
-          total: item.total
-        }))
+      // 4. تحضير بيانات الفاتورة للتعديل
+      const invoiceToEdit = {
+        id: latestInvoiceData.id,
+        invoiceNumber: latestInvoiceData.invoiceNumber,
+        customerId: latestInvoiceData.customerId,
+        customerName: latestInvoiceData.customerName || '',
+        customerPhone: latestInvoiceData.customerPhone || '',
+        customerAddress: latestInvoiceData.customerAddress || '',
+        subtotal: latestInvoiceData.subtotal || 0,
+        discount: latestInvoiceData.discount || 0,
+        total: latestInvoiceData.total || 0,
+        paymentMethod: latestInvoiceData.paymentMethod || 'cash',
+        paymentStatus: latestInvoiceData.paymentStatus || 'completed',
+        notes: latestInvoiceData.notes || '',
+        products: formattedProducts,
+        date: new Date(latestInvoiceData.date || Date.now()).toISOString()
       };
       
-      console.log('Preparing to send update request with data:', updateData);
+      console.log('Prepared invoice for edit:', invoiceToEdit);
       
-      // في تطبيق حقيقي، سنرسل هذه البيانات إلى الخادم
-      // كمثال، سنظهر رسالة نجاح فقط للآن
+      // 5. فتح نافذة تعديل الفاتورة
+      // في هذه المرحلة، يمكننا إما:
+      // أ) إرسال المستخدم إلى صفحة إنشاء فاتورة جديدة مع تمرير البيانات الحالية
+      // ب) فتح نافذة منبثقة لتعديل الفاتورة
       
-      // TODO: إرسال طلب PUT لتحديث الفاتورة
-      // const updateResponse = await fetch(`/api/invoices/${invoice.id}`, {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(updateData)
-      // });
+      // الخيار ب: فتح نافذة تعديل الفاتورة
+      // نحتاج إلى استدعاء مكون تعديل الفاتورة هنا
+      // انظر إلى components/invoice/edit-invoice-dialog.tsx
       
-      // if (!updateResponse.ok) {
-      //   throw new Error('Failed to update invoice');
-      // }
+      // بدلاً من ذلك، سنقوم مؤقتًا بعرض تفاصيل الفاتورة فقط
+      // مع إرسال طلب PATCH للتحديث (تحديث بسيط لتغيير حالة الفاتورة)
       
-      // const updatedInvoice = await updateResponse.json();
-      // console.log('Updated invoice:', updatedInvoice);
+      // 6. تحديث الفاتورة بشكل بسيط (مؤقتًا)
+      // في المستقبل، يجب استبدال هذا بفتح محرر الفاتورة
+      const simpleUpdateResponse = await fetch(`/api/invoices/${invoice.dbId || invoice.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentStatus: latestInvoiceData.paymentStatus === 'completed' ? 'pending' : 'completed'
+        })
+      });
       
-      // تحديث البيانات المحلية والكاش
+      if (!simpleUpdateResponse.ok) {
+        throw new Error('Failed to update invoice status');
+      }
+      
+      // 7. تحديث البيانات المحلية والكاش
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
-      
-      // عرض نافذة معاينة الفاتورة (يمكن استبدالها بنافذة تعديل)
-      setSelectedInvoice(invoiceWithItems);
-      setIsDetailsModalOpen(true);
       
       toast({
         title: t('edit_invoice'),
-        description: t('edit_invoice_prepare_success'),
+        description: t('edit_invoice_success'),
       });
+      
+      // TODO: إضافة رابط إلى مكون تعديل الفاتورة بشكل كامل هنا
+      // يمكن تنفيذ ذلك باستخدام نافذة منبثقة أو إعادة توجيه إلى صفحة الإنشاء مع تمرير بيانات التعديل
+      
     } catch (error) {
-      console.error('Error preparing invoice for edit:', error);
+      console.error('Error editing invoice:', error);
       toast({
         title: t('error'),
         description: typeof error === 'string' ? error : t('invoice_edit_error'),
