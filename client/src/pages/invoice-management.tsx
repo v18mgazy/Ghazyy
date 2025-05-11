@@ -244,6 +244,8 @@ export default function InvoiceManagement() {
   const [invoicesPerPage] = useState(10);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
+  const [invoiceToDeleteDbId, setInvoiceToDeleteDbId] = useState<number | undefined>();
+  const queryClient = useQueryClient();
   
   // Filter invoices based on search term and filters
   const filteredInvoices = invoices.filter(invoice => {
@@ -382,21 +384,49 @@ export default function InvoiceManagement() {
   };
   
   // Handle invoice deletion
-  const confirmDeleteInvoice = (invoiceId: string) => {
+  const confirmDeleteInvoice = (invoiceId: string, dbId?: number) => {
     setInvoiceToDelete(invoiceId);
+    setInvoiceToDeleteDbId(dbId);
     setIsDeleteDialogOpen(true);
   };
   
-  const deleteInvoice = () => {
+  const deleteInvoice = async () => {
     if (invoiceToDelete) {
-      setInvoices(invoices.filter(inv => inv.id !== invoiceToDelete));
-      setIsDeleteDialogOpen(false);
-      setInvoiceToDelete(null);
-      
-      toast({
-        title: t('invoice_deleted'),
-        description: t('invoice_deleted_successfully'),
-      });
+      try {
+        console.log('Deleting invoice:', invoiceToDelete, 'with DB ID:', invoiceToDeleteDbId);
+        
+        if (invoiceToDeleteDbId) {
+          // إرسال طلب إلى API لحذف الفاتورة من قاعدة البيانات
+          const response = await fetch(`/api/invoices/${invoiceToDeleteDbId}`, {
+            method: 'DELETE',
+          });
+          
+          if (!response.ok) {
+            throw new Error(t('failed_to_delete_invoice'));
+          }
+        }
+        
+        // تحديث الواجهة وإزالة الفاتورة من القائمة المحلية
+        setInvoices(invoices.filter(inv => inv.id !== invoiceToDelete));
+        setIsDeleteDialogOpen(false);
+        setInvoiceToDelete(null);
+        setInvoiceToDeleteDbId(undefined);
+        
+        // إعادة تحميل البيانات من قاعدة البيانات
+        queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+        
+        toast({
+          title: t('invoice_deleted'),
+          description: t('invoice_deleted_successfully'),
+        });
+      } catch (error) {
+        console.error('Error deleting invoice:', error);
+        toast({
+          variant: 'destructive',
+          title: t('error'),
+          description: typeof error === 'string' ? error : t('failed_to_delete_invoice'),
+        });
+      }
     }
   };
   
@@ -682,7 +712,7 @@ export default function InvoiceManagement() {
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
                                     className="text-red-600 hover:text-red-700 hover:bg-red-50 focus:bg-red-50"
-                                    onClick={() => confirmDeleteInvoice(invoice.id)}
+                                    onClick={() => confirmDeleteInvoice(invoice.id, invoice.dbId)}
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" /> {t('delete_invoice')}
                                   </DropdownMenuItem>
