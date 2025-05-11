@@ -416,58 +416,113 @@ export default function InvoiceManagement() {
     });
   };
   
-  // Handle editing invoice
-  const handleEditInvoice = (invoice: any) => {
-    // In a real app, this would open an edit form or redirect to an edit page
-    console.log('Editing invoice:', invoice.id);
+  // تنفيذ تعديل الفاتورة
+  const handleEditInvoice = async (invoice: any) => {
+    console.log('Editing invoice:', invoice);
+    
+    // 1. أولاً - جلب تفاصيل الفاتورة كاملة بما في ذلك العناصر إذا لم تكن متوفرة
+    let invoiceWithItems = invoice;
+    
+    if (!invoice.items || invoice.items.length === 0) {
+      try {
+        // إذا لم تكن العناصر متاحة، قم بجلبها
+        console.log('Fetching invoice items for edit');
+        const items = await fetchInvoiceItems(invoice.dbId);
+        
+        if (items && Array.isArray(items)) {
+          invoiceWithItems = {
+            ...invoice,
+            items: items
+          };
+        }
+      } catch (error) {
+        console.error('Error fetching invoice items for edit:', error);
+        toast({
+          title: t('error'),
+          description: t('invoice_items_fetch_error'),
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+    
+    // 2. فتح واجهة التعديل أو تنفيذ العملية المطلوبة
+    // في التطبيق الحقيقي، هنا سنعدل الفاتورة أو ننتقل لصفحة التعديل
+    
+    // حاليًا نظهر رسالة فقط كمثال
     toast({
       title: t('edit_invoice'),
-      description: t('edit_invoice_description'),
+      description: t('edit_invoice_not_implemented_yet'),
     });
+    
+    // يمكنك إضافة المزيد من المنطق هنا حسب احتياجاتك، مثل:
+    // - فتح نافذة حوار لتعديل الفاتورة
+    // - الانتقال إلى صفحة تعديل الفاتورة
+    // - إرسال طلب تعديل الفاتورة إلى الخادم
   };
   
-  // Handle invoice deletion
+  // تأكيد حذف الفاتورة
   const confirmDeleteInvoice = (invoiceId: string, dbId?: number) => {
+    console.log('Opening delete confirmation dialog for invoice:', invoiceId, 'with DB ID:', dbId);
     setInvoiceToDelete(invoiceId);
     setInvoiceToDeleteDbId(dbId);
     setIsDeleteDialogOpen(true);
   };
   
+  // تنفيذ حذف الفاتورة
   const deleteInvoice = async () => {
     if (invoiceToDelete) {
       try {
         console.log('Deleting invoice:', invoiceToDelete, 'with DB ID:', invoiceToDeleteDbId);
         
-        if (invoiceToDeleteDbId) {
-          // إرسال طلب إلى API لحذف الفاتورة من قاعدة البيانات
-          const response = await fetch(`/api/invoices/${invoiceToDeleteDbId}`, {
-            method: 'DELETE',
-          });
-          
-          if (!response.ok) {
-            throw new Error(t('failed_to_delete_invoice'));
+        if (!invoiceToDeleteDbId) {
+          throw new Error(t('invoice_db_id_missing'));
+        }
+        
+        // إرسال طلب إلى API لحذف الفاتورة من قاعدة البيانات
+        const response = await fetch(`/api/invoices/${invoiceToDeleteDbId}`, {
+          method: 'DELETE',
+        });
+        
+        console.log('Delete response status:', response.status);
+        
+        if (!response.ok) {
+          let errorMessage = t('failed_to_delete_invoice');
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            // إذا لم نتمكن من قراءة رسالة الخطأ، نستخدم الرسالة الافتراضية
           }
+          throw new Error(errorMessage);
         }
         
         // تحديث الواجهة وإزالة الفاتورة من القائمة المحلية
-        setInvoices(invoices.filter(inv => inv.id !== invoiceToDelete));
+        const updatedInvoices = invoices.filter(inv => inv.id !== invoiceToDelete);
+        console.log('Updating local invoices list, removing:', invoiceToDelete);
+        console.log('Invoices before:', invoices.length, 'After:', updatedInvoices.length);
+        
+        setInvoices(updatedInvoices);
         setIsDeleteDialogOpen(false);
         setInvoiceToDelete(null);
         setInvoiceToDeleteDbId(undefined);
         
-        // إعادة تحميل البيانات من قاعدة البيانات
+        // إعادة تحميل البيانات من قاعدة البيانات عن طريق إلغاء صلاحية ذاكرة التخزين المؤقت
+        console.log('Invalidating invoices query cache to refresh data');
         queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
         
+        // إظهار رسالة نجاح للمستخدم
         toast({
           title: t('invoice_deleted'),
           description: t('invoice_deleted_successfully'),
         });
       } catch (error) {
         console.error('Error deleting invoice:', error);
+        // إظهار رسالة خطأ للمستخدم
         toast({
           variant: 'destructive',
           title: t('error'),
-          description: typeof error === 'string' ? error : t('failed_to_delete_invoice'),
+          description: error instanceof Error ? error.message : t('failed_to_delete_invoice'),
         });
       }
     }

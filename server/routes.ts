@@ -277,6 +277,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // حذف الفاتورة (أو تعليمها كمحذوفة)
+  app.delete('/api/invoices/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`Request to delete invoice with ID: ${id}`);
+      
+      // اختبار صلاحيات المستخدم هنا إذا لزم الأمر
+      
+      const invoiceId = parseInt(id);
+      if (isNaN(invoiceId)) {
+        console.error('Invalid invoice ID format:', id);
+        return res.status(400).json({ message: 'Invalid invoice ID format' });
+      }
+      
+      // فحص وجود الفاتورة قبل الحذف
+      const invoice = await storage.getInvoice(invoiceId);
+      if (!invoice) {
+        console.error(`Invoice with ID ${invoiceId} not found for deletion`);
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+      
+      console.log(`Found invoice to delete:`, invoice);
+      
+      // 1. حذف عناصر الفاتورة أو استعادة المخزون إذا لزم الأمر
+      try {
+        // الحصول على جميع عناصر الفاتورة
+        const invoiceItems = await storage.getInvoiceItems(invoiceId);
+        console.log(`Found ${invoiceItems.length} items for invoice ${invoiceId}`);
+        
+        // يمكن استعادة المخزون للمنتجات هنا إذا كان ذلك مطلوبًا
+        // لكن في هذا المثال سنكتفي بتعليم الفاتورة كمحذوفة
+      } catch (itemError) {
+        console.error('Error processing invoice items during deletion:', itemError);
+        // قد نستمر بالحذف رغم الخطأ
+      }
+      
+      // 2. تعليم الفاتورة كمحذوفة (نحن لا نحذف البيانات فعليًا للاحتفاظ بسجل المبيعات)
+      await storage.updateInvoice(invoiceId, { isDeleted: true });
+      console.log(`Successfully marked invoice ${invoiceId} as deleted`);
+      
+      // 3. إرسال استجابة النجاح
+      res.status(200).json({ message: 'Invoice deleted successfully' });
+    } catch (err) {
+      console.error('Error deleting invoice:', err);
+      res.status(500).json({ message: 'Failed to delete invoice', error: err.message });
+    }
+  });
+  
   app.post('/api/invoices', async (req, res) => {
     try {
       console.log('Creating invoice with data:', req.body);
