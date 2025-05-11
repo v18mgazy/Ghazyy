@@ -321,12 +321,16 @@ export default function InvoiceManagement() {
         
         console.log('Processing item with product:', item);
         
-        // الآن وبفضل التحسينات التي أجريناها، المنتج يجب أن يكون متوفرًا في item.product
+        // إضافة المزيد من سجلات التشخيص لفهم البيانات الواردة
+        console.log('Item product ID:', item.productId);
+        console.log('Item product object:', item.product);
+        
+        // التحقق من وجود تفاصيل المنتج
         if (!item.product) {
           console.warn('No product details found for item:', item);
         }
         
-        // استخدام تفاصيل المنتج المعززة من الخادم
+        // استخدام تفاصيل المنتج المعززة من الخادم بطريقة أكثر قوة
         const productName = item.product?.name || `منتج رقم ${item.productId}`;
         const productCode = item.product?.barcode || '';
         const productPrice = item.price || item.product?.sellingPrice || 0;
@@ -334,7 +338,8 @@ export default function InvoiceManagement() {
         console.log('Enhanced product info:', {
           name: productName,
           code: productCode,
-          price: productPrice
+          price: productPrice,
+          quantity: item.quantity
         });
         
         return {

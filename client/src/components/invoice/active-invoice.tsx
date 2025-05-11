@@ -409,36 +409,40 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
         </Dialog>
       )}
       
-      {/* نافذة موافقة المدير على الدفع الآجل */}
+      {/* نافذة إرسال طلب الموافقة على الدفع الآجل */}
       <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-amber-500">
               <AlertTriangle className="h-5 w-5" />
-              {t('admin_approval_required')}
+              {t('deferred_payment_confirmation')}
             </DialogTitle>
-            <DialogDescription>
-              {t('later_payment_needs_approval')}
+            <DialogDescription className="mt-2">
+              {t('deferred_payment_needs_admin_approval')}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-2 text-sm">
               <LockKeyhole className="h-4 w-4 text-muted-foreground" />
-              <span>{t('admin_approval_description')}</span>
+              <span>{t('deferred_payment_confirmation_description')}</span>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                type="text"
-                placeholder={t('admin_username')}
-                className="col-span-2"
-              />
-              <Input
-                type="password"
-                placeholder={t('admin_password')}
-                className="col-span-2"
-              />
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
+              <div className="flex flex-col space-y-2">
+                <div className="flex justify-between">
+                  <span className="font-medium">{t('customer')}:</span>
+                  <span>{customer.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">{t('invoice_total')}:</span>
+                  <span>{formatCurrency(total)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">{t('payment_method')}:</span>
+                  <span className="text-amber-600 font-semibold">{t('deferred_payment')}</span>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -455,7 +459,7 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
               className="bg-amber-500 hover:bg-amber-600 text-white"
             >
               <Check className="mr-1 h-4 w-4" />
-              {t('approve')}
+              {t('send_for_approval')}
             </Button>
           </DialogFooter>
         </DialogContent>
