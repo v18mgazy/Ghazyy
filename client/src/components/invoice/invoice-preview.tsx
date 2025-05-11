@@ -69,24 +69,182 @@ export default function InvoicePreview({
   const handleDownloadPDF = async () => {
     if (!invoiceRef.current) return;
     
-    const canvas = await html2canvas(invoiceRef.current, {
-      scale: 2,
-      useCORS: true,
-      logging: false
-    });
-    
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-    
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`invoice-${invoiceNumber}.pdf`);
+    try {
+      // إنشاء عنصر HTML لتعيين الفاتورة
+      const invoiceElement = document.createElement('div');
+      
+      // إعداد البيانات
+      const customerName = customer.name || '';
+      const customerPhone = customer.phone || '';
+      const customerAddress = customer.address || '';
+      
+      // تنسيق التاريخ
+      const formattedDate = formatDate(invoiceDate);
+      
+      // إنشاء HTML للفاتورة باللغة الإنجليزية فقط
+      invoiceElement.innerHTML = `
+        <div style="font-family: Arial, sans-serif; width: 800px; padding: 20px; box-sizing: border-box; margin: 0 auto;">
+          <!-- Header -->
+          <div style="background-color: #2980b9; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">Sales Ghazy</h1>
+            <p style="margin: 5px 0; font-size: 14px;">Cairo - Egypt</p>
+            <p style="margin: 5px 0; font-size: 14px;">01067677607</p>
+          </div>
+          
+          <!-- Invoice Information -->
+          <div style="margin: 20px 0; overflow: hidden;">
+            <div style="float: left; text-align: left; width: 50%;">
+              <h3 style="margin: 0 0 10px; color: #333; font-size: 16px; font-weight: bold;">
+                Invoice Information:
+              </h3>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Invoice Number:</strong> ${invoiceNumber}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Date:</strong> ${formattedDate}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Payment Method:</strong> ${paymentMethod}
+              </p>
+            </div>
+            
+            <div style="float: right; text-align: right; width: 50%;">
+              <h3 style="margin: 0 0 10px; color: #333; font-size: 16px; font-weight: bold;">
+                Customer Information:
+              </h3>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Name:</strong> ${customerName}
+              </p>
+              ${customerPhone ? `
+                <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                  <strong>Phone:</strong> ${customerPhone}
+                </p>
+              ` : ''}
+              ${customerAddress ? `
+                <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                  <strong>Address:</strong> ${customerAddress}
+                </p>
+              ` : ''}
+            </div>
+          </div>
+          
+          <!-- Divider -->
+          <div style="border-top: 1px solid #ddd; margin: 15px 0;"></div>
+          
+          <!-- Products List -->
+          <h3 style="text-align: center; color: #2980b9; margin: 20px 0; font-size: 18px;">
+            Products
+          </h3>
+          
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+              <tr style="background-color: #2980b9; color: white;">
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Product</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Price</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Quantity</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${products.map((item: any, index: number) => `
+                <tr style="background-color: ${index % 2 === 0 ? '#f9f9f9' : 'white'};">
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: left;">
+                    ${item.name || 'Unknown Product'}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                    ${formatCurrency(item.sellingPrice)}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                    ${item.quantity}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">
+                    ${formatCurrency(item.sellingPrice * item.quantity)}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <!-- Payment Summary -->
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: right; width: 300px; margin-left: auto;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span style="font-weight: bold; color: #555;">Subtotal:</span>
+              <span>${formatCurrency(subtotal)}</span>
+            </div>
+            
+            ${totalDiscount > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #555;">Discount:</span>
+                <span>${formatCurrency(totalDiscount)}</span>
+              </div>
+            ` : ''}
+            
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 16px; border-top: 1px solid #ddd; padding-top: 10px;">
+              <span style="font-weight: bold; color: #333;">Total:</span>
+              <span style="font-weight: bold; color: #2980b9;">${formatCurrency(total)}</span>
+            </div>
+          </div>
+          
+          <!-- Thank You Message -->
+          <div style="text-align: center; margin-top: 30px; color: #2980b9; font-style: italic;">
+            <p>Thank you for your business! We look forward to serving you again.</p>
+          </div>
+          
+          <!-- Footer -->
+          <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #999;">
+            <p>© ${new Date().getFullYear()} Sales Ghazy - ${new Date().toLocaleDateString('en-US')}</p>
+          </div>
+        </div>
+      `;
+      
+      // إضافة عنصر الفاتورة مؤقتًا إلى الصفحة بحيث يمكن تصويره
+      Object.assign(invoiceElement.style, {
+        position: 'absolute',
+        left: '-9999px',
+        top: '-9999px',
+        zIndex: '-9999'
+      });
+      document.body.appendChild(invoiceElement);
+      
+      try {
+        // التقاط الفاتورة كصورة باستخدام html2canvas
+        const canvas = await html2canvas(invoiceElement, {
+          scale: 2, // زيادة الدقة للحصول على جودة أفضل
+          logging: false,
+          useCORS: true
+        });
+        
+        // إزالة عنصر الفاتورة المؤقت
+        document.body.removeChild(invoiceElement);
+        
+        // تحويل الصورة إلى PDF
+        const imgData = canvas.toDataURL('image/png');
+        
+        // إنشاء PDF بنفس أبعاد الصورة
+        const pdfWidth = 210; // حجم A4 بالملم
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        const pdf = new jsPDF({
+          orientation: pdfHeight > pdfWidth ? 'portrait' : 'landscape',
+          unit: 'mm',
+          format: [pdfWidth, pdfHeight]
+        });
+        
+        // إضافة الصورة إلى PDF
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        
+        // حفظ الملف
+        pdf.save(`invoice-${invoiceNumber}.pdf`);
+      } catch (renderError) {
+        // إزالة عنصر الفاتورة إذا حدث خطأ
+        if (document.body.contains(invoiceElement)) {
+          document.body.removeChild(invoiceElement);
+        }
+        throw renderError;
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
   };
   
   // طباعة الفاتورة
@@ -186,18 +344,221 @@ export default function InvoicePreview({
   
   // مشاركة الفاتورة عبر رقم هاتف العميل
   const handleShare = async () => {
-    // إذا لم يكن هناك رقم هاتف للعميل، نستخدم مشاركة الفاتورة العادية
-    if (!customer.phone) {
-      alert(t('customer_has_no_phone'));
-      return;
+    try {
+      // إذا لم يكن هناك رقم هاتف للعميل، نستخدم مشاركة الفاتورة العادية
+      if (!customer.phone) {
+        alert(t('customer_has_no_phone'));
+        return;
+      }
+      
+      // إنشاء عنصر HTML لتعيين الفاتورة
+      const invoiceElement = document.createElement('div');
+      
+      // إعداد البيانات
+      const customerName = customer.name || '';
+      const customerPhone = customer.phone || '';
+      const customerAddress = customer.address || '';
+      
+      // تنسيق التاريخ
+      const formattedDate = formatDate(invoiceDate);
+      
+      // إنشاء HTML للفاتورة باللغة الإنجليزية فقط
+      invoiceElement.innerHTML = `
+        <div style="font-family: Arial, sans-serif; width: 800px; padding: 20px; box-sizing: border-box; margin: 0 auto;">
+          <!-- Header -->
+          <div style="background-color: #2980b9; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">Sales Ghazy</h1>
+            <p style="margin: 5px 0; font-size: 14px;">Cairo - Egypt</p>
+            <p style="margin: 5px 0; font-size: 14px;">01067677607</p>
+          </div>
+          
+          <!-- Invoice Information -->
+          <div style="margin: 20px 0; overflow: hidden;">
+            <div style="float: left; text-align: left; width: 50%;">
+              <h3 style="margin: 0 0 10px; color: #333; font-size: 16px; font-weight: bold;">
+                Invoice Information:
+              </h3>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Invoice Number:</strong> ${invoiceNumber}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Date:</strong> ${formattedDate}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Payment Method:</strong> ${paymentMethod}
+              </p>
+            </div>
+            
+            <div style="float: right; text-align: right; width: 50%;">
+              <h3 style="margin: 0 0 10px; color: #333; font-size: 16px; font-weight: bold;">
+                Customer Information:
+              </h3>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Name:</strong> ${customerName}
+              </p>
+              ${customerPhone ? `
+                <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                  <strong>Phone:</strong> ${customerPhone}
+                </p>
+              ` : ''}
+              ${customerAddress ? `
+                <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                  <strong>Address:</strong> ${customerAddress}
+                </p>
+              ` : ''}
+            </div>
+          </div>
+          
+          <!-- Divider -->
+          <div style="border-top: 1px solid #ddd; margin: 15px 0;"></div>
+          
+          <!-- Products List -->
+          <h3 style="text-align: center; color: #2980b9; margin: 20px 0; font-size: 18px;">
+            Products
+          </h3>
+          
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+              <tr style="background-color: #2980b9; color: white;">
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Product</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Price</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Quantity</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${products.map((item: any, index: number) => `
+                <tr style="background-color: ${index % 2 === 0 ? '#f9f9f9' : 'white'};">
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: left;">
+                    ${item.name || 'Unknown Product'}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                    ${formatCurrency(item.sellingPrice)}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                    ${item.quantity}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">
+                    ${formatCurrency(item.sellingPrice * item.quantity)}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <!-- Payment Summary -->
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: right; width: 300px; margin-left: auto;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span style="font-weight: bold; color: #555;">Subtotal:</span>
+              <span>${formatCurrency(subtotal)}</span>
+            </div>
+            
+            ${totalDiscount > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #555;">Discount:</span>
+                <span>${formatCurrency(totalDiscount)}</span>
+              </div>
+            ` : ''}
+            
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 16px; border-top: 1px solid #ddd; padding-top: 10px;">
+              <span style="font-weight: bold; color: #333;">Total:</span>
+              <span style="font-weight: bold; color: #2980b9;">${formatCurrency(total)}</span>
+            </div>
+          </div>
+          
+          <!-- Thank You Message -->
+          <div style="text-align: center; margin-top: 30px; color: #2980b9; font-style: italic;">
+            <p>Thank you for your business! We look forward to serving you again.</p>
+          </div>
+          
+          <!-- Footer -->
+          <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #999;">
+            <p>© ${new Date().getFullYear()} Sales Ghazy - ${new Date().toLocaleDateString('en-US')}</p>
+          </div>
+        </div>
+      `;
+      
+      // إضافة عنصر الفاتورة مؤقتًا إلى الصفحة بحيث يمكن تصويره
+      Object.assign(invoiceElement.style, {
+        position: 'absolute',
+        left: '-9999px',
+        top: '-9999px',
+        zIndex: '-9999'
+      });
+      document.body.appendChild(invoiceElement);
+      
+      try {
+        // التقاط الفاتورة كصورة باستخدام html2canvas
+        const canvas = await html2canvas(invoiceElement, {
+          scale: 2, // زيادة الدقة للحصول على جودة أفضل
+          logging: false,
+          useCORS: true
+        });
+        
+        // إزالة عنصر الفاتورة المؤقت
+        document.body.removeChild(invoiceElement);
+        
+        // تحويل الصورة إلى PDF
+        const imgData = canvas.toDataURL('image/png');
+        
+        // إنشاء PDF بنفس أبعاد الصورة
+        const pdfWidth = 210; // حجم A4 بالملم
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        const pdf = new jsPDF({
+          orientation: pdfHeight > pdfWidth ? 'portrait' : 'landscape',
+          unit: 'mm',
+          format: [pdfWidth, pdfHeight]
+        });
+        
+        // إضافة الصورة إلى PDF
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        
+        // تنظيف رقم الهاتف وإزالة المسافات والشرطات وأي رموز غير رقمية
+        let phone = customer.phone.replace(/\s+|-|\(|\)|\+/g, '');
+        
+        // إضافة رمز البلد إذا لم يكن موجودًا
+        if (!phone.startsWith('20')) {
+          phone = '20' + phone;
+        }
+        
+        // حفظ PDF كـ blob
+        const pdfBlob = pdf.output('blob');
+        
+        // إنشاء URL للتنزيل
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        
+        // إنشاء رابط التنزيل
+        const downloadLink = document.createElement('a');
+        downloadLink.href = pdfUrl;
+        downloadLink.download = `invoice-${invoiceNumber}.pdf`;
+        
+        // تنزيل الملف
+        downloadLink.click();
+        
+        // مشاركة عبر واتساب
+        const shareMessage = `${t('invoice_sent')} - ${invoiceNumber}`;
+        const whatsappURL = `https://wa.me/${phone}?text=${encodeURIComponent(shareMessage)}`;
+        
+        // فتح واتساب في نافذة جديدة
+        window.open(whatsappURL, '_blank');
+      } catch (renderError) {
+        // إزالة عنصر الفاتورة إذا حدث خطأ
+        if (document.body.contains(invoiceElement)) {
+          document.body.removeChild(invoiceElement);
+        }
+        throw renderError;
+      }
+    } catch (error) {
+      console.error('Error sharing invoice:', error);
+      
+      // استخدام الطريقة البسيطة في حالة الفشل
+      if (customer.phone) {
+        const invoiceText = `${t('invoice')} #${invoiceNumber}\n${t('total')}: ${formatCurrency(total)}`;
+        const whatsappUrl = `https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(invoiceText)}`;
+        window.open(whatsappUrl, '_blank');
+      }
     }
-    
-    // مشاركة عبر WhatsApp (الخيار المفضل إن كان متاحاً)
-    const invoiceText = `${t('invoice')} #${invoiceNumber}\n${t('total')}: ${formatCurrency(total)}`;
-    const whatsappUrl = `https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(invoiceText)}`;
-    
-    // فتح نافذة جديدة لـ WhatsApp
-    window.open(whatsappUrl, '_blank');
   };
   
   // مشاركة عامة للفاتورة
