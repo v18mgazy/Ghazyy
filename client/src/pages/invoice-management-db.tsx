@@ -331,8 +331,9 @@ export default function InvoiceManagementDB() {
   
   const confirmDeleteInvoice = (invoice: any) => {
     console.log('Confirming deletion of invoice:', invoice);
-    // استخدام معرف قاعدة البيانات الفعلي
-    setInvoiceToDelete(invoice.id);
+    // استخدام معرف قاعدة البيانات الفعلي (dbId)
+    setInvoiceToDelete(invoice.dbId);
+    console.log('Setting invoice ID to delete:', invoice.dbId);
     setIsDeleteDialogOpen(true);
   };
   
@@ -341,8 +342,22 @@ export default function InvoiceManagementDB() {
     
     console.log('Attempting to delete invoice with ID:', invoiceToDelete);
     
-    // جميع الفواتير الآن مخزنة في قاعدة البيانات
-    deleteMutation.mutate(Number(invoiceToDelete));
+    // تأكد من أن المعرف عدد صحيح
+    if (invoiceToDelete) {
+      const numericId = Number(invoiceToDelete);
+      console.log('Converting to numeric ID:', numericId);
+      if (!isNaN(numericId)) {
+        // جميع الفواتير الآن مخزنة في قاعدة البيانات
+        deleteMutation.mutate(numericId);
+      } else {
+        console.error('Invalid invoice ID:', invoiceToDelete);
+        toast({
+          title: t('error'),
+          description: t('invoice_invalid_id'),
+          variant: 'destructive'
+        });
+      }
+    }
   };
   
   // Function to get status badge color and text
