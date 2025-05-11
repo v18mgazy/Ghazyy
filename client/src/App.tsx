@@ -9,7 +9,7 @@ import SalesPage from "@/pages/index";
 import ManagementPage from "@/pages/management";
 import ReportsPage from "@/pages/reports";
 import CustomersPage from "@/pages/customers";
-import InvoiceManagementDBPage from "@/pages/invoice-management-db";
+import InvoiceManagementPage from "@/pages/invoice-management-new";
 import NewInvoicePage from "@/pages/invoice/new";
 import AppLayout from "./components/layout/app-layout";
 import { useEffect, useContext } from "react";
