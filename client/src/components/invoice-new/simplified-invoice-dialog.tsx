@@ -453,7 +453,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[80vh] p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0 overflow-hidden">
         <DialogHeader className="p-4 pb-1 bg-gradient-to-r from-blue-600/20 to-indigo-600/10">
           <DialogTitle className="flex items-center text-xl">
             <ReceiptText className="h-5 w-5 text-primary mr-2" />
@@ -461,15 +461,15 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="p-1 bg-white overflow-y-auto" style={{maxHeight: "calc(80vh - 150px)"}}>
+        <div className="p-2 bg-white overflow-y-auto" style={{maxHeight: "calc(90vh - 160px)"}}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="customer" disabled={activeTab === 'products' && selectedCustomer}>
-                <User className="mr-2 h-4 w-4" />
+            <TabsList className="grid w-full grid-cols-2 mb-4 h-auto py-3">
+              <TabsTrigger value="customer" disabled={activeTab === 'products' && selectedCustomer} className="text-base py-3">
+                <User className="mr-2 h-5 w-5" />
                 {t('customer')}
               </TabsTrigger>
-              <TabsTrigger value="products" disabled={!selectedCustomer}>
-                <ShoppingCart className="mr-2 h-4 w-4" />
+              <TabsTrigger value="products" disabled={!selectedCustomer} className="text-base py-3">
+                <ShoppingCart className="mr-2 h-5 w-5" />
                 {t('products')}
               </TabsTrigger>
             </TabsList>
@@ -487,15 +487,15 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                 </div>
                 <Button 
                   className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white" 
-                  size="sm"
+                  size="default"
                   onClick={() => setShowAddCustomer(true)}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  {t('add_new')}
+                  <Plus className="h-5 w-5 mr-1" />
+                  <span className="font-medium">{t('add_new')}</span>
                 </Button>
               </div>
 
-              <ScrollArea className="h-[320px]">
+              <ScrollArea className="h-[340px]">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-1">
                   {filteredCustomers.map((customer: any) => (
                     <div
@@ -810,14 +810,21 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
         </div>
         
         {activeTab === 'products' && selectedCustomer && (
-          <div className="flex justify-between bg-muted/10 p-3 border-t">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-between bg-muted/10 p-5 border-t">
+            <Button 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              size="lg"
+              className="text-base font-medium px-6"
+            >
+              <X className="mr-2 h-5 w-5" />
               {t('cancel')}
             </Button>
             <Button
               onClick={handleSaveInvoice}
               disabled={createInvoiceMutation.isPending || invoiceProducts.length === 0}
-              className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white"
+              className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white text-base font-medium px-8"
+              size="lg"
             >
               {createInvoiceMutation.isPending ? (
                 <>
