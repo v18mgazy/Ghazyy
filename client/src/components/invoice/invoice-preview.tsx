@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocale } from '@/hooks/use-locale';
+import { useStoreInfo } from '@/hooks/use-store-info';
 import { 
   Dialog,
   DialogContent,
@@ -54,6 +55,7 @@ export default function InvoicePreview({
 }: InvoicePreviewProps) {
   const { t } = useTranslation();
   const { language } = useLocale();
+  const { storeInfo } = useStoreInfo();
   const isRtl = language === 'ar';
   const invoiceRef = useRef<HTMLDivElement>(null);
   
