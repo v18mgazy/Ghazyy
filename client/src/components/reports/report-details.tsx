@@ -429,8 +429,9 @@ export default function ReportDetails({
       </Card>
       
       {/* تقرير تفصيلي */}
-      <Card className="print:shadow-none shadow-sm">
-        <CardHeader className="pb-2 border-b">
+      <Card className="print:shadow-none shadow-md overflow-hidden">
+        <div className="absolute inset-0 bg-primary/5 opacity-30 pointer-events-none"></div>
+        <CardHeader className="pb-2 border-b relative">
           <div className="flex flex-col md:flex-row justify-between md:items-center space-y-4 md:space-y-0">
             <CardTitle className="text-lg flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 text-primary"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -438,44 +439,47 @@ export default function ReportDetails({
             </CardTitle>
             <div className="flex flex-wrap gap-2">
               <div className="relative max-w-[200px]">
-                <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/70" />
                 <Input
                   placeholder={t('search_report')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 max-w-[200px]"
+                  className="pl-8 max-w-[200px] border-primary/30 focus:border-primary/60 focus-visible:ring-primary/20"
                 />
               </div>
-              <Button 
-                variant="outline"
-                size="sm" 
-                className="flex items-center" 
-                onClick={onPrint}
-              >
-                <Printer className="mr-1 h-4 w-4" />
-                {t('print')}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="flex items-center" 
-                onClick={onExport}
-              >
-                <FileSpreadsheet className="mr-1 h-4 w-4" />
-                {t('export')}
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  size="sm" 
+                  className="flex items-center bg-white dark:bg-gray-800 border-primary/30 hover:bg-primary/5 text-primary hover:text-primary-dark transition-colors" 
+                  onClick={onPrint}
+                >
+                  <Printer className="mr-1.5 h-4 w-4" />
+                  {t('print')}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center bg-white dark:bg-gray-800 border-emerald-400/50 hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 transition-colors" 
+                  onClick={onExport}
+                >
+                  <FileSpreadsheet className="mr-1.5 h-4 w-4" />
+                  {t('export')}
+                </Button>
+              </div>
             </div>
           </div>
         </CardHeader>
         
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 relative">
           {isLoading ? (
             <div className="py-8 flex justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : filteredReports.length === 0 ? (
-            <div className="py-12 text-center border border-dashed rounded-lg">
-              <p className="text-neutral-500 dark:text-neutral-400">
+            <div className="h-40 flex items-center justify-center border border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg bg-neutral-50/50 dark:bg-neutral-900/20">
+              <p className="text-neutral-500 dark:text-neutral-400 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 opacity-50"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 {t('no_report_data')}
               </p>
             </div>
@@ -483,8 +487,8 @@ export default function ReportDetails({
             <div className="space-y-8">
               {/* ملخص المجموعات */}
               {summaryGroups.summaries.length > 0 && (
-                <div className="p-5 bg-muted/20 rounded-xl border border-muted/40">
-                  <h3 className="font-semibold mb-3 text-lg flex items-center">
+                <div className="p-5 bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl border border-primary/20 shadow-sm">
+                  <h3 className="font-semibold mb-4 text-lg flex items-center text-primary-dark dark:text-primary-light">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>
                     {t('report_summary')}
                   </h3>
@@ -492,12 +496,12 @@ export default function ReportDetails({
                     {summaryGroups.summaries.map(summary => (
                       <div 
                         key={summary.id}
-                        className={`p-4 rounded-lg shadow-sm ${
+                        className={`p-4 rounded-lg shadow-md transition-all hover:shadow-lg ${
                           summary.category === 'damaged' 
-                            ? 'bg-red-50 text-red-800 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800/30' 
+                            ? 'bg-gradient-to-br from-red-50 to-red-100/50 text-red-800 border border-red-200 dark:from-red-900/30 dark:to-red-900/10 dark:text-red-300 dark:border-red-800/30' 
                             : summary.category === 'expenses'
-                              ? 'bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/30'
-                              : 'bg-blue-50 text-blue-800 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800/30'
+                              ? 'bg-gradient-to-br from-amber-50 to-amber-100/50 text-amber-800 border border-amber-200 dark:from-amber-900/30 dark:to-amber-900/10 dark:text-amber-300 dark:border-amber-800/30'
+                              : 'bg-gradient-to-br from-blue-50 to-blue-100/50 text-blue-800 border border-blue-200 dark:from-blue-900/30 dark:to-blue-900/10 dark:text-blue-300 dark:border-blue-800/30'
                         }`}
                       >
                         <div className="text-sm font-medium">{summary.details}</div>
@@ -515,16 +519,16 @@ export default function ReportDetails({
                     <Badge variant="outline" className="mr-2 bg-primary/10 border-primary/30 text-primary font-bold">{summaryGroups.sales.length}</Badge>
                     {t('sales')}
                   </h3>
-                  <div className="overflow-x-auto rounded-lg border">
+                  <div className="overflow-x-auto rounded-lg border border-primary/20 shadow-sm">
                     <Table>
-                      <TableHeader className="bg-primary/5">
+                      <TableHeader className="bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10">
                         <TableRow>
-                          <TableHead className="font-medium">{t('date')}</TableHead>
-                          <TableHead className="font-medium">{t('customer')}</TableHead>
-                          <TableHead className="font-medium">{t('details')}</TableHead>
-                          <TableHead className="font-medium text-right">{t('amount')}</TableHead>
-                          <TableHead className="font-medium">{t('status')}</TableHead>
-                          <TableHead className="font-medium text-right">{t('profit')}</TableHead>
+                          <TableHead className="font-medium text-primary-dark dark:text-primary-light py-3">{t('date')}</TableHead>
+                          <TableHead className="font-medium text-primary-dark dark:text-primary-light py-3">{t('customer')}</TableHead>
+                          <TableHead className="font-medium text-primary-dark dark:text-primary-light py-3">{t('details')}</TableHead>
+                          <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('amount')}</TableHead>
+                          <TableHead className="font-medium text-primary-dark dark:text-primary-light py-3">{t('status')}</TableHead>
+                          <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('profit')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
