@@ -28,26 +28,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Missing required fields' });
       }
       
+      console.log('Password change request for userId:', userId);
+      
       // Get the user
       const user = await storage.getUser(userId);
       if (!user) {
+        console.log('User not found with ID:', userId);
         return res.status(404).json({ error: 'User not found' });
       }
       
-      // For the admin/cashier hardcoded accounts
-      if (userId === 1 && currentPassword === '503050' && user.username === 'admin') {
+      // Check for hardcoded admin account
+      if ((userId === 1 || userId === '1') && currentPassword === '503050' && user.username === 'admin') {
+        console.log('Admin password change successful');
         // Would update password in a real system - hardcoded account for now
         return res.status(200).json({ message: 'Password changed successfully' });
       }
       
-      if (userId === 2 && currentPassword === '123456' && user.username === 'cashier') {
+      // Check for hardcoded cashier account
+      if ((userId === 2 || userId === '2') && currentPassword === '123456' && user.username === 'cashier') {
+        console.log('Cashier password change successful');
         // Would update password in a real system - hardcoded account for now
         return res.status(200).json({ message: 'Password changed successfully' });
       }
       
-      // For database users (not implemented yet)
-      // Would validate current password and update with new password
+      // For users stored in the database 
+      // Try to authenticate with current password in the database
+      try {
+        // Check if the user exists in the database and the password matches
+        if (user && user.password === currentPassword) {
+          console.log('Database user password verified, updating password');
+          
+          // In a real system, we would hash the password before storing
+          // const hashedPassword = await bcrypt.hash(newPassword, 10);
+          
+          // Update the user's password in the database
+          const updatedUser = await storage.updateUser(Number(userId), {
+            password: newPassword // In a real system, this would be the hashed password
+          });
+          
+          if (updatedUser) {
+            return res.status(200).json({ message: 'Password changed successfully' });
+          }
+        }
+      } catch (dbError) {
+        console.error('Database error changing password:', dbError);
+      }
       
+      console.log('Invalid password attempt for user:', user.username);
       return res.status(401).json({ error: 'Invalid current password' });
     } catch (error) {
       console.error('Error changing password:', error);
