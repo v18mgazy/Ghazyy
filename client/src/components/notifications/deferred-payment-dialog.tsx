@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -12,15 +12,18 @@ interface DeferredPaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   invoiceId: number | null;
+  notificationId?: number; // إضافة معرّف الإشعار للحذف التلقائي
 }
 
 export function DeferredPaymentDialog({ 
   open, 
   onOpenChange,
-  invoiceId
+  invoiceId,
+  notificationId
 }: DeferredPaymentDialogProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [customer, setCustomer] = useState<any>(null);
   const [productsData, setProductsData] = useState<any[]>([]);
 
@@ -67,6 +70,26 @@ export function DeferredPaymentDialog({
     }
   }, [invoice]);
 
+  // مُعرف للحذف التلقائي للإشعار
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (notificationId: number) => {
+      console.log('Deleting notification with ID:', notificationId);
+      const response = await apiRequest('DELETE', `/api/notifications/${notificationId}`);
+      if (response.status !== 204) {
+        throw new Error('Error deleting notification');
+      }
+      return { success: true, id: notificationId };
+    },
+    onSuccess: (result) => {
+      console.log('Successfully deleted notification:', result);
+      // تحديث قائمة الإشعارات
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+    },
+    onError: (error: Error) => {
+      console.error('Delete notification error:', error);
+    }
+  });
+
   // Mutación para aprobar el pago diferido
   const approveMutation = useMutation({
     mutationFn: async () => {
@@ -84,6 +107,11 @@ export function DeferredPaymentDialog({
       // Invalidar consultas para actualizar los datos
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      
+      // حذف الإشعار تلقائيًا إذا كان معرّف الإشعار متوفرًا
+      if (notificationId) {
+        deleteNotificationMutation.mutate(notificationId);
+      }
       
       // Cerrar el diálogo
       onOpenChange(false);
@@ -115,6 +143,11 @@ export function DeferredPaymentDialog({
       // Invalidar consultas para actualizar los datos
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      
+      // حذف الإشعار تلقائيًا إذا كان معرّف الإشعار متوفرًا
+      if (notificationId) {
+        deleteNotificationMutation.mutate(notificationId);
+      }
       
       // Cerrar el diálogo
       onOpenChange(false);

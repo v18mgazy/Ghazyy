@@ -41,6 +41,7 @@ export function NotificationsDropdown({ userId }: NotificationsDropdownProps) {
   const [open, setOpen] = useState(false);
   const [showDeferredPaymentDialog, setShowDeferredPaymentDialog] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
+  const [selectedNotificationId, setSelectedNotificationId] = useState<number | null>(null);
   
   // استعلام لجلب الإشعارات
   const {
