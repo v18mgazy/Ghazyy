@@ -206,10 +206,11 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   
   // اختيار منتج من نتائج البحث
   const handleSelectProduct = (product: ProductSearchResult) => {
-    // التحقق من توفر المخزون
+    // بما أننا قمنا بفحص التوفر في السابق، يمكننا المتابعة مباشرة هنا
     const quantity = (product as any).quantity || 0;
+    
+    // على الرغم من ذلك، تحقق إضافي للسلامة
     if (quantity <= 0) {
-      // استخدام toast بدلاً من alert
       toast({
         title: t('cannot_add_product'),
         description: t('product_out_of_stock'),
@@ -218,9 +219,13 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
       return;
     }
     
+    // تحديد المنتج المختار
     setSelectedProduct(product);
     // وضع الحد الأقصى للكمية المتوفرة
     setMaxAvailableQuantity(quantity);
+    
+    // إغلاق مربع البحث بعد اختيار المنتج
+    setShowProductSearch(false);
   };
   
   // متغير لتخزين الحد الأقصى للكمية المتوفرة من المنتج
@@ -865,9 +870,19 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
                     <div 
                       key={product.id} 
                       className={`p-3 cursor-pointer transition-colors ${
-                        isOutOfStock ? 'opacity-60 hover:bg-red-50 dark:hover:bg-red-950/10' : 'hover:bg-primary/5'
+                        isOutOfStock ? 'opacity-60 bg-red-50 dark:bg-red-950/10' : 'hover:bg-primary/5'
                       } ${index !== productSearchResults.length - 1 ? "border-b border-primary/10" : ""}`}
-                      onClick={() => handleSelectProduct(product)}
+                      onClick={() => {
+                        if (isOutOfStock) {
+                          toast({
+                            title: t('cannot_add_product'),
+                            description: t('product_out_of_stock'),
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        handleSelectProduct(product);
+                      }}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
