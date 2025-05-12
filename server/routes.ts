@@ -2261,9 +2261,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const hourKey = `${hour}:00`;
           const current = salesData.get(hourKey) || { sales: 0, profit: 0 };
           
-          // إضافة المبيعات والأرباح (افتراض متوسط هامش ربح 30% للتبسيط)
+          // إضافة المبيعات
           current.sales += invoice.total || 0;
-          current.profit += (invoice.total || 0) * 0.3;
+          
+          // حساب الأرباح من بيانات المنتجات
+          let calculatedProfit = 0;
+          try {
+            if (invoice.productsData) {
+              const products = JSON.parse(invoice.productsData);
+              if (Array.isArray(products)) {
+                for (const product of products) {
+                  // استخدام الربح المحسوب مسبقًا أو حسابه من سعر الشراء والبيع
+                  if (product.profit !== undefined && product.profit !== null) {
+                    calculatedProfit += Number(product.profit);
+                  } else if (product.purchasePrice !== undefined && (product.sellingPrice || product.price)) {
+                    const sellingPrice = product.sellingPrice || product.price || 0;
+                    const purchasePrice = Number(product.purchasePrice) || 0;
+                    const quantity = Number(product.quantity) || 1;
+                    calculatedProfit += (sellingPrice - purchasePrice) * quantity;
+                  } else {
+                    // استخدام هامش ربح تقديري 30% فقط إذا لم تتوفر البيانات
+                    const sellingPrice = product.sellingPrice || product.price || 0;
+                    const quantity = Number(product.quantity) || 1;
+                    calculatedProfit += (sellingPrice * quantity) * 0.3;
+                  }
+                }
+              }
+            } else {
+              // استخدام هامش ربح تقديري 30% فقط إذا لم تتوفر بيانات المنتجات
+              calculatedProfit = (invoice.total || 0) * 0.3;
+            }
+            
+            current.profit += calculatedProfit;
+          } catch (err) {
+            console.error('Error calculating profit for chart data:', err);
+            // في حالة فشل حساب الربح، نستخدم هامش الربح التقديري
+            current.profit += (invoice.total || 0) * 0.3;
+          }
           
           salesData.set(hourKey, current);
         }
@@ -2386,11 +2420,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   // استخدام الربح المحسوب مسبقًا أو حسابه من سعر الشراء والبيع
                   if (product.profit !== undefined) {
                     calculatedProfit += product.profit;
-                  } else if (product.purchasePrice !== undefined && product.price) {
-                    calculatedProfit += (product.price - product.purchasePrice) * product.quantity;
+                  } else if (product.purchasePrice !== undefined && (product.sellingPrice || product.price)) {
+                    const sellingPrice = product.sellingPrice || product.price || 0;
+                    calculatedProfit += (sellingPrice - product.purchasePrice) * product.quantity;
                   } else {
                     // استخدام هامش ربح تقديري 30% فقط إذا لم تتوفر البيانات
-                    calculatedProfit += (product.total || 0) * 0.3;
+                    const sellingPrice = product.sellingPrice || product.price || 0;
+                    calculatedProfit += (sellingPrice * product.quantity) * 0.3;
                   }
                 }
               }
