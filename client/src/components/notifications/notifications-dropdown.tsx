@@ -222,18 +222,19 @@ export function NotificationsDropdown({ userId }: NotificationsDropdownProps) {
   }, [refetch]);
   
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <Badge className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs" variant="destructive">
-              {unreadCount}
-            </Badge>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[350px] max-h-[500px] overflow-y-auto">
+    <>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 px-1.5 py-0.5 text-xs" variant="destructive">
+                {unreadCount}
+              </Badge>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-[350px] max-h-[500px] overflow-y-auto">
         <DropdownMenuLabel className="flex justify-between items-center">
           <span>{t('notifications.title')}</span>
           {unreadCount > 0 && (
@@ -327,5 +328,13 @@ export function NotificationsDropdown({ userId }: NotificationsDropdownProps) {
         )}
       </DropdownMenuContent>
     </DropdownMenu>
+      
+      {/* نافذة الموافقة على الدفع الآجل */}
+      <DeferredPaymentDialog 
+        open={showDeferredPaymentDialog} 
+        onOpenChange={setShowDeferredPaymentDialog}
+        invoiceId={selectedInvoiceId}
+      />
+    </>
   );
 }
