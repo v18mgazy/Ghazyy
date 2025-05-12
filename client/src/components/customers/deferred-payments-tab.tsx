@@ -118,7 +118,7 @@ export default function DeferredPaymentsTab() {
   });
 
   // إضافة خيار لإخفاء المدفوعات المكتملة
-  const [hideFullyPaidPayments, setHideFullyPaidPayments] = useState(false);
+  const [hideFullyPaidPayments, setHideFullyPaidPayments] = useState(true);
   
   // تصفية المدفوعات المؤجلة بناءً على البحث وحالة الدفع
   console.log('Current deferred payments:', deferredPayments);
