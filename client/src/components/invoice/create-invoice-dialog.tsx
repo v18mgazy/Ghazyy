@@ -547,7 +547,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
                 placeholder={t('search_customers')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full"
+                className="pl-10 w-full border-primary/20 focus:border-primary/50"
               />
               {searchTerm && (
                 <Button
@@ -562,24 +562,26 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
             </div>
             
             {/* قائمة العملاء */}
-            <div className="max-h-72 overflow-y-auto space-y-2 pr-2">
+            <div className="max-h-72 overflow-y-auto rounded-lg border border-primary/20 shadow-sm">
               {filteredCustomers.length > 0 ? (
-                filteredCustomers.map((customer) => (
+                filteredCustomers.map((customer, index) => (
                   <div
                     key={customer.id}
-                    className="p-3 border border-border rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
+                    className={`p-3 cursor-pointer hover:bg-primary/5 transition-colors ${
+                      index !== filteredCustomers.length - 1 ? "border-b border-primary/10" : ""
+                    }`}
                     onClick={() => handleSelectCustomer(customer)}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <div className={`flex items-center ${isRtl ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-primary font-medium">
                           {customer.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-medium flex items-center">
+                          <div className="font-medium flex items-center text-primary">
                             {customer.name}
                             {customer.isPotential && (
-                              <span className="ml-2 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 px-2 py-0.5 rounded-full">
+                              <span className={`${isRtl ? 'mr-2' : 'ml-2'} text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300 px-2 py-0.5 rounded-full`}>
                                 {t('potential_customer')}
                               </span>
                             )}
@@ -589,20 +591,21 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
                           </div>
                         </div>
                       </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      <ChevronRight className="h-5 w-5 text-primary/60" />
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">{t('no_customer_found')}</p>
+                <div className="text-center py-8 px-4 bg-muted/10">
+                  <p className="text-muted-foreground mb-3">{t('no_customer_found')}</p>
                   {searchTerm.trim() && (
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
-                      className="mt-2"
+                      className="w-full bg-gradient-to-r from-primary to-primary-600"
                       onClick={handleCreateNewCustomer}
                     >
+                      <PlusCircle className="h-4 w-4 mr-2" />
                       {t('create_new_customer_with_name', { name: searchTerm })}
                     </Button>
                   )}
@@ -611,30 +614,27 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
             </div>
           </div>
           
-          <DialogFooter className="flex justify-between items-center">
+          <DialogFooter className="flex justify-between items-center pt-2">
             <Button variant="outline" onClick={handleCloseInvoice}>
               {t('cancel')}
             </Button>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  console.log('Show add customer form button clicked');
-                  setNewCustomer({
-                    name: '',
-                    phone: '',
-                    address: '',
-                    isPotential: true
-                  });
-                  setShowAddCustomerForm(true);
-                  setIsCustomerDialogOpen(false);
-                }}
-                className="border-primary text-primary hover:bg-primary/10"
-              >
-                <PlusCircle className={`${isRtl ? 'ml-2' : 'mr-2'} h-4 w-4`} />
-                {t('new_customer')}
-              </Button>
-            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setNewCustomer({
+                  name: searchTerm,
+                  phone: '',
+                  address: '',
+                  isPotential: true
+                });
+                setShowAddCustomerForm(true);
+                setIsCustomerDialogOpen(false);
+              }}
+              className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20 hover:bg-primary/20 transition-all"
+            >
+              <PlusCircle className={`${isRtl ? 'ml-2' : 'mr-2'} h-4 w-4`} />
+              {t('new_customer')}
+            </Button>
           </DialogFooter>
         </>
       );
@@ -654,43 +654,56 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
           
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">{t('name')} <span className="text-destructive">*</span></Label>
+              <Label htmlFor="name" className="font-medium text-primary">
+                {t('name')} <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="name"
                 value={newCustomer.name}
                 onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
                 placeholder={t('customer_name')}
+                className="border-primary/20 focus:border-primary"
                 autoFocus
               />
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="phone">{t('phone')}</Label>
+              <Label htmlFor="phone" className="font-medium">
+                {t('phone')}
+              </Label>
               <Input
                 id="phone"
                 value={newCustomer.phone}
                 onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
                 placeholder={t('phone_number')}
+                className="border-primary/20 focus:border-primary"
+                type="tel"
+                inputMode="tel"
               />
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="address">{t('address')}</Label>
+              <Label htmlFor="address" className="font-medium">
+                {t('address')}
+              </Label>
               <Input
                 id="address"
                 value={newCustomer.address}
                 onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
                 placeholder={t('customer_address')}
+                className="border-primary/20 focus:border-primary"
               />
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="isPotential">{t('potential_client')}</Label>
+              <Label htmlFor="isPotential" className="font-medium">
+                {t('potential_client')}
+              </Label>
               <Select
                 value={newCustomer.isPotential ? 'yes' : 'no'}
                 onValueChange={(value) => setNewCustomer({ ...newCustomer, isPotential: value === 'yes' })}
               >
-                <SelectTrigger id="isPotential">
+                <SelectTrigger id="isPotential" className="border-primary/20 focus:border-primary bg-white dark:bg-gray-950">
                   <SelectValue placeholder={t('select')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -701,15 +714,32 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
             </div>
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowAddCustomerForm(false);
-              setIsCustomerDialogOpen(true);
-            }}>
+          <DialogFooter className="flex space-x-2 rtl:space-x-reverse">
+            <Button variant="outline" 
+              onClick={() => {
+                setShowAddCustomerForm(false);
+                setIsCustomerDialogOpen(true);
+              }}
+              className="border-muted-foreground/20"
+            >
               {t('cancel')}
             </Button>
-            <Button onClick={handleAddCustomer} disabled={addCustomerMutation.isPending}>
-              {addCustomerMutation.isPending ? t('saving') : t('save')}
+            <Button 
+              onClick={handleAddCustomer} 
+              disabled={addCustomerMutation.isPending}
+              className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
+            >
+              {addCustomerMutation.isPending ? (
+                <>
+                  <svg className={`animate-spin ${isRtl ? '-mr-1 ml-2' : '-ml-1 mr-2'} h-4 w-4 text-white`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  {t('saving')}
+                </>
+              ) : (
+                t('save')
+              )}
             </Button>
           </DialogFooter>
         </>
@@ -719,8 +749,8 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
       return (
         <>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Scan className="h-5 w-5 text-primary" />
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Scan className="h-6 w-6 text-primary" />
               {t('scan_barcode')}
             </DialogTitle>
             <DialogDescription>
@@ -729,13 +759,49 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
           </DialogHeader>
           
           <div className="py-4">
-            <BarcodeScanner onProductScanned={handleProductScanned} />
+            <div className="border-2 border-primary/30 p-2 rounded-lg shadow-sm bg-white dark:bg-gray-950">
+              <BarcodeScanner onProductScanned={handleProductScanned} />
+            </div>
+            
+            {scannedProduct && (
+              <div className="mt-4 p-4 border border-green-200 dark:border-green-900 rounded-lg bg-green-50 dark:bg-green-900/20">
+                <h3 className="font-medium flex items-center text-green-700 dark:text-green-400">
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  {t('product_found')}
+                </h3>
+                <div className="mt-2 space-y-1">
+                  <p className="text-sm">
+                    <span className="font-medium">{t('product_name')}:</span> {scannedProduct.name}
+                  </p>
+                  <p className="text-sm">
+                    <span className="font-medium">{t('barcode')}:</span> {scannedProduct.barcode}
+                  </p>
+                  <p className="text-sm">
+                    <span className="font-medium">{t('price')}:</span> {formatCurrency(scannedProduct.sellingPrice)}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowBarcodeScanner(false)}>
+          <DialogFooter className="flex justify-between">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowBarcodeScanner(false)}
+              className="border-primary/20"
+            >
               {t('back')}
             </Button>
+            
+            {scannedProduct && (
+              <Button 
+                onClick={() => handleSelectProduct(scannedProduct)}
+                className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
+              >
+                <ShoppingBasket className="h-4 w-4 mr-2" />
+                {t('add_to_invoice')}
+              </Button>
+            )}
           </DialogFooter>
         </>
       );
