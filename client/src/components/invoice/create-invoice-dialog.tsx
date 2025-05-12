@@ -820,9 +820,14 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
             {scannedProduct && (
               <Button 
                 onClick={() => {
+                  console.log('Add button clicked with scannedProduct:', scannedProduct);
+                  
                   // التحقق من المخزون قبل إضافة المنتج
                   const quantity = (scannedProduct as any).quantity || 0;
+                  console.log('Product quantity:', quantity);
+                  
                   if (quantity <= 0) {
+                    console.log('Product out of stock');
                     toast({
                       title: t('cannot_add_product'),
                       description: t('product_out_of_stock'),
@@ -832,7 +837,22 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
                   }
                   
                   // إضافة المنتج إذا كان متوفراً
-                  handleSelectProduct(scannedProduct);
+                  console.log('Adding product to invoice:', scannedProduct);
+                  // تحديث المتغيرين معاً مرة أخرى للتأكد
+                  setSelectedProduct(scannedProduct);
+                  
+                  // استخدام نسخة محلية من الدالة لتجنب المشاكل
+                  const productToAdd = {
+                    id: scannedProduct.id,
+                    name: scannedProduct.name,
+                    barcode: scannedProduct.barcode,
+                    sellingPrice: scannedProduct.sellingPrice,
+                    quantity: 1
+                  };
+                  
+                  // إضافة المنتج مباشرة إلى المنتجات المختارة
+                  addSelectedProductToInvoice(productToAdd);
+                  setShowBarcodeScanner(false);
                 }}
                 className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
               >
@@ -1023,7 +1043,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
                 <ActiveInvoice
                   customer={selectedCustomer}
                   onClose={handleCloseInvoice}
-                  onAddProduct={selectedProduct ? addSelectedProductToInvoice : undefined}
+                  onAddProduct={addSelectedProductToInvoice}
                   onProductScanned={handleProductScanned}
                 />
               </>
