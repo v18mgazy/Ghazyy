@@ -389,8 +389,91 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
             <Button variant="outline" onClick={handleCloseInvoice}>
               {t('cancel')}
             </Button>
-            <Button onClick={handleCreateNewCustomer} disabled={!searchTerm.trim()}>
-              {t('add_customer')}
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowAddCustomerForm(true)}
+                className="border-primary text-primary hover:bg-primary/10"
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                {t('new_customer')}
+              </Button>
+              <Button onClick={handleCreateNewCustomer} disabled={!searchTerm.trim()}>
+                {t('add_customer')}
+              </Button>
+            </div>
+          </DialogFooter>
+        </>
+      );
+    } else if (showAddCustomerForm) {
+      // نموذج إضافة عميل جديد
+      return (
+        <>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <PlusCircle className="h-6 w-6 text-primary" />
+              {t('add_new_customer')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('add_customer_description')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">{t('name')} <span className="text-destructive">*</span></Label>
+              <Input
+                id="name"
+                value={newCustomer.name}
+                onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                placeholder={t('customer_name')}
+                autoFocus
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="phone">{t('phone')}</Label>
+              <Input
+                id="phone"
+                value={newCustomer.phone}
+                onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                placeholder={t('phone_number')}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="address">{t('address')}</Label>
+              <Input
+                id="address"
+                value={newCustomer.address}
+                onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
+                placeholder={t('customer_address')}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="isPotential">{t('potential_client')}</Label>
+              <Select
+                value={newCustomer.isPotential ? 'yes' : 'no'}
+                onValueChange={(value) => setNewCustomer({ ...newCustomer, isPotential: value === 'yes' })}
+              >
+                <SelectTrigger id="isPotential">
+                  <SelectValue placeholder={t('select')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">{t('yes')}</SelectItem>
+                  <SelectItem value="no">{t('no')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddCustomerForm(false)}>
+              {t('cancel')}
+            </Button>
+            <Button onClick={handleAddCustomer} disabled={addCustomerMutation.isPending}>
+              {addCustomerMutation.isPending ? t('saving') : t('save')}
             </Button>
           </DialogFooter>
         </>
