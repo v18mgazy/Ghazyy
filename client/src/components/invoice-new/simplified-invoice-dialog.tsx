@@ -68,11 +68,64 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const [createdInvoice, setCreatedInvoice] = useState<any>(null);
   const [invoiceData, setInvoiceData] = useState<any>(null);
+  const [showAddCustomer, setShowAddCustomer] = useState(false);
 
   // حالة المجاميع
   const [subtotal, setSubtotal] = useState(0);
   const [totalDiscount, setTotalDiscount] = useState(0);
   const [total, setTotal] = useState(0);
+  
+  // إضافة عميل جديد
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    phone: '',
+    address: ''
+  });
+  
+  const createCustomerMutation = useMutation({
+    mutationFn: async (customerData: any) => {
+      try {
+        const res = await apiRequest('POST', '/api/customers', customerData);
+        return await res.json();
+      } catch (error) {
+        console.error('Error creating customer:', error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      console.log('Customer created successfully:', data);
+      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      setSelectedCustomer(data);
+      setActiveTab('products');
+      setShowAddCustomer(false);
+      setNewCustomer({ name: '', phone: '', address: '' });
+      toast({
+        title: t('success'),
+        description: t('customer_created_successfully'),
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error in customer creation:', error);
+      toast({
+        title: t('error'),
+        description: error.message || t('error_creating_customer'),
+        variant: 'destructive',
+      });
+    }
+  });
+
+  const handleCreateCustomer = () => {
+    if (!newCustomer.name.trim()) {
+      toast({
+        title: t('error'),
+        description: t('customer_name_required'),
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    createCustomerMutation.mutate(newCustomer);
+  };
 
   // استعلامات البيانات
   const { data: customers = [] } = useQuery({
@@ -396,7 +449,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl max-h-[80vh] p-0 overflow-hidden">
-        <DialogHeader className="p-4 pb-1 bg-gradient-to-r from-primary/10 to-primary/5">
+        <DialogHeader className="p-4 pb-1 bg-gradient-to-r from-blue-600/20 to-indigo-600/10">
           <DialogTitle className="flex items-center text-xl">
             <ReceiptText className="h-5 w-5 text-primary mr-2" />
             {t('create_new_invoice')}
@@ -417,14 +470,24 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
             </TabsList>
 
             <TabsContent value="customer" className="py-1">
-              <div className="relative flex-1 mb-3">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
-                <Input
-                  placeholder={t('search_customers')}
-                  value={customerSearchTerm}
-                  onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                  className="pl-10 border-primary/20 focus:border-primary"
-                />
+              <div className="flex items-center gap-2 mb-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
+                  <Input
+                    placeholder={t('search_customers')}
+                    value={customerSearchTerm}
+                    onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                    className="pl-10 border-primary/20 focus:border-primary"
+                  />
+                </div>
+                <Button 
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white" 
+                  size="sm"
+                  onClick={() => setShowAddCustomer(true)}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {t('add_new')}
+                </Button>
               </div>
 
               <ScrollArea className="h-[320px]">
@@ -720,7 +783,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
             <Button
               onClick={handleSaveInvoice}
               disabled={createInvoiceMutation.isPending || invoiceProducts.length === 0}
-              className="bg-gradient-to-r from-primary to-primary-600"
+              className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white"
             >
               {createInvoiceMutation.isPending ? (
                 <>
@@ -740,6 +803,79 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
           </div>
         )}
       </DialogContent>
+      
+      {/* نافذة إضافة عميل جديد */}
+      <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-xl">
+              <User className="h-5 w-5 text-primary mr-2" />
+              {t('add_new_customer')}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-3">
+            <div className="space-y-2">
+              <Label htmlFor="customer-name">{t('name')} *</Label>
+              <Input
+                id="customer-name"
+                value={newCustomer.name}
+                onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                placeholder={t('enter_customer_name')}
+                className="w-full"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="customer-phone">{t('phone')}</Label>
+              <Input
+                id="customer-phone"
+                value={newCustomer.phone}
+                onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                placeholder={t('enter_customer_phone')}
+                className="w-full"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="customer-address">{t('address')}</Label>
+              <Input
+                id="customer-address"
+                value={newCustomer.address}
+                onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
+                placeholder={t('enter_customer_address')}
+                className="w-full"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter className="flex items-center justify-between">
+            <Button variant="outline" onClick={() => setShowAddCustomer(false)}>
+              {t('cancel')}
+            </Button>
+            <Button 
+              onClick={handleCreateCustomer}
+              disabled={createCustomerMutation.isPending}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+            >
+              {createCustomerMutation.isPending ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  {t('saving')}
+                </>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  {t('save')}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };
