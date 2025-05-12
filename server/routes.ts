@@ -395,6 +395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...(req.body.paymentMethod && { paymentMethod: req.body.paymentMethod }),
         ...(req.body.paymentStatus && { paymentStatus: req.body.paymentStatus }),
         ...(req.body.notes && { notes: req.body.notes }),
+        ...(req.body.productsData && { productsData: req.body.productsData }),
         updatedAt: new Date().toISOString()
       };
       
@@ -1537,11 +1538,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
               for (const product of productsData) {
                 // إضافة الربح - استخدام حقل الربح المحسوب مسبقًا (profit) إذا كان موجودًا
                 // أو حساب الربح من سعر الشراء وسعر البيع
+                console.log('Calculating profit for product:', product);
                 if (product.profit) {
+                  console.log('Using existing profit:', product.profit);
                   totalProfit += product.profit;
                 } else if (product.purchasePrice) {
                   const profit = (product.price - product.purchasePrice) * product.quantity;
+                  console.log('Calculated profit from price difference:', profit);
                   totalProfit += profit;
+                } else {
+                  // استخدام تقدير للربح (30% من سعر البيع) للفواتير التي لا تحتوي على سعر الشراء
+                  const estimatedProfit = product.price * product.quantity * 0.3;
+                  console.log('Using estimated profit (30%):', estimatedProfit);
+                  totalProfit += estimatedProfit;
                 }
               }
             } catch (err) {
