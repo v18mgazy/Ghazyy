@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocale } from '@/hooks/use-locale';
 import { Button } from '@/components/ui/button';
-import { ReceiptText, Plus, ArrowRight, Loader2 } from 'lucide-react';
+import { ReceiptText, Plus, ArrowRight, Loader2, ShoppingCart } from 'lucide-react';
 import BarcodeScanner from '@/components/barcode-scanner';
 import ActiveInvoice from '@/components/invoice/active-invoice';
-import CreateInvoiceDialog from '@/components/invoice/create-invoice-dialog';
+// استيراد مكون إنشاء الفاتورة الجديد
+import InvoiceCreator from '@/components/invoice-new/invoice-creator';
 import { useQuery } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { Customer, Product } from '@shared/schema';
 import { toast } from '@/hooks/use-toast';
+// استيراد أنماط CSS الخاصة
+import '@/components/invoice-new/invoice-creator.css';
 
 export default function SalesPage() {
   const { t } = useTranslation();
@@ -150,14 +153,11 @@ export default function SalesPage() {
         </>
       )}
       
-      {/* نافذة إنشاء الفاتورة المنبثقة */}
-      <CreateInvoiceDialog 
+      {/* نافذة إنشاء الفاتورة المنبثقة الجديدة والمحسنة */}
+      <InvoiceCreator 
         open={isCreateInvoiceOpen} 
         onOpenChange={setIsCreateInvoiceOpen}
-        onCustomerSelected={handleCustomerSelected}
         preSelectedProduct={lastScannedProduct}
-        customers={customers || []} 
-        products={products || []}
       />
     </div>
   );
