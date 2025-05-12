@@ -33,7 +33,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 
 // Custom Components
 import BarcodeScanner from '@/components/barcode-scanner';
-import InvoicePreview from '@/components/invoice-new/invoice-preview';
+import InvoicePreview from '@/components/invoice/invoice-preview';
 
 interface SimplifiedInvoiceDialogProps {
   open: boolean;
