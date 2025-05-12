@@ -200,6 +200,23 @@ export function NotificationsDropdown({ userId }: NotificationsDropdownProps) {
         });
       }
     }
+    // إذا كان الإشعار عن موافقة على دفع مؤجل، انتقل إلى صفحة الفاتورة
+    else if (notification.type === 'deferred_payment_approved' && notification.referenceId) {
+      try {
+        const invoiceId = parseInt(notification.referenceId);
+        if (!isNaN(invoiceId)) {
+          // انتقل إلى صفحة إدارة الفواتير مع تحديد الفاتورة المعتمدة
+          window.location.href = `/invoice-management-db?openInvoice=${invoiceId}`;
+        }
+      } catch (error) {
+        console.error('Invalid invoice ID:', notification.referenceId);
+        toast({
+          title: t('error'),
+          description: t('invalid_invoice_id'),
+          variant: 'destructive'
+        });
+      }
+    }
     // أو إذا كان نوع الإشعار هو إنشاء فاتورة
     else if (notification.type === 'invoice_created' && notification.referenceId) {
       // window.location.href = `/invoices/${notification.referenceId}`;
