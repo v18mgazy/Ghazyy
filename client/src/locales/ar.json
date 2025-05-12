@@ -555,5 +555,9 @@
   "personal_expenses": "مصاريف شخصية",
   "miscellaneous": "نثريات",
   "select_expense_type": "اختر نوع المصروف",
-  "delete_expense_confirmation": "هل أنت متأكد من حذف هذا المصروف؟ لا يمكن التراجع عن هذا الإجراء."
+  "delete_expense_confirmation": "هل أنت متأكد من حذف هذا المصروف؟ لا يمكن التراجع عن هذا الإجراء.",
+  "approved": "موافق عليه",
+  "pending": "معلق",
+  "partially_paid": "مدفوع جزئياً",
+  "paid": "مدفوع"
 }
