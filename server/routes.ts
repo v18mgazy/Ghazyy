@@ -399,6 +399,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updatedAt: new Date().toISOString()
       };
       
+      // إذا كان هناك بيانات منتجات مرسلة مباشرة كـ productsData، نستخدمها كما هي
+      if (req.body.productsData) {
+        console.log('Using directly provided productsData:', req.body.productsData);
+        updateData.productsData = req.body.productsData;
+      }
+      
       console.log('Updating invoice with data:', updateData);
       
       // تحديث الفاتورة

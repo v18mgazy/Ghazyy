@@ -449,13 +449,14 @@ export class RealtimeDBStorage implements IStorage {
             if (products && products.length > 0) {
               products.forEach((product: any) => {
                 if (product) {
-                  productIds.push(product.productId);
-                  productNames.push(product.productName);
-                  productQuantities.push(product.quantity);
-                  productPrices.push(product.price);
+                  console.log('Processing product for invoice:', product);
+                  productIds.push(product.id || product.productId);
+                  productNames.push(product.name || product.productName || '');
+                  productQuantities.push(product.quantity || 0);
+                  productPrices.push(product.price || 0);
                   productPurchasePrices.push(product.purchasePrice || 0);
                   productDiscounts.push(product.discount || 0);
-                  productTotals.push(product.total);
+                  productTotals.push(product.total || 0);
                   productProfits.push(product.profit || 0);
                 }
               });
@@ -473,6 +474,12 @@ export class RealtimeDBStorage implements IStorage {
           } catch (error) {
             console.error('Error processing products data in updateInvoice:', error);
           }
+        }
+        
+        // إذا لم يتم تحديد productsData في طلب التحديث، استخدم القيمة الحالية
+        if (!invoiceData.productsData && currentInvoice.productsData) {
+          console.log('Preserving existing productsData from invoice');
+          invoiceData.productsData = currentInvoice.productsData;
         }
         
         const updatedInvoice = {
