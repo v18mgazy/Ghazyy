@@ -290,33 +290,55 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
     setShowProductSearch(false);
   };
   
-  // مع المنتج الممسوح ضوئيًا
+  // معالجة المنتج المحدد من الباركود
   const handleProductScanned = (scannedProd: any) => {
+    console.log('Product scanned from barcode:', scannedProd);
+    
     // البحث عن المنتج بالباركود في المنتجات المستلمة من قاعدة البيانات
     const foundProduct = products.find((p: any) => p.barcode === scannedProd.barcode);
     
     if (foundProduct) {
-      // إضافة المنتج مباشرة إلى الفاتورة
-      const newProduct: Product = {
+      // إضافة المنتج مباشرة إلى الفاتورة كمنتج محدد
+      setSelectedProduct({
         id: foundProduct.id,
         name: foundProduct.name,
         barcode: foundProduct.barcode,
         sellingPrice: foundProduct.sellingPrice,
-        quantity: 1,
-        discount: 0
-      };
-      
-      // هنا تتم إضافة المنتج إلى الفاتورة مباشرة
-      setScannedProduct(null);
-      setShowBarcodeScanner(false);
-    } else {
-      // إنشاء منتج جديد إذا لم يتم العثور عليه
-      setScannedProduct({
-        id: 'new-' + Date.now(),
-        name: scannedProd.name || 'منتج جديد',
-        barcode: scannedProd.barcode,
-        sellingPrice: scannedProd.sellingPrice || 0,
       });
+      
+      // إغلاق شاشة الماسح وإنهاء عملية المسح
+      setShowBarcodeScanner(false);
+      
+      toast({
+        title: t('product_found'),
+        description: `${foundProduct.name} ${t('found_in_inventory')}`,
+      });
+      
+      // هنا يمكن للمستخدم ضبط الكمية ثم إضافته
+    } else if (scannedProd) {
+      // إذا وجدنا المنتج من ماسح الباركود مباشرة
+      setSelectedProduct({
+        id: scannedProd.id,
+        name: scannedProd.name,
+        barcode: scannedProd.barcode,
+        sellingPrice: scannedProd.sellingPrice,
+      });
+      
+      setShowBarcodeScanner(false);
+      
+      toast({
+        title: t('product_found'),
+        description: `${scannedProd.name} ${t('ready_to_add')}`,
+      });
+    } else {
+      // لم يتم العثور على المنتج
+      toast({
+        title: t('product_not_found'),
+        description: t('barcode_not_recognized'),
+        variant: "destructive"
+      });
+      
+      // ترك المستخدم في نفس الشاشة للمحاولة مرة أخرى
     }
   };
   
