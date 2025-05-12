@@ -206,7 +206,13 @@ export function NotificationsDropdown({ userId }: NotificationsDropdownProps) {
         const invoiceId = parseInt(notification.referenceId);
         if (!isNaN(invoiceId)) {
           // انتقل إلى صفحة إدارة الفواتير مع تحديد الفاتورة المعتمدة
-          window.location.href = `/invoice-management-db?openInvoice=${invoiceId}`;
+          const url = new URL(window.location.href);
+          // تغيير المسار إلى /invoice-management-db مع الحفاظ على نفس الدومين
+          url.pathname = '/invoice-management-db';
+          // إضافة معلمة openInvoice
+          url.searchParams.set('openInvoice', invoiceId.toString());
+          // الانتقال للصفحة الجديدة
+          window.location.href = url.toString();
         }
       } catch (error) {
         console.error('Invalid invoice ID:', notification.referenceId);

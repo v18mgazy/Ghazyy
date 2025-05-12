@@ -270,8 +270,8 @@ export default function InvoiceManagementDB() {
     }
   };
   
-  // Function to view an invoice
-  const viewInvoice = async (invoice: any) => {
+  // Function to view an invoice - using useCallback for stability
+  const viewInvoice = React.useCallback(async (invoice: any) => {
     // في حالة الفواتير المخزنة بالفعل في قاعدة البيانات
     if (invoice.dbId) {
       try {
@@ -317,7 +317,7 @@ export default function InvoiceManagementDB() {
       // الفواتير الافتراضية
       setSelectedInvoice(invoice);
     }
-  };
+  }, [fetchInvoiceDetails, productsMap, t, setSelectedInvoice]);
   
   // وظيفة تعديل الفاتورة
   const handleEditInvoice = async (invoice: any) => {
