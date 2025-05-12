@@ -42,6 +42,7 @@
     "reject_error": "Error rejecting deferred payment request",
     "not_found": "Invoice not found"
   },
+  "awaiting_approval": "Awaiting approval",
   "dashboard": "Dashboard",
   "sales": "Sales",
   "management": "Management",

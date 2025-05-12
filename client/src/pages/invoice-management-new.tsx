@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   FileText, Search, Pencil, Trash2, Printer, Filter, CheckCircle, XCircle, Clock, 
   RefreshCw, ArrowUpDown, ChevronRight, ChevronLeft, Loader2, Share, Scan, MoreVertical,
-  Building, Store
+  Building, Store, AlertCircle
 } from 'lucide-react';
 import BarcodeScanner from '@/components/barcode-scanner';
 import { StoreInfoDialog } from '@/components/store-info/store-info-dialog';
