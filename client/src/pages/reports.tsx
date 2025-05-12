@@ -229,8 +229,91 @@ export default function ReportsPage() {
     XLSX.writeFile(wb, `${fileName}.xlsx`);
   };
   
+  // استعلام لجلب معلومات المتجر
+  const { data: storeInfo } = useQuery({
+    queryKey: ['/api/store-info'],
+    queryFn: async () => {
+      const response = await fetch('/api/store-info');
+      if (!response.ok) {
+        return { name: '', address: '', phone: '' };
+      }
+      return await response.json();
+    }
+  });
+
   const handlePrint = () => {
-    window.print();
+    if (!reportData) return;
+    
+    // تحديد عنوان التقرير
+    let reportTitle = '';
+    if (period === 'daily') {
+      reportTitle = `${t('daily_report')} - ${formatDate(date, 'yyyy-MM-dd')}`;
+    } else if (period === 'weekly') {
+      reportTitle = `${t('weekly_report')} - ${formatDate(weekStartDate, 'yyyy-MM-dd')} ${t('to')} ${formatDate(weekEndDate, 'yyyy-MM-dd')}`;
+    } else if (period === 'monthly') {
+      reportTitle = `${t('monthly_report')} - ${month}`;
+    } else {
+      reportTitle = `${t('yearly_report')} - ${year}`;
+    }
+    
+    // إضافة العناصر المطلوبة للطباعة في DOM ثم إزالتها بعد الطباعة
+    const printArea = document.createElement('div');
+    printArea.id = 'print-area';
+    printArea.className = 'print-area';
+    
+    // إضافة معلومات المتجر
+    const storeInfoDiv = document.createElement('div');
+    storeInfoDiv.id = 'store-info';
+    storeInfoDiv.className = 'store-info mb-5';
+    
+    const storeName = document.createElement('h1');
+    storeName.className = 'text-2xl font-bold text-center mb-2';
+    storeName.textContent = storeInfo?.name || '';
+    
+    const storeContact = document.createElement('p');
+    storeContact.className = 'text-sm text-center text-gray-600 mb-4';
+    storeContact.textContent = `${storeInfo?.address || ''} - ${storeInfo?.phone || ''}`;
+    
+    const reportHeader = document.createElement('h2');
+    reportHeader.className = 'text-xl font-semibold text-center mb-6 pb-2 border-b';
+    reportHeader.textContent = reportTitle;
+    
+    storeInfoDiv.appendChild(storeName);
+    storeInfoDiv.appendChild(storeContact);
+    storeInfoDiv.appendChild(reportHeader);
+    
+    printArea.appendChild(storeInfoDiv);
+    
+    // نسخ المحتوى المرئي الحالي
+    const currentTabContent = document.querySelector('[data-state="active"][role="tabpanel"]');
+    if (currentTabContent) {
+      const contentClone = currentTabContent.cloneNode(true);
+      
+      // إزالة الأزرار وعناصر التحكم من المحتوى المنسوخ
+      if (contentClone instanceof HTMLElement) {
+        const buttonsToRemove = contentClone.querySelectorAll('button, [role="tablist"]');
+        buttonsToRemove.forEach(button => {
+          if (button.parentNode) {
+            button.parentNode.removeChild(button);
+          }
+        });
+      }
+      
+      printArea.appendChild(contentClone);
+    }
+    
+    // إضافة منطقة الطباعة للصفحة
+    document.body.appendChild(printArea);
+    
+    // تنفيذ الطباعة
+    setTimeout(() => {
+      window.print();
+      
+      // إزالة منطقة الطباعة بعد الانتهاء
+      setTimeout(() => {
+        document.body.removeChild(printArea);
+      }, 100);
+    }, 100);
   };
   
   const handleRefresh = () => {
