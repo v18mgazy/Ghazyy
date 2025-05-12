@@ -870,7 +870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             title: 'طلب موافقة على الدفع المؤجل',
             message: `تم طلب موافقة على الدفع المؤجل للفاتورة رقم ${invoice.invoiceNumber} بقيمة ${invoice.total}`,
             type: 'deferred_payment_request',
-            referenceId: approval.id.toString()
+            referenceId: invoice.id.toString()
           });
         } catch (notifyError) {
           console.error('Failed to send deferred payment notification:', notifyError);
