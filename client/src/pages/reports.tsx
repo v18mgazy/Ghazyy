@@ -240,45 +240,7 @@ export default function ReportsPage() {
         </div>
       </div>
       
-      {/* بطاقة ملخص التقرير */}
-      <Card className="mb-6 bg-gradient-to-br from-primary/5 to-primary/10 border-0">
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                {t('total_sales')}
-              </h3>
-              <p className="text-2xl font-bold">
-                {isLoading ? <Skeleton className="h-8 w-24" /> : `${stats.totalSales.toLocaleString()} ${t('currency')}`}
-              </p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                {t('total_profit')}
-              </h3>
-              <p className="text-2xl font-bold">
-                {isLoading ? <Skeleton className="h-8 w-24" /> : `${stats.totalProfit.toLocaleString()} ${t('currency')}`}
-              </p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                {t('profit_margin')}
-              </h3>
-              <p className="text-2xl font-bold">
-                {isLoading ? <Skeleton className="h-8 w-16" /> : `${stats.profitMargin.toFixed(1)}%`}
-              </p>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                {t('total_orders')}
-              </h3>
-              <p className="text-2xl font-bold">
-                {isLoading ? <Skeleton className="h-8 w-16" /> : stats.totalOrders.toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* تم حذف بطاقة ملخص التقرير */}
       
       {/* التبويبات لأنواع التقارير المختلفة */}
       <Tabs 
