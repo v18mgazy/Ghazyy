@@ -190,6 +190,7 @@ export function NotificationsDropdown({ userId }: NotificationsDropdownProps) {
         const invoiceId = parseInt(notification.referenceId);
         if (!isNaN(invoiceId)) {
           setSelectedInvoiceId(invoiceId);
+          setSelectedNotificationId(notification.id); // تخزين معرف الإشعار للحذف التلقائي
           setShowDeferredPaymentDialog(true);
         }
       } catch (error) {
@@ -356,8 +357,16 @@ export function NotificationsDropdown({ userId }: NotificationsDropdownProps) {
       {/* نافذة الموافقة على الدفع الآجل */}
       <DeferredPaymentDialog 
         open={showDeferredPaymentDialog} 
-        onOpenChange={setShowDeferredPaymentDialog}
+        onOpenChange={(open) => {
+          setShowDeferredPaymentDialog(open);
+          // إعادة تعيين معرّف الإشعار عند إغلاق النافذة
+          if (!open) {
+            setSelectedInvoiceId(null);
+            setSelectedNotificationId(null);
+          }
+        }}
         invoiceId={selectedInvoiceId}
+        notificationId={selectedNotificationId}
       />
     </>
   );
