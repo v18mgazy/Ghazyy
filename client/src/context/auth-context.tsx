@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     try {
       // أولاً نحاول المصادقة المضمنة للمستخدمين الثابتين
-      if (username === 'admin' && password === '503050') {
+      if (username === 'admin' && password === '123123') {
         console.log("بيانات المستخدم صحيحة - تسجيل دخول ادمن");
         
         setUser({

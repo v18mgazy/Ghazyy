@@ -38,7 +38,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check for hardcoded admin account
-      if ((userId === 1 || userId === '1') && currentPassword === '503050' && user.username === 'admin') {
+      if ((userId === 1 || userId === '1') && currentPassword === '123123' && user.username === 'admin') {
         console.log('Admin password change successful');
         // Would update password in a real system - hardcoded account for now
         return res.status(200).json({ message: 'Password changed successfully' });
