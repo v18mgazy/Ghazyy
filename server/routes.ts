@@ -1512,10 +1512,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // التحقق من تنسيق التاريخ
-      if (type === 'custom') {
-        // للتقارير المخصصة، نحتاج إلى تاريخ البداية والنهاية
+      if (type === 'custom' || type === 'weekly') {
+        // للتقارير المخصصة والأسبوعية، نحتاج إلى تاريخ البداية والنهاية
         if (!startDate || !endDate) {
-          return res.status(400).json({ message: 'Start date and end date are required for custom reports' });
+          return res.status(400).json({ message: 'Start date and end date are required for custom and weekly reports' });
         }
       } else if (!date) {
         // لأنواع التقارير الأخرى نحتاج إلى التاريخ
@@ -1670,8 +1670,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // إنشاء تقارير مفصلة مع تضمين المصاريف
       let reportDate = date as string;
-      if (type === 'custom') {
-        // للتقارير المخصصة، نستخدم نطاق التاريخ كعنوان للتقرير
+      if (type === 'custom' || type === 'weekly') {
+        // للتقارير المخصصة والأسبوعية، نستخدم نطاق التاريخ كعنوان للتقرير
         reportDate = `${startDate as string} - ${endDate as string}`;
       }
       
