@@ -73,6 +73,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
   // حالة المجاميع
   const [subtotal, setSubtotal] = useState(0);
   const [totalDiscount, setTotalDiscount] = useState(0);
+  const [invoiceDiscount, setInvoiceDiscount] = useState(0);
   const [total, setTotal] = useState(0);
   
   // إضافة عميل جديد
@@ -200,12 +201,13 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       return sum + discount;
     }, 0);
     
-    const newTotal = newSubtotal - newTotalDiscount;
+    const invoiceDiscountAmount = invoiceDiscount > 0 ? (newSubtotal * (invoiceDiscount / 100)) : 0;
+    const newTotal = newSubtotal - newTotalDiscount - invoiceDiscountAmount;
     
     setSubtotal(newSubtotal);
     setTotalDiscount(newTotalDiscount);
     setTotal(newTotal);
-  }, []);
+  }, [invoiceDiscount]);
 
   // إضافة منتج للفاتورة
   const handleAddProduct = (product: any) => {
@@ -383,8 +385,10 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       paymentMethod,
       paymentStatus,
       subtotal,
-      discount: totalDiscount,
-      total,
+      itemsDiscount: totalDiscount,
+      invoiceDiscount: invoiceDiscount > 0 ? (subtotal * (invoiceDiscount / 100)) : 0,
+      discountPercentage: invoiceDiscount,
+      total: total,
       notes: invoiceNotes,
       products: invoiceItems
     };
@@ -410,6 +414,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       setInvoiceProducts([]);
       setPaymentMethod('cash');
       setInvoiceNotes('');
+      setInvoiceDiscount(0);
       setShowInvoicePreview(false);
       setInvoiceData(null);
     }
@@ -749,22 +754,51 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                         />
                       </div>
                       
-                      {/* مجاميع الفاتورة */}
-                      <div className="mt-3 space-y-1 border-t pt-3">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">{t('subtotal')}:</span>
-                          <span>{formatCurrency(subtotal)}</span>
-                        </div>
-                        {totalDiscount > 0 && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">{t('total_discount')}:</span>
-                            <span className="text-muted-foreground">- {formatCurrency(totalDiscount)}</span>
+                      {/* خصم الفاتورة والمجاميع */}
+                      <div className="mt-3 space-y-2 border-t pt-3">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="invoice-discount" className="text-sm text-muted-foreground">
+                            {t('invoice_discount')}:
+                          </Label>
+                          <div className="relative w-20">
+                            <Input
+                              id="invoice-discount"
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={invoiceDiscount || 0}
+                              onChange={(e) => setInvoiceDiscount(parseInt(e.target.value) || 0)}
+                              className="pr-7 py-1 h-8 text-sm"
+                            />
+                            <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                           </div>
-                        )}
-                        <Separator />
-                        <div className="flex justify-between font-bold text-base pt-1">
-                          <span>{t('total')}:</span>
-                          <span className="text-primary">{formatCurrency(total)}</span>
+                        </div>
+                        
+                        <div className="space-y-1 pt-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">{t('subtotal')}:</span>
+                            <span>{formatCurrency(subtotal)}</span>
+                          </div>
+                          
+                          {totalDiscount > 0 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">{t('item_discounts')}:</span>
+                              <span className="text-muted-foreground">- {formatCurrency(totalDiscount)}</span>
+                            </div>
+                          )}
+                          
+                          {invoiceDiscount > 0 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">{t('invoice_discount')} ({invoiceDiscount}%):</span>
+                              <span className="text-muted-foreground">- {formatCurrency(subtotal * (invoiceDiscount / 100))}</span>
+                            </div>
+                          )}
+                          
+                          <Separator />
+                          <div className="flex justify-between font-bold text-base pt-1">
+                            <span>{t('total')}:</span>
+                            <span className="text-primary">{formatCurrency(total - (subtotal * (invoiceDiscount / 100)))}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
