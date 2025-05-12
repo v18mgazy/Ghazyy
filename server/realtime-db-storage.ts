@@ -855,15 +855,37 @@ export class RealtimeDBStorage implements IStorage {
   }
 
   // إدارة بيانات التقارير
-  async getReportData(type: string, date: string): Promise<any> {
+  async getReportData(type: string, date: string, expenses: any[] = []): Promise<any> {
     try {
       console.log('Report request:', { type, date });
       
-      // إذا تم تمرير عام فقط في حالة التقرير الأسبوعي، نستخدم تاريخ اليوم الحالي
-      if (type === 'weekly' && date.length === 4) {
-        const today = new Date().toISOString().substring(0, 10);
-        console.log(`Converting year-only date ${date} to today's date: ${today} for weekly report`);
-        date = today;
+      // معالجة خاصة للتقارير الأسبوعية
+      if (type === 'weekly') {
+        // إذا كان التاريخ يحتوي على العام فقط
+        if (date.length === 4) {
+          const today = new Date().toISOString().substring(0, 10);
+          console.log(`Converting year-only date ${date} to today's date: ${today} for weekly report`);
+          date = today;
+        }
+        // إذا كان التاريخ بتنسيق YYYY-Wxx (تنسيق الأسبوع)
+        else if (date.match(/^\d{4}-W\d{2}$/)) {
+          console.log(`Weekly date format detected: ${date}`);
+          const year = parseInt(date.substring(0, 4));
+          const week = parseInt(date.substring(6, 8));
+          
+          // حساب التاريخ المقابل للأسبوع
+          const jan1 = new Date(year, 0, 1);
+          const dayOffset = jan1.getDay(); // عدد الأيام من بداية الأسبوع
+          const dayNum = 1 + (week - 1) * 7; // اليوم التقريبي في السنة
+          const targetDate = new Date(year, 0, dayNum);
+          
+          if (dayOffset > 0) {
+            targetDate.setDate(targetDate.getDate() - dayOffset + 1);
+          }
+          
+          date = targetDate.toISOString().substring(0, 10);
+          console.log(`Converted week format to date: ${date}`);
+        }
       }
       
       // جمع البيانات المطلوبة من مختلف الجداول للتقرير
