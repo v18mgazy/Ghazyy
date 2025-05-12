@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocale } from '@/hooks/use-locale';
 import { 
   Printer, Share2, Check, X, ChevronRight, Download, Phone, 
-  CalendarDays, CreditCard, Receipt, ShoppingBag, Building
+  CalendarDays, CreditCard, Receipt, ShoppingBag, Building, 
+  Loader2
 } from 'lucide-react';
 import { 
   Card, CardContent, CardDescription, CardFooter, 
@@ -17,6 +18,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { apiRequest } from '@/lib/queryClient';
 import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 
 interface InvoicePreviewProps {
   invoice: any;
@@ -27,274 +29,342 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ invoice, onClose }) => 
   const { t } = useTranslation();
   const { language } = useLocale();
   const isRtl = language === 'ar';
+  const { toast } = useToast();
+  const invoiceRef = useRef<HTMLDivElement>(null);
   
-  // استعلام لاسترجاع معلومات المتجر
-  const { data: storeInfo } = useQuery({
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  
+  // جلب معلومات المتجر
+  const { data: storeInfo = {} } = useQuery({
     queryKey: ['/api/store-info'],
   });
   
-  // طباعة الفاتورة
-  const handlePrint = () => {
-    window.print();
-  };
-  
-  // مشاركة الفاتورة عبر واتساب
-  const handleShare = async () => {
-    if (!invoice.customerPhone) {
-      alert(t('customer_has_no_phone'));
-      return;
-    }
-    
+  // معالجة بيانات المنتجات من الفاتورة
+  const parseProducts = () => {
     try {
-      const phoneNumber = invoice.customerPhone.replace(/\D/g, '');
-      
-      // إنشاء رسالة واتساب
-      let message = `${storeInfo?.name || 'Sales Ghazy'}\n`;
-      message += `${t('invoice_number')}: ${invoice.invoiceNumber}\n`;
-      message += `${t('date')}: ${formatDate(invoice.date)}\n\n`;
-      message += `${t('dear')} ${invoice.customerName},\n`;
-      message += `${t('whatsapp_message_content')}\n\n`;
-      
-      // إضافة تفاصيل المنتجات
-      message += `${t('products')}:\n`;
-      invoice.products.forEach((product: any, index: number) => {
-        message += `${index+1}. ${product.productName} x${product.quantity} = ${formatCurrency(product.totalPrice)}\n`;
-      });
-      
-      message += `\n${t('subtotal')}: ${formatCurrency(invoice.subtotal)}\n`;
-      if (invoice.discount > 0) {
-        message += `${t('discount')}: ${formatCurrency(invoice.discount)}\n`;
+      if (invoice.productsData) {
+        return JSON.parse(invoice.productsData);
       }
-      message += `${t('total')}: ${formatCurrency(invoice.total)}\n\n`;
-      message += `${t('thank_you_for_your_business')}\n`;
-      
-      // فتح واتساب مع الرسالة
-      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank');
+      return [];
     } catch (error) {
-      console.error('Error sharing invoice:', error);
-      alert(t('error_sharing_invoice'));
+      console.error('Error parsing products data:', error);
+      return [];
     }
   };
   
-  // تحميل الفاتورة كملف PDF
-  const handleDownloadPDF = async () => {
-    const invoiceElement = document.getElementById('invoice-preview');
-    if (!invoiceElement) return;
+  const invoiceProducts = parseProducts();
+  
+  // حالات الدفع
+  const getStatusBadgeProps = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return { variant: 'success' as const, text: t('paid') };
+      case 'pending':
+        return { variant: 'warning' as const, text: t('pending') };
+      case 'cancelled':
+        return { variant: 'destructive' as const, text: t('cancelled') };
+      case 'approved':
+        return { variant: 'success' as const, text: t('approved') };
+      case 'partially_paid':
+        return { variant: 'outline' as const, text: t('partially_paid') };
+      default:
+        return { variant: 'outline' as const, text: status };
+    }
+  };
+  
+  // طباعة الفاتورة
+  const handlePrint = async () => {
+    if (!invoiceRef.current) return;
+    
+    setIsPrinting(true);
     
     try {
-      const canvas = await html2canvas(invoiceElement, {
+      const originalTransform = invoiceRef.current.style.transform;
+      invoiceRef.current.style.transform = 'scale(1)';
+      
+      const canvas = await html2canvas(invoiceRef.current, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
+        backgroundColor: '#ffffff',
       });
       
-      const imgData = canvas.toDataURL('image/png');
+      invoiceRef.current.style.transform = originalTransform;
+      
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
       });
       
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const imgData = canvas.toDataURL('image/png');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      pdf.save(`${invoice.invoiceNumber}.pdf`);
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
+      
+      toast({
+        title: t('success'),
+        description: t('invoice_printed_successfully'),
+      });
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert(t('error_generating_pdf'));
+      console.error('Error printing invoice:', error);
+      toast({
+        title: t('error'),
+        description: t('error_printing_invoice'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsPrinting(false);
     }
   };
   
-  // الحصول على لون الحالة
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return 'bg-green-500/10 text-green-600 border-green-200';
-      case 'pending':
-        return 'bg-amber-500/10 text-amber-600 border-amber-200';
-      case 'cancelled':
-        return 'bg-red-500/10 text-red-600 border-red-200';
-      case 'partially_paid':
-        return 'bg-blue-500/10 text-blue-600 border-blue-200';
+  // مشاركة الفاتورة عبر واتساب
+  const handleShare = async () => {
+    if (!invoice.customerPhone) {
+      toast({
+        title: t('error'),
+        description: t('customer_has_no_phone'),
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setIsSharing(true);
+    
+    try {
+      // إنشاء محتوى الرسالة
+      const products = invoiceProducts.map((product: any, index: number) => 
+        `${index + 1}. ${product.productName} x${product.quantity} = ${formatCurrency(product.sellingPrice * product.quantity)}`
+      ).join('\\n');
+      
+      const message = `*${storeInfo.name || t('store')}*\\n` +
+        `${t('invoice_number')}: ${invoice.invoiceNumber}\\n` +
+        `${t('date')}: ${formatDate(invoice.date)}\\n` +
+        `${t('customer')}: ${invoice.customerName}\\n\\n` +
+        `*${t('products')}*:\\n${products}\\n\\n` +
+        `${t('subtotal')}: ${formatCurrency(invoice.subtotal)}\\n` +
+        (invoice.discount > 0 ? `${t('discount')}: ${formatCurrency(invoice.discount)}\\n` : '') +
+        `*${t('total')}*: ${formatCurrency(invoice.total)}\\n\\n` +
+        `${t('payment_method')}: ${t(invoice.paymentMethod)}\\n` +
+        `${t('payment_status')}: ${getStatusBadgeProps(invoice.paymentStatus).text}\\n\\n` +
+        `${t('thank_you_for_your_business')}`;
+      
+      const phoneNumber = invoice.customerPhone.replace(/[^0-9]/g, '');
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+      
+      window.open(whatsappUrl, '_blank');
+      
+      toast({
+        title: t('success'),
+        description: t('invoice_shared_successfully'),
+      });
+    } catch (error) {
+      console.error('Error sharing invoice:', error);
+      toast({
+        title: t('error'),
+        description: t('error_sharing_invoice'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSharing(false);
+    }
+  };
+  
+  // ترجمة طريقة الدفع
+  const getPaymentMethodName = (method: string) => {
+    switch (method) {
+      case 'cash':
+        return t('cash');
+      case 'card':
+        return t('card');
+      case 'deferred':
+      case 'pay_later':
+        return t('pay_later');
+      case 'e-wallet':
+        return t('e_wallet');
       default:
-        return 'bg-slate-100 text-slate-500 border-slate-200';
+        return method;
     }
   };
   
   return (
-    <div className="relative max-w-4xl mx-auto">
-      {/* أزرار الإجراءات */}
-      <div className="fixed top-4 right-4 z-50 flex gap-2 print:hidden">
-        <Button variant="outline" size="icon" onClick={onClose} className="bg-white dark:bg-gray-950 shadow-md">
-          <X className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={handlePrint} className="bg-white dark:bg-gray-950 shadow-md">
-          <Printer className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={handleShare} className="bg-white dark:bg-gray-950 shadow-md">
-          <Share2 className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={handleDownloadPDF} className="bg-white dark:bg-gray-950 shadow-md">
-          <Download className="h-4 w-4" />
-        </Button>
-      </div>
-      
-      {/* محتوى الفاتورة للطباعة */}
-      <div id="invoice-preview" className="bg-white dark:bg-gray-950 rounded-lg shadow-lg p-6 print:p-2 print:shadow-none">
-        {/* معلومات المتجر */}
-        <div className="flex flex-col md:flex-row md:justify-between mb-8 items-center">
-          <div className="mb-4 md:mb-0 text-center md:text-left">
-            <h1 className="text-2xl font-bold">{storeInfo?.name || 'Sales Ghazy'}</h1>
-            <p className="text-muted-foreground">{storeInfo?.address || t('store_address')}</p>
-            <p className="text-muted-foreground">{storeInfo?.phone || t('store_phone')}</p>
-          </div>
-          <div className="text-center md:text-right">
-            <h2 className="text-xl font-semibold text-primary">{t('invoice')}</h2>
-            <p className="text-lg font-medium">#{invoice.invoiceNumber}</p>
-            <div className="flex items-center justify-center md:justify-end mt-1">
-              <CalendarDays className="h-4 w-4 text-muted-foreground mr-1" />
-              <span className="text-muted-foreground text-sm">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center overflow-auto py-8" 
+         onClick={onClose}>
+      <Card className="mx-auto w-full max-w-3xl bg-white shadow-xl" 
+            ref={invoiceRef}
+            onClick={(e) => e.stopPropagation()}>
+        <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 pb-4 border-b">
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-2xl">
+                {t('invoice')} #{invoice.invoiceNumber}
+              </CardTitle>
+              <CardDescription className="mt-1 flex items-center text-sm">
+                <CalendarDays className="h-4 w-4 mr-1 text-muted-foreground" />
                 {formatDate(invoice.date)}
-              </span>
+              </CardDescription>
+            </div>
+            
+            <Badge
+              variant={getStatusBadgeProps(invoice.paymentStatus).variant}
+              className="px-3 py-1 text-sm"
+            >
+              {getStatusBadgeProps(invoice.paymentStatus).text}
+            </Badge>
+          </div>
+          
+          {/* معلومات المتجر */}
+          <div className="mt-4 rounded-lg bg-white p-3 shadow-sm border">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-bold text-base">{storeInfo.name || t('store')}</h3>
+                {storeInfo.address && (
+                  <p className="text-sm text-muted-foreground">
+                    <Building className="inline-block h-3 w-3 mr-1" />
+                    {storeInfo.address}
+                  </p>
+                )}
+                {storeInfo.phone && (
+                  <p className="text-sm text-muted-foreground">
+                    <Phone className="inline-block h-3 w-3 mr-1" />
+                    {storeInfo.phone}
+                  </p>
+                )}
+              </div>
+              
+              <div className="text-right">
+                <h3 className="font-bold text-base">{invoice.customerName}</h3>
+                {invoice.customerAddress && (
+                  <p className="text-sm text-muted-foreground">
+                    {invoice.customerAddress}
+                  </p>
+                )}
+                {invoice.customerPhone && (
+                  <p className="text-sm text-muted-foreground">
+                    {invoice.customerPhone}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </CardHeader>
         
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {/* معلومات العميل */}
-          <Card className="border-primary/10">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">{t('bill_to')}</CardTitle>
-                <Building className="h-5 w-5 text-muted-foreground" />
+        <CardContent className="p-6">
+          <div className="my-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold">{t('payment_details')}</h3>
+              
+              <div className="flex items-center text-sm">
+                <CreditCard className="h-4 w-4 mr-1 text-muted-foreground" />
+                {getPaymentMethodName(invoice.paymentMethod)}
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-medium">{invoice.customerName}</div>
-              {invoice.customerPhone && (
-                <div className="flex items-center mt-1">
-                  <Phone className="h-4 w-4 text-muted-foreground mr-1" />
-                  <span className="text-muted-foreground">{invoice.customerPhone}</span>
+            </div>
+            
+            <Separator className="my-3" />
+            
+            {/* قائمة المنتجات */}
+            <div className="space-y-3">
+              <h3 className="font-semibold">{t('products')}</h3>
+              
+              <div className="rounded-md border">
+                <div className="grid grid-cols-12 text-sm font-medium bg-muted p-2">
+                  <div className="col-span-1">#</div>
+                  <div className="col-span-5">{t('product')}</div>
+                  <div className="col-span-2 text-center">{t('price')}</div>
+                  <div className="col-span-2 text-center">{t('quantity')}</div>
+                  <div className="col-span-2 text-right">{t('total')}</div>
+                </div>
+                
+                {invoiceProducts.map((product: any, index: number) => {
+                  const productTotal = product.sellingPrice * product.quantity;
+                  const discountAmount = product.discount ? (productTotal * (product.discount / 100)) : 0;
+                  const finalTotal = productTotal - discountAmount;
+                  
+                  return (
+                    <div 
+                      key={`${product.productId}-${index}`}
+                      className="grid grid-cols-12 text-sm p-2 border-t"
+                    >
+                      <div className="col-span-1">{index + 1}</div>
+                      <div className="col-span-5">
+                        <div className="font-medium">{product.productName}</div>
+                        {product.discount > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            {product.discount}% {t('discount')}
+                          </div>
+                        )}
+                      </div>
+                      <div className="col-span-2 text-center">{formatCurrency(product.sellingPrice)}</div>
+                      <div className="col-span-2 text-center">{product.quantity}</div>
+                      <div className="col-span-2 text-right">{formatCurrency(finalTotal)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {/* ملخص المبالغ */}
+            <div className="mt-6 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{t('subtotal')}:</span>
+                <span>{formatCurrency(invoice.subtotal)}</span>
+              </div>
+              
+              {invoice.discount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('discount')}:</span>
+                  <span>- {formatCurrency(invoice.discount)}</span>
                 </div>
               )}
-              {invoice.customerAddress && (
-                <div className="text-muted-foreground mt-1">
-                  {invoice.customerAddress}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          {/* معلومات الدفع */}
-          <Card className="border-primary/10">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">{t('payment_info')}</CardTitle>
-                <CreditCard className="h-5 w-5 text-muted-foreground" />
+              
+              <Separator />
+              
+              <div className="flex justify-between font-bold pt-1">
+                <span>{t('total')}:</span>
+                <span className="text-primary">{formatCurrency(invoice.total)}</span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <p className="text-muted-foreground">{t('method')}:</p>
-                  <p className="font-medium">{t(invoice.paymentMethod)}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">{t('status')}:</p>
-                  <Badge className={`${getStatusColor(invoice.paymentStatus)}`}>
-                    {t(invoice.paymentStatus)}
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* جدول المنتجات */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold mb-3">{t('products')}</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-muted/30">
-                  <th className="text-left py-2 px-3 border-b">{t('product')}</th>
-                  <th className="text-right py-2 px-3 border-b">{t('price')}</th>
-                  <th className="text-center py-2 px-3 border-b">{t('quantity')}</th>
-                  <th className="text-center py-2 px-3 border-b">{t('discount')}</th>
-                  <th className="text-right py-2 px-3 border-b">{t('total')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoice.products.map((product: any, index: number) => (
-                  <tr key={index} className="border-b border-muted/20 hover:bg-muted/10">
-                    <td className="py-2 px-3">
-                      <div className="font-medium">{product.productName}</div>
-                      {product.barcode && (
-                        <div className="text-xs text-muted-foreground">{product.barcode}</div>
-                      )}
-                    </td>
-                    <td className="py-2 px-3 text-right">{formatCurrency(product.sellingPrice)}</td>
-                    <td className="py-2 px-3 text-center">{product.quantity}</td>
-                    <td className="py-2 px-3 text-center">
-                      {product.discount ? `${product.discount}%` : '-'}
-                    </td>
-                    <td className="py-2 px-3 text-right font-medium">{formatCurrency(product.totalPrice)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        
-        {/* ملخص الفاتورة */}
-        <div className="flex flex-col md:flex-row md:justify-between mb-8">
-          {/* ملاحظات */}
-          <div className="md:w-1/2 mb-6 md:mb-0">
+            </div>
+            
+            {/* ملاحظات */}
             {invoice.notes && (
-              <>
-                <h3 className="text-lg font-semibold mb-2">{t('notes')}</h3>
-                <div className="p-3 bg-muted/20 rounded-md border border-muted text-muted-foreground">
-                  {invoice.notes}
-                </div>
-              </>
+              <div className="mt-6 p-3 bg-muted/20 rounded-md">
+                <h4 className="text-sm font-semibold mb-1">{t('notes')}:</h4>
+                <p className="text-sm text-muted-foreground">{invoice.notes}</p>
+              </div>
             )}
           </div>
-          
-          {/* المجاميع */}
-          <div className="md:w-1/3">
-            <div className="border rounded-md overflow-hidden">
-              <div className="p-3 border-b bg-muted/20">
-                <h3 className="font-semibold">{t('summary')}</h3>
-              </div>
-              <div className="p-3 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t('subtotal')}:</span>
-                  <span>{formatCurrency(invoice.subtotal)}</span>
-                </div>
-                {invoice.discount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t('discount')}:</span>
-                    <span className="text-muted-foreground">- {formatCurrency(invoice.discount)}</span>
-                  </div>
-                )}
-                <Separator />
-                <div className="flex justify-between font-bold text-lg pt-1">
-                  <span>{t('total')}:</span>
-                  <span>{formatCurrency(invoice.total)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        </CardContent>
         
-        {/* تذييل الفاتورة */}
-        <div className="text-center text-muted-foreground border-t pt-4 mt-8">
-          <p>{t('thank_you_message')}</p>
-          <p className="text-sm mt-1">{storeInfo?.name || 'Sales Ghazy'} &copy; {new Date().getFullYear()}</p>
-        </div>
-      </div>
+        <CardFooter className="bg-muted/10 p-6 flex flex-col sm:flex-row justify-between gap-4 border-t">
+          <Button variant="outline" onClick={onClose}>
+            <X className="mr-2 h-4 w-4" />
+            {t('close')}
+          </Button>
+          
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleShare} disabled={isSharing}>
+              {isSharing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Share2 className="mr-2 h-4 w-4" />
+              )}
+              {t('share')}
+            </Button>
+            
+            <Button variant="default" onClick={handlePrint} disabled={isPrinting}>
+              {isPrinting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Printer className="mr-2 h-4 w-4" />
+              )}
+              {t('print')}
+            </Button>
+          </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 };

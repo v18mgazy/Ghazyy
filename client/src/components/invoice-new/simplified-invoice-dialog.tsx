@@ -84,10 +84,19 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
 
   // عملية إنشاء فاتورة جديدة
   const createInvoiceMutation = useMutation({
-    mutationFn: (invoiceData: any) => 
-      apiRequest('POST', '/api/invoices', invoiceData)
-        .then(res => res.json()),
+    mutationFn: async (invoiceData: any) => {
+      try {
+        const res = await apiRequest('POST', '/api/invoices', invoiceData);
+        const data = await res.json();
+        return data;
+      } catch (error) {
+        console.error('Error creating invoice:', error);
+        throw error;
+      }
+    },
     onSuccess: (data) => {
+      // تأكد من أن البيانات صحيحة وموجودة
+      console.log('Invoice created successfully:', data);
       setInvoiceData(data);
       setShowInvoicePreview(true);
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
@@ -98,6 +107,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       });
     },
     onError: (error: any) => {
+      console.error('Error in mutation handler:', error);
       toast({
         title: t('error'),
         description: error.message || t('error_creating_invoice'),
