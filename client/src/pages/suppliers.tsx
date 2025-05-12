@@ -59,7 +59,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Truck, Plus, Pencil, Trash2, FileText, Search, MoreHorizontal, DollarSign, Calendar, CalendarClock } from "lucide-react";
+import { Truck, Plus, Pencil, Trash2, FileText, Search, MoreHorizontal, DollarSign, Calendar, CalendarClock, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
