@@ -513,17 +513,23 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                         setSelectedCustomer(customer);
                         setActiveTab('products');
                       }}
-                      className="p-4 border rounded-lg cursor-pointer hover:border-primary hover:shadow-md transition-all duration-200 bg-white"
+                      className={`p-4 border rounded-lg cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 bg-white ${
+                        selectedCustomer?.id === customer.id 
+                          ? 'border-2 border-primary bg-gradient-to-r from-primary/5 to-secondary/5' 
+                          : 'border-border hover:border-primary hover:bg-muted/5'
+                      }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center text-white font-bold text-lg">
+                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg shadow-sm">
                           {customer.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-foreground truncate text-base">{customer.name}</p>
                           <p className="text-sm text-muted-foreground">{customer.phone || t('no_phone')}</p>
                         </div>
-                        <ChevronRight className="h-6 w-6 text-primary/70" />
+                        <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-full p-1.5">
+                          <ChevronRight className="h-5 w-5 text-primary" />
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -573,10 +579,10 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                               variant="outline"
                               role="combobox"
                               aria-expanded={productCommandOpen}
-                              className="w-full justify-between h-11 text-start font-normal text-base"
+                              className="w-full justify-between h-12 text-start font-normal text-base border-primary/30 shadow-sm bg-gradient-to-r from-primary/5 to-secondary/5 hover:bg-gradient-to-r hover:from-primary/10 hover:to-secondary/10"
                             >
                               {t('select_products')}
-                              <Search className="ml-2 h-5 w-5 shrink-0 opacity-70" />
+                              <Search className="ml-2 h-5 w-5 shrink-0 text-primary/70" />
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-[350px] p-0" align="start">
@@ -659,7 +665,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                               const finalTotal = productTotal - discountAmount;
                               
                               return (
-                                <div key={`${product.id}-${index}`} className="flex items-center p-3 rounded-md border shadow-sm">
+                                <div key={`${product.id}-${index}`} className="flex items-center p-3 rounded-lg border border-primary/20 shadow-md bg-gradient-to-r from-white to-primary/5 mb-2">
                                   <div className="flex-1 min-w-0">
                                     <p className="font-medium truncate text-base">{product.name}</p>
                                     <div className="flex items-center text-sm text-muted-foreground mt-1">
@@ -668,16 +674,16 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                                         <Button
                                           variant="outline"
                                           size="icon"
-                                          className="h-7 w-7 rounded-full border-muted-foreground/30"
+                                          className="h-8 w-8 rounded-full bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 shadow-sm"
                                           onClick={() => handleUpdateQuantity(index, Math.max(1, product.quantity - 1))}
                                         >
                                           <Minus className="h-4 w-4" />
                                         </Button>
-                                        <span className="mx-2 min-w-8 text-center font-medium">{product.quantity}</span>
+                                        <span className="mx-2 min-w-8 text-center font-medium text-base">{product.quantity}</span>
                                         <Button
                                           variant="outline"
                                           size="icon"
-                                          className="h-7 w-7 rounded-full border-muted-foreground/30"
+                                          className="h-8 w-8 rounded-full bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800 text-green-500 hover:bg-green-100 dark:hover:bg-green-900/30 shadow-sm"
                                           onClick={() => handleUpdateQuantity(index, product.quantity + 1)}
                                         >
                                           <Plus className="h-4 w-4" />
@@ -714,9 +720,9 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                                       variant="outline"
                                       size="icon"
                                       onClick={() => handleRemoveProduct(index)}
-                                      className="h-8 w-8 text-destructive hover:bg-destructive/10 border-destructive/30"
+                                      className="h-9 w-9 rounded-full bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 shadow-sm"
                                     >
-                                      <Trash2 className="h-4 w-4" />
+                                      <Trash2 className="h-5 w-5" />
                                     </Button>
                                   </div>
                                 </div>
