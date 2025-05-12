@@ -7,7 +7,9 @@ import {
   insertEmployeeSchema, insertPaymentApprovalSchema, insertReportDataSchema,
   insertNotificationSchema, insertEmployeeDeductionSchema, insertStoreInfoSchema
 } from "@shared/schema";
-import { registerSupplierRoutes } from "./api-routes";
+import { supplierRoutes } from "./supplier-routes";
+import { supplierInvoiceRoutes } from "./supplier-invoice-routes";
+import { supplierPaymentRoutes } from "./supplier-payment-routes";
 import { z } from "zod";
 import { type ZodError } from "zod-validation-error";
 
@@ -15,7 +17,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
   // Register supplier routes
-  registerSupplierRoutes(app);
+  // Supplier routes are now registered via app.use below
   
   // الحصول على قائمة الفواتير المؤجلة
   app.get('/api/deferred-payments', async (req, res) => {
@@ -2627,6 +2629,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to delete notification' });
     }
   });
+  
+  // === Supplier Management Routes ===
+  app.use('/api/suppliers', supplierRoutes);
+  app.use('/api/supplier-invoices', supplierInvoiceRoutes);
+  app.use('/api/supplier-payments', supplierPaymentRoutes);
 
   return httpServer;
 }

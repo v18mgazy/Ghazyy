@@ -47,9 +47,6 @@ export class LocalFirebaseStorage implements IStorage {
   private employeeIdCounter = 1;
   private paymentApprovalIdCounter = 1;
   private reportDataIdCounter = 1;
-  private supplierIdCounter = 1;
-  private supplierInvoiceIdCounter = 1;
-  private supplierPaymentIdCounter = 1;
   
   constructor() {
     // Initialize with some default data

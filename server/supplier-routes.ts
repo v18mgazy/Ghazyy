@@ -2,7 +2,6 @@ import { Router } from "express";
 import { storage } from "./storage";
 import { insertSupplierSchema } from "@shared/schema";
 
-// إنشاء router للموردين
 export const supplierRoutes = Router();
 
 // الحصول على جميع الموردين
@@ -19,9 +18,12 @@ supplierRoutes.get('/', async (req, res) => {
 // الحصول على مورد محدد
 supplierRoutes.get('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const supplier = await storage.getSupplier(parseInt(id));
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid supplier ID' });
+    }
     
+    const supplier = await storage.getSupplier(id);
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier not found' });
     }
@@ -45,18 +47,21 @@ supplierRoutes.post('/', async (req, res) => {
   }
 });
 
-// تحديث معلومات مورد
+// تحديث بيانات مورد
 supplierRoutes.put('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const supplierData = insertSupplierSchema.parse(req.body);
-    const supplier = await storage.updateSupplier(parseInt(id), supplierData);
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid supplier ID' });
+    }
     
-    if (!supplier) {
+    const supplierData = req.body;
+    const updatedSupplier = await storage.updateSupplier(id, supplierData);
+    if (!updatedSupplier) {
       return res.status(404).json({ error: 'Supplier not found' });
     }
     
-    res.json(supplier);
+    res.json(updatedSupplier);
   } catch (error) {
     console.error('Error updating supplier:', error);
     res.status(500).json({ error: 'Error updating supplier' });
@@ -66,9 +71,13 @@ supplierRoutes.put('/:id', async (req, res) => {
 // حذف مورد
 supplierRoutes.delete('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    await storage.deleteSupplier(parseInt(id));
-    res.status(200).json({ message: 'Supplier deleted successfully' });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid supplier ID' });
+    }
+    
+    await storage.deleteSupplier(id);
+    res.status(204).send();
   } catch (error) {
     console.error('Error deleting supplier:', error);
     res.status(500).json({ error: 'Error deleting supplier' });

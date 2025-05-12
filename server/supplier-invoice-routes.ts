@@ -2,7 +2,6 @@ import { Router } from "express";
 import { storage } from "./storage";
 import { insertSupplierInvoiceSchema } from "@shared/schema";
 
-// إنشاء router لفواتير الموردين
 export const supplierInvoiceRoutes = Router();
 
 // الحصول على جميع فواتير الموردين
@@ -27,9 +26,12 @@ supplierInvoiceRoutes.get('/', async (req, res) => {
 // الحصول على فاتورة مورد محددة
 supplierInvoiceRoutes.get('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const invoice = await storage.getSupplierInvoice(parseInt(id));
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid invoice ID' });
+    }
     
+    const invoice = await storage.getSupplierInvoice(id);
     if (!invoice) {
       return res.status(404).json({ error: 'Supplier invoice not found' });
     }
@@ -50,7 +52,9 @@ supplierInvoiceRoutes.post('/', async (req, res) => {
     // تجهيز بيانات الفاتورة
     const invoiceData = {
       ...insertSupplierInvoiceSchema.parse(req.body),
-      userId: userData.id
+      userId: userData.id,
+      paidAmount: 0,
+      paymentStatus: 'pending'
     };
     
     const invoice = await storage.createSupplierInvoice(invoiceData);
@@ -64,15 +68,18 @@ supplierInvoiceRoutes.post('/', async (req, res) => {
 // تحديث فاتورة مورد
 supplierInvoiceRoutes.put('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const invoiceData = req.body;
-    const invoice = await storage.updateSupplierInvoice(parseInt(id), invoiceData);
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid invoice ID' });
+    }
     
-    if (!invoice) {
+    const invoiceData = req.body;
+    const updatedInvoice = await storage.updateSupplierInvoice(id, invoiceData);
+    if (!updatedInvoice) {
       return res.status(404).json({ error: 'Supplier invoice not found' });
     }
     
-    res.json(invoice);
+    res.json(updatedInvoice);
   } catch (error) {
     console.error('Error updating supplier invoice:', error);
     res.status(500).json({ error: 'Error updating supplier invoice' });
@@ -82,9 +89,13 @@ supplierInvoiceRoutes.put('/:id', async (req, res) => {
 // حذف فاتورة مورد
 supplierInvoiceRoutes.delete('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    await storage.deleteSupplierInvoice(parseInt(id));
-    res.status(200).json({ message: 'Supplier invoice deleted successfully' });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid invoice ID' });
+    }
+    
+    await storage.deleteSupplierInvoice(id);
+    res.status(204).send();
   } catch (error) {
     console.error('Error deleting supplier invoice:', error);
     res.status(500).json({ error: 'Error deleting supplier invoice' });

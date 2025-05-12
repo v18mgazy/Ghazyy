@@ -11,7 +11,10 @@ import {
   type Notification, type InsertNotification,
   type EmployeeDeduction, type InsertEmployeeDeduction,
   type Expense, type InsertExpense,
-  type StoreInfo, type InsertStoreInfo
+  type StoreInfo, type InsertStoreInfo,
+  type Supplier, type InsertSupplier,
+  type SupplierInvoice, type InsertSupplierInvoice,
+  type SupplierPayment, type InsertSupplierPayment
 } from "@shared/schema";
 import { db } from './lib/firebase';
 import { 
@@ -108,6 +111,27 @@ export interface IStorage {
   // Store information management (معلومات المتجر)
   getStoreInfo(): Promise<StoreInfo | undefined>;
   updateStoreInfo(storeData: InsertStoreInfo): Promise<StoreInfo>;
+  
+  // Supplier management (إدارة الموردين)
+  getSupplier(id: number): Promise<Supplier | undefined>;
+  getAllSuppliers(): Promise<Supplier[]>;
+  createSupplier(supplier: InsertSupplier): Promise<Supplier>;
+  updateSupplier(id: number, supplierData: Partial<Supplier>): Promise<Supplier | undefined>;
+  deleteSupplier(id: number): Promise<void>;
+  
+  // Supplier invoice management (إدارة فواتير الموردين)
+  getSupplierInvoice(id: number): Promise<SupplierInvoice | undefined>;
+  getAllSupplierInvoices(): Promise<SupplierInvoice[]>;
+  getSupplierInvoicesBySupplierId(supplierId: number): Promise<SupplierInvoice[]>;
+  createSupplierInvoice(invoice: InsertSupplierInvoice): Promise<SupplierInvoice>;
+  updateSupplierInvoice(id: number, invoiceData: Partial<SupplierInvoice>): Promise<SupplierInvoice | undefined>;
+  deleteSupplierInvoice(id: number): Promise<void>;
+  
+  // Supplier payment management (إدارة مدفوعات الموردين)
+  getSupplierPayment(id: number): Promise<SupplierPayment | undefined>;
+  getAllSupplierPayments(): Promise<SupplierPayment[]>;
+  getSupplierPaymentsByInvoiceId(invoiceId: number): Promise<SupplierPayment[]>;
+  createSupplierPayment(payment: InsertSupplierPayment): Promise<SupplierPayment>;
 }
 
 export class FirebaseStorage implements IStorage {
