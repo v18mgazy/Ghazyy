@@ -135,29 +135,37 @@ export default function ProductForm({
   const stopScanner = () => {
     cleanupScanner();
     setCameraStatus('idle');
+    console.log('Scanner stopped. Current barcode method:', barcodeMethod);
   };
   
   const handleBarcodeDetected = (result: any) => {
     if (result && result.codeResult && result.codeResult.code) {
       const barcode = result.codeResult.code;
-      stopScanner();
       
       console.log('Barcode detected:', barcode);
       
-      // إضافة إشعار نجاح
-      toast({
-        title: t('barcode_scanned_successfully'),
-        description: barcode
-      });
+      // إيقاف الماسح أولاً
+      stopScanner();
       
-      // استخدام الباركود المكتشف
-      setFormData({
-        ...formData,
-        barcode: barcode
-      });
-      
-      // انتقل إلى وضع التعديل اليدوي بعد المسح للسماح بتعديل الباركود إذا لزم الأمر
-      setBarcodeMethod('manual');
+      // التأكد من تطبيق التغييرات عبر setTimeout للتأكد من اكتمال دورة حياة React
+      setTimeout(() => {
+        // إضافة إشعار نجاح
+        toast({
+          title: t('barcode_scanned_successfully'),
+          description: barcode
+        });
+        
+        // تحديث البيانات بالباركود الجديد
+        setFormData(prev => ({
+          ...prev,
+          barcode: barcode
+        }));
+        
+        // تغيير الطريقة إلى الإدخال اليدوي بعد تحديث البيانات
+        setBarcodeMethod('manual');
+        
+        console.log('Updated barcode to:', barcode);
+      }, 100);
     }
   };
 
@@ -200,9 +208,15 @@ export default function ProductForm({
   };
 
   const prepareScanBarcode = () => {
+    // تأكد من تعيين وضع المسح أولاً قبل بدء الماسح
     setBarcodeMethod('scan');
-    // بدء عملية المسح الضوئي للباركود
-    startScanner();
+    
+    // تأخير قليل لضمان اكتمال تحديث الحالة
+    setTimeout(() => {
+      console.log('Starting scanner after mode change to scan');
+      // بدء عملية المسح الضوئي للباركود
+      startScanner();
+    }, 50);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -353,6 +367,18 @@ export default function ProductForm({
                     {t('barcode_auto_generated')}
                   </p>
                 </div>
+              ) : barcodeMethod === 'manual' ? (
+                <div>
+                  <Input
+                    id="barcode"
+                    value={formData.barcode}
+                    onChange={handleChange}
+                    className="bg-background"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('barcode_manual_edit_info')}
+                  </p>
+                </div>
               ) : (
                 <div>
                   <Input
@@ -360,13 +386,10 @@ export default function ProductForm({
                     value={formData.barcode}
                     onChange={handleChange}
                     disabled={isScanning}
-                    className={barcodeMethod === 'manual' ? 'bg-background' : 'bg-muted'}
+                    className="bg-muted"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    {barcodeMethod === 'manual' 
-                      ? t('barcode_manual_edit_info')
-                      : t('scanned_barcode_manual_edit')
-                    }
+                    {isScanning ? t('scanning_barcode') : t('scanned_barcode_manual_edit')}
                   </p>
                 </div>
               )}
