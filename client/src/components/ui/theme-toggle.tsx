@@ -34,20 +34,24 @@ export function ThemeToggle() {
 
   return (
     <Button
-      variant="ghost"
+      variant="outline"
       size="sm"
-      className="text-sm"
+      className={`text-sm rounded-full p-2 ${
+        isDarkMode() 
+          ? "bg-indigo-950/30 border-indigo-800 hover:bg-indigo-900/50" 
+          : "bg-amber-50 border-amber-200 hover:bg-amber-100/80"
+      }`}
       onClick={toggleTheme}
     >
       {isDarkMode() ? (
         <>
-          <Sun className="mr-2 h-4 w-4" />
-          <span>{t('light_mode')}</span>
+          <Sun className="mr-2 h-5 w-5 text-amber-300" />
+          <span className="font-medium text-indigo-100">{t('light_mode')}</span>
         </>
       ) : (
         <>
-          <Moon className="mr-2 h-4 w-4" />
-          <span>{t('dark_mode')}</span>
+          <Moon className="mr-2 h-5 w-5 text-indigo-500" />
+          <span className="font-medium text-amber-700">{t('dark_mode')}</span>
         </>
       )}
     </Button>
