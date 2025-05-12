@@ -334,6 +334,9 @@ export default function SuppliersPage() {
   const deleteSupplierMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await apiRequest("DELETE", `/api/suppliers/${id}`);
+      if (response.status === 204) {
+        return { success: true }; // عندما لا توجد بيانات مرجعة (204 No Content)
+      }
       return response.json();
     },
     onSuccess: () => {
