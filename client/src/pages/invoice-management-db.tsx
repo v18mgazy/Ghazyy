@@ -989,6 +989,18 @@ export default function InvoiceManagementDB() {
             </div>
           </div>
           
+          {/* زر ترتيب الفواتير */}
+          <div className="flex justify-end mb-4">
+            <Button 
+              variant="outline" 
+              className="bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/30 hover:bg-primary/20 shadow-sm"
+              onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
+            >
+              <ArrowUpDown className="h-4 w-4 mr-2" />
+              {sortOrder === 'newest' ? t('newest_to_oldest') : t('oldest_to_newest')}
+            </Button>
+          </div>
+          
           {/* جدول الفواتير */}
           {filteredInvoices.length > 0 ? (
             <div className="rounded-md border">

@@ -279,6 +279,8 @@
   "invoice_invalid_id": "Invalid invoice ID",
   "invoice_deleted_successfully": "Invoice deleted successfully",
   "invoice_delete_error": "Error deleting invoice",
+  "newest_to_oldest": "Newest to Oldest",
+  "oldest_to_newest": "Oldest to Newest",
   "success": "Success",
   "invoice_save_error": "Error saving invoice",
   "unauthorized": "Unauthorized",
