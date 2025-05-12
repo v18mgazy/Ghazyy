@@ -815,7 +815,18 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
             {scannedProduct && (
               <Button 
                 onClick={() => {
-                  // استخدام الدالة القياسية لإضافة المنتج مع التحقق من المخزون
+                  // التحقق من المخزون قبل إضافة المنتج
+                  const quantity = (scannedProduct as any).quantity || 0;
+                  if (quantity <= 0) {
+                    toast({
+                      title: t('cannot_add_product'),
+                      description: t('product_out_of_stock'),
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+                  
+                  // إضافة المنتج إذا كان متوفراً
                   handleSelectProduct(scannedProduct);
                 }}
                 className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
