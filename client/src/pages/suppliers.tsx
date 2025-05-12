@@ -26,6 +26,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -73,6 +83,8 @@ export default function SuppliersPage() {
   const [isNewSupplierOpen, setIsNewSupplierOpen] = useState(false);
   const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isDeleteSupplierOpen, setIsDeleteSupplierOpen] = useState(false);
+  const [deletingSupplier, setDeletingSupplier] = useState<any | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
 
   // استعلام قائمة الموردين
@@ -313,6 +325,35 @@ export default function SuppliersPage() {
       toast({
         title: t("error"),
         description: t("supplier_add_error"),
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // حذف مورد
+  const deleteSupplierMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("DELETE", `/api/suppliers/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      if (selectedSupplier && selectedSupplier.id === deletingSupplier?.id) {
+        setSelectedSupplier(null);
+        setActiveTab("suppliers");
+      }
+      setIsDeleteSupplierOpen(false);
+      setDeletingSupplier(null);
+      toast({
+        title: t("success"),
+        description: t("supplier_deleted_successfully"),
+        variant: "success",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: t("error"),
+        description: t("delete_supplier_error"),
         variant: "destructive",
       });
     },
@@ -689,8 +730,8 @@ export default function SuppliersPage() {
                                         className="text-red-600"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          // setDeletingSupplier(supplier);
-                                          // setIsDeleteSupplierOpen(true);
+                                          setDeletingSupplier(supplier);
+                                          setIsDeleteSupplierOpen(true);
                                         }}
                                       >
                                         <Trash2 className="mr-2 h-4 w-4" />
@@ -1252,6 +1293,41 @@ export default function SuppliersPage() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* مربع حوار حذف المورد */}
+      <AlertDialog 
+        open={isDeleteSupplierOpen} 
+        onOpenChange={setIsDeleteSupplierOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">{t("delete_supplier")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("delete_supplier_confirmation")} <span className="font-bold">{deletingSupplier?.name}</span>؟
+              <br /><br />
+              <span className="text-destructive font-medium">{t("delete_supplier_warning")}</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deletingSupplier?.id) {
+                  deleteSupplierMutation.mutate(deletingSupplier.id);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteSupplierMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              {t("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
