@@ -49,6 +49,7 @@ export const customers = pgTable("customers", {
   name: text("name").notNull(),
   phone: text("phone"),
   address: text("address"),
+  notes: text("notes"),
   isPotential: boolean("is_potential").default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -58,6 +59,7 @@ export const insertCustomerSchema = createInsertSchema(customers).pick({
   name: true,
   phone: true,
   address: true,
+  notes: true,
   isPotential: true,
 });
 
