@@ -1503,15 +1503,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // طرق API لبيانات التقارير
   app.get('/api/reports', async (req, res) => {
     try {
-      const { type, date } = req.query;
-      console.log('Report request:', { type, date });
+      const { type, date, startDate, endDate } = req.query;
+      console.log('Report request:', { type, date, startDate, endDate });
       
-      if (!type || !['daily', 'weekly', 'monthly', 'yearly'].includes(type as string)) {
+      // تحقق من نوع التقرير، نضيف "custom" للتقارير المخصصة بتاريخين محددين
+      if (!type || !['daily', 'weekly', 'monthly', 'yearly', 'custom'].includes(type as string)) {
         return res.status(400).json({ message: 'Invalid report type' });
       }
       
       // التحقق من تنسيق التاريخ
-      if (!date) {
+      if (type === 'custom') {
+        // للتقارير المخصصة، نحتاج إلى تاريخ البداية والنهاية
+        if (!startDate || !endDate) {
+          return res.status(400).json({ message: 'Start date and end date are required for custom reports' });
+        }
+      } else if (!date) {
+        // لأنواع التقارير الأخرى نحتاج إلى التاريخ
         return res.status(400).json({ message: 'Date is required' });
       }
       
@@ -1523,14 +1530,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Found ${invoices.length} invoices, ${products.length} products, ${damagedItems.length} damaged items`);
       
+      // وظيفة للتحقق من وقوع تاريخ ضمن نطاق محدد (للتقارير المخصصة)
+      function isDateInRange(checkDate: Date, start: Date, end: Date): boolean {
+        const dateToCheck = new Date(checkDate);
+        // نضبط الساعة للتواريخ للحصول على مقارنة دقيقة باليوم فقط
+        dateToCheck.setHours(0, 0, 0, 0);
+        const startDateObj = new Date(start);
+        startDateObj.setHours(0, 0, 0, 0);
+        const endDateObj = new Date(end);
+        endDateObj.setHours(23, 59, 59, 999); // نهاية اليوم
+        
+        return dateToCheck >= startDateObj && dateToCheck <= endDateObj;
+      }
+      
+      // فلترة الفواتير حسب التاريخ إذا كان التقرير مخصصًا
+      let filteredInvoices = invoices;
+      if (type === 'custom' && startDate && endDate) {
+        console.log(`Filtering invoices between ${startDate} and ${endDate}`);
+        const startDateObj = new Date(startDate as string);
+        const endDateObj = new Date(endDate as string);
+        
+        filteredInvoices = invoices.filter(invoice => {
+          if (!invoice.date || invoice.isDeleted) return false;
+          return isDateInRange(new Date(invoice.date), startDateObj, endDateObj);
+        });
+        
+        console.log(`Found ${filteredInvoices.length} invoices in date range`);
+      } else {
+        // لأنواع التقارير الأخرى، نستخدم جميع الفواتير
+        filteredInvoices = invoices;
+      }
+      
+      // فلترة العناصر التالفة حسب التاريخ إذا كان التقرير مخصصًا
+      let filteredDamagedItems = damagedItems;
+      if (type === 'custom' && startDate && endDate) {
+        const startDateObj = new Date(startDate as string);
+        const endDateObj = new Date(endDate as string);
+        
+        filteredDamagedItems = damagedItems.filter(item => {
+          if (!item.date) return false;
+          return isDateInRange(new Date(item.date), startDateObj, endDateObj);
+        });
+        
+        console.log(`Found ${filteredDamagedItems.length} damaged items in date range`);
+      } else {
+        // لأنواع التقارير الأخرى، نستخدم جميع العناصر التالفة
+        filteredDamagedItems = damagedItems;
+      }
+      
+      // فلترة المصاريف حسب التاريخ إذا كان التقرير مخصصًا
+      let filteredExpenses = expenses;
+      if (type === 'custom' && startDate && endDate) {
+        const startDateObj = new Date(startDate as string);
+        const endDateObj = new Date(endDate as string);
+        
+        filteredExpenses = expenses.filter(expense => {
+          if (!expense.date) return false;
+          return isDateInRange(new Date(expense.date), startDateObj, endDateObj);
+        });
+        
+        console.log(`Found ${filteredExpenses.length} expenses in date range`);
+      } else {
+        // لأنواع التقارير الأخرى، نستخدم جميع المصاريف
+        filteredExpenses = expenses;
+      }
+      
       // إعداد بيانات ملخص التقرير
       let totalSales = 0;
       let totalProfit = 0;
       let salesCount = 0;
       let totalDamages = 0;
       
-      // حساب إجمالي المبيعات والأرباح
-      for (const invoice of invoices) {
+      // حساب إجمالي قيمة التوالف
+      filteredDamagedItems.forEach(item => {
+        totalDamages += item.valueLoss || 0;
+      });
+      
+      // حساب إجمالي المبيعات والأرباح باستخدام الفواتير المفلترة
+      for (const invoice of filteredInvoices) {
         // تجاهل الفواتير المحذوفة
         if (invoice.isDeleted) {
           continue;
@@ -1588,12 +1665,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // حساب أفضل المنتجات مبيعًا
       const topProducts = calculateTopProducts(invoices, products, type as string, date as string);
       
-      // جلب بيانات المصاريف
-      const expenses = await storage.getAllExpenses();
+      // عرض معلومات عن المصاريف التي تم تحميلها سابقًا
       console.log(`Found ${expenses.length} expenses for report`);
 
       // إنشاء تقارير مفصلة مع تضمين المصاريف
-      const detailedReports = await createDetailedReports(invoices, damagedItems, type as string, date as string);
+      let reportDate = date as string;
+      if (type === 'custom') {
+        // للتقارير المخصصة، نستخدم نطاق التاريخ كعنوان للتقرير
+        reportDate = `${startDate as string} - ${endDate as string}`;
+      }
+      
+      const detailedReports = await createDetailedReports(filteredInvoices, filteredDamagedItems, filteredExpenses, type as string, reportDate);
       
       // بيانات الفترة السابقة لعرض نسبة التغيير
       const previousDate = getPreviousPeriod(type as string, date as string);
@@ -1940,14 +2022,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .slice(0, 5);
   }
   
-  async function createDetailedReports(invoices: any[], damagedItems: any[], type: string, date: string): Promise<any[]> {
+  async function createDetailedReports(invoices: any[], damagedItems: any[], expenses: any[], type: string, date: string): Promise<any[]> {
     const detailedReports: any[] = [];
     let totalDamagesValue = 0;
     let totalEmployeeDeductions = 0;
     let totalExpensesValue = 0;
-    
-    // جلب بيانات المصاريف والنثريات - وإضافة السجلات بعد فلترتها
-    const expenses = await storage.getAllExpenses();
     
     console.log(`Creating detailed reports for type: ${type}, date: ${date}, with ${damagedItems?.length || 0} damaged items and ${expenses?.length || 0} expenses`);
     

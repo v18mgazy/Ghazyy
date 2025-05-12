@@ -66,8 +66,10 @@ interface ReportData {
 export default function ReportsPage() {
   const { t } = useTranslation();
   const { language } = useLocale();
-  const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
+  const [period, setPeriod] = useState<'daily' | 'custom' | 'monthly' | 'yearly'>('daily');
   const [date, setDate] = useState<Date>(new Date());
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
   const [month, setMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   const [year, setYear] = useState<string>(format(new Date(), 'yyyy'));
   
@@ -77,6 +79,10 @@ export default function ReportsPage() {
       return formatDate(date, 'yyyy-MM-dd');
     } else if (period === 'monthly') {
       return month;
+    } else if (period === 'custom') {
+      // للتقارير المخصصة، نستخدم التاريخ الحالي كقيمة افتراضية فقط
+      // سيتم إرسال تاريخي البداية والنهاية بشكل منفصل في الطلب
+      return formatDate(new Date(), 'yyyy-MM-dd');
     } else {
       return year;
     }
@@ -84,13 +90,25 @@ export default function ReportsPage() {
   
   // استرجاع بيانات التقارير من قاعدة البيانات بناءً على نوع الفترة
   const { data: reportData, isLoading } = useQuery<ReportData>({
-    queryKey: ['/api/reports', period, formattedDate],
+    queryKey: ['/api/reports', period, formattedDate, startDate, endDate],
     staleTime: 30 * 1000,         // البيانات تعتبر قديمة بعد 30 ثانية
     refetchInterval: 30 * 1000,   // إعادة تحميل البيانات كل 30 ثانية
     refetchOnWindowFocus: true,   // إعادة التحميل عند التبديل للصفحة
     queryFn: async ({ queryKey }) => {
       console.log('تحديث بيانات التقارير...', period, formattedDate);
-      const response = await fetch(`/api/reports?type=${period}&date=${formattedDate}`);
+      
+      // بناء URL الطلب حسب نوع التقرير
+      let url = `/api/reports?type=${period}`;
+      
+      if (period === 'custom') {
+        const formattedStartDate = formatDate(startDate, 'yyyy-MM-dd');
+        const formattedEndDate = formatDate(endDate, 'yyyy-MM-dd');
+        url += `&startDate=${formattedStartDate}&endDate=${formattedEndDate}`;
+      } else {
+        url += `&date=${formattedDate}`;
+      }
+      
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to fetch report data: ${response.statusText}`);
       }
