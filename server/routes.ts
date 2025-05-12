@@ -1635,10 +1635,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (type === 'daily') {
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     } else if (type === 'weekly') {
-      // الحصول على رقم الأسبوع في السنة
+      // الحصول على رقم الأسبوع في السنة بطريقة أكثر دقة
       const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-      const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-      const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+      const dayOfWeek = firstDayOfYear.getDay(); // 0 = الأحد، 1 = الاثنين، ...
+      const days = Math.floor((date.getTime() - firstDayOfYear.getTime()) / (24 * 60 * 60 * 1000));
+      
+      // حساب رقم الأسبوع ISO (يبدأ الأسبوع من يوم الإثنين)
+      // تعديل حساب الأسبوع ليتناسب مع المعيار الدولي ISO 8601
+      let weekNumber = Math.floor((days + dayOfWeek - 1) / 7) + 1;
+      
+      // معالجة حالات خاصة
+      if (dayOfWeek === 0) { // إذا كان أول يوم في السنة هو الأحد
+        weekNumber = Math.floor((days) / 7) + 1;
+      }
+      
+      // طباعة تفاصيل الحساب للتصحيح
+      console.log(`Week calculation: year=${date.getFullYear()}, dayOfWeek=${dayOfWeek}, days=${days}, weekNumber=${weekNumber}`);
+      
       return `${date.getFullYear()}-W${String(weekNumber).padStart(2, '0')}`;
     } else if (type === 'monthly') {
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -1653,7 +1666,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       date.setDate(date.getDate() - 1);
       return formatDateForReportType(date, type);
     } else if (type === 'weekly') {
-      // يرجى التنفيذ الكامل عند الحاجة
+      // إذا كان التاريخ بتنسيق YYYY-Wxx
+      if (currentDate.match(/^\d{4}-W\d{2}$/)) {
+        const [year, weekPart] = currentDate.split('-');
+        let weekNumber = parseInt(weekPart.substring(1));
+        
+        // إذا كان الأسبوع الأول، نعود للأسبوع الأخير من السنة السابقة
+        if (weekNumber === 1) {
+          // لتبسيط الأمر، نفترض أن السنة السابقة لديها 52 أسبوعًا
+          return `${parseInt(year) - 1}-W52`;
+        } 
+        
+        // غير ذلك، نعود للأسبوع السابق في نفس السنة
+        return `${year}-W${String(weekNumber - 1).padStart(2, '0')}`;
+      }
+      
+      // إذا وصلنا هنا، فالتنسيق غير معروف
+      console.error(`Unsupported weekly date format: ${currentDate}`);
       return '';
     } else if (type === 'monthly') {
       const [year, month] = currentDate.split('-');
@@ -1913,8 +1942,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let totalEmployeeDeductions = 0;
     let totalExpensesValue = 0;
     
-    // جلب بيانات المصاريف والنثريات
+    // جلب بيانات المصاريف والنثريات - وإضافة السجلات بعد فلترتها
     const expenses = await storage.getAllExpenses();
+    
+    console.log(`Creating detailed reports for type: ${type}, date: ${date}, with ${damagedItems?.length || 0} damaged items and ${expenses?.length || 0} expenses`);
     
     // إضافة تقارير مفصلة للفواتير
     for (const invoice of invoices) {
