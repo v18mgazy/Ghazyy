@@ -1,0 +1,55 @@
+/* ملف CSS للطباعة - يطبق فقط عند الطباعة */
+@media print {
+  /* إخفاء كل العناصر التي لا نريدها في الطباعة */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* إظهار فقط عنصر الطباعة والعناصر الفرعية له */
+  #print-area, #print-area * {
+    visibility: visible;
+  }
+  
+  /* جعل منطقة الطباعة تشغل كامل الصفحة */
+  #print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  
+  /* إخفاء عناصر الواجهة داخل منطقة الطباعة */
+  .no-print, 
+  button, 
+  .tabs-header {
+    display: none !important;
+  }
+  
+  /* تنسيق الطباعة */
+  #print-area {
+    padding: 20px;
+  }
+  
+  /* إضافة قواعد لتحسين مظهر الرسوم البيانية عند الطباعة */
+  .chart-container {
+    page-break-inside: avoid;
+    margin-bottom: 30px;
+  }
+  
+  /* جعل الجداول تظهر بشكل صحيح */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: right;
+  }
+  
+  th {
+    background-color: #f2f2f2;
+  }
+}

@@ -25,6 +25,8 @@ import ReportSummary from '@/components/reports/report-summary';
 import ReportDetails from '@/components/reports/report-details';
 import { Skeleton } from '@/components/ui/skeleton';
 import * as XLSX from 'xlsx';
+
+// سنضيف أنماط الطباعة مباشرة في الصفحة
 import { Badge } from "@/components/ui/badge";
 
 // تعريف أنواع البيانات للتقارير

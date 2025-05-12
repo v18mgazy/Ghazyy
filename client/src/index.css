@@ -2,6 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
+/* أنماط الطباعة للتقارير */
+@media print {
+  /* إخفاء كل العناصر التي لا نريدها في الطباعة */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* إظهار فقط عنصر الطباعة والعناصر الفرعية له */
+  #print-area, #print-area * {
+    visibility: visible;
+  }
+  
+  /* جعل منطقة الطباعة تشغل كامل الصفحة */
+  #print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 20px;
+  }
+  
+  /* إظهار عنوان المتجر في الطباعة */
+  #store-info {
+    visibility: visible;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  /* إخفاء عناصر الواجهة */
+  .no-print, 
+  button, 
+  [role="tablist"],
+  nav,
+  footer,
+  header > div:last-child {
+    display: none !important;
+  }
+  
+  /* إضافة قواعد لتحسين مظهر الرسوم البيانية عند الطباعة */
+  .chart-container {
+    page-break-inside: avoid;
+    margin-bottom: 30px;
+  }
+  
+  /* جعل الجداول تظهر بشكل صحيح */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: right;
+  }
+  
+  th {
+    background-color: #f2f2f2;
+  }
+}
+
 :root {
   /* خلفية وألوان النص الرئيسية */
   --background: 0 0% 100%;
