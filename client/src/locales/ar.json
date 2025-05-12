@@ -288,6 +288,8 @@
   "deferred_payments": "المدفوعات المؤجلة",
   "search_deferred_payments": "البحث في المدفوعات المؤجلة...",
   "no_deferred_payments_found": "لم يتم العثور على مدفوعات مؤجلة",
+  "hide_fully_paid": "إخفاء المدفوعات المكتملة",
+  "show_all_payments": "عرض جميع المدفوعات",
   "invoice": "الفاتورة",
   "original_amount": "المبلغ الأصلي",
   "remaining_amount": "المبلغ المتبقي",

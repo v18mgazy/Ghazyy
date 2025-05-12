@@ -116,12 +116,21 @@ export default function DeferredPaymentsTab() {
     refetchInterval: 60000, // تحديث كل دقيقة
   });
 
-  // تصفية المدفوعات المؤجلة بناءً على البحث
+  // إضافة خيار لإخفاء المدفوعات المكتملة
+  const [hideFullyPaidPayments, setHideFullyPaidPayments] = useState(false);
+  
+  // تصفية المدفوعات المؤجلة بناءً على البحث وحالة الدفع
   console.log('Current deferred payments:', deferredPayments);
-  const filteredPayments = deferredPayments.length > 0 ? deferredPayments.filter(payment => 
-    (payment.customerName && payment.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (payment.invoiceNumber && payment.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()))
-  ) : [];
+  const filteredPayments = deferredPayments.length > 0 ? deferredPayments.filter(payment => {
+    // فلتر حالة الدفع - إخفاء المدفوعات المكتملة إذا تم تفعيل الخيار
+    if (hideFullyPaidPayments && payment.status === 'paid') {
+      return false;
+    }
+    
+    // فلتر البحث
+    return (payment.customerName && payment.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+           (payment.invoiceNumber && payment.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+  }) : [];
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredPayments.length / perPage);
@@ -313,7 +322,21 @@ export default function DeferredPaymentsTab() {
     <Card>
       <CardHeader>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
-          <CardTitle>{t('deferred_payments')}</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle>{t('deferred_payments')}</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setHideFullyPaidPayments(prev => !prev)}
+              className={`${hideFullyPaidPayments ? 'bg-primary/10 text-primary border-primary/30' : ''} text-xs h-8`}
+            >
+              {hideFullyPaidPayments ? (
+                <>{t('show_all_payments')}</>
+              ) : (
+                <>{t('hide_fully_paid')}</>
+              )}
+            </Button>
+          </div>
           <div className="relative">
             <Input
               value={searchTerm}
