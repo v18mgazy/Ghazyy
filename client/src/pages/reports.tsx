@@ -31,22 +31,29 @@ interface ReportDataSummary {
 interface TopProduct {
   id: number;
   name: string;
-  quantity: number;
+  soldQuantity: number;
   revenue: number;
+  profit: number;
 }
 
 interface ChartDataPoint {
-  date: string;
-  sales: number;
+  name: string;
+  revenue: number;
   profit: number;
 }
 
 interface DetailedReport {
-  id: number;
+  id: number | string;
   date: string;
   type: string;
   amount: number;
+  profit?: number;
   details: string;
+  customerName?: string;
+  paymentStatus?: string;
+  productName?: string;
+  quantity?: number;
+  category?: string;
 }
 
 interface ReportData {
