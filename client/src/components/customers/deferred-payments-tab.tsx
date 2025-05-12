@@ -490,23 +490,51 @@ export default function DeferredPaymentsTab() {
       <Dialog open={paymentDialog.isOpen} onOpenChange={(open) => setPaymentDialog(prev => ({ ...prev, isOpen: open }))}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>{t('record_payment')}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-primary" />
+              {t('record_payment')}
+            </DialogTitle>
             <DialogDescription>
               {paymentDialog.payment && (
-                <div className="mt-2">
-                  <p>{t('invoice')}: <span className="font-medium">{paymentDialog.payment.invoiceNumber}</span></p>
-                  <p>{t('customer')}: <span className="font-medium">{paymentDialog.payment.customerName}</span></p>
-                  <p>{t('remaining_amount')}: <span className="font-medium">{formatCurrency(paymentDialog.payment.remainingAmount)}</span></p>
+                <div className="mt-3 space-y-3">
+                  <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-muted/50">
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t('invoice')}</p>
+                      <p className="font-medium">{paymentDialog.payment.invoiceNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t('customer')}</p>
+                      <p className="font-medium">{paymentDialog.payment.customerName}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t('original_amount')}</p>
+                      <p className="font-medium">{formatCurrency(paymentDialog.payment.originalAmount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t('remaining_amount')}</p>
+                      <p className="font-medium text-amber-600">{formatCurrency(paymentDialog.payment.remainingAmount)}</p>
+                    </div>
+                  </div>
+                  
+                  {paymentDialog.payment.status === 'partially_paid' && (
+                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-blue-700 text-sm">
+                      <p className="flex items-center gap-2">
+                        <DollarSign className="h-4 w-4" />
+                        {Math.round((1 - paymentDialog.payment.remainingAmount / paymentDialog.payment.originalAmount) * 100)}% 
+                        {t('already_paid')}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="amount">{t('amount')}</Label>
+            <div className="grid gap-3">
+              <Label htmlFor="amount" className="text-base">{t('amount_to_pay')}</Label>
               <div className="relative">
-                <DollarSign className={`absolute ${isRtl ? 'right-2' : 'left-2'} top-2.5 h-4 w-4 text-muted-foreground`} />
+                <DollarSign className={`absolute ${isRtl ? 'right-2' : 'left-2'} top-2.5 h-5 w-5 text-muted-foreground`} />
                 <Input
                   id="amount"
                   type="number"
@@ -515,86 +543,111 @@ export default function DeferredPaymentsTab() {
                     ...prev, 
                     amountToPay: parseFloat(e.target.value) || 0 
                   }))}
-                  className={`${isRtl ? 'pr-8' : 'pl-8'}`}
+                  className={`${isRtl ? 'pr-9' : 'pl-9'} text-lg font-medium h-11`}
                 />
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-2">
                 <Button 
                   variant="outline" 
                   type="button" 
                   size="sm"
+                  className="flex-1 border-primary/20 bg-primary/5 hover:bg-primary/10"
                   onClick={() => {
                     if (paymentDialog.payment) {
                       setPaymentDialog(prev => ({ ...prev, amountToPay: paymentDialog.payment!.remainingAmount }));
                     }
                   }}
                 >
+                  <Check className="mr-1 h-4 w-4" />
                   {t('full_amount')}
                 </Button>
                 <Button 
                   variant="outline" 
                   type="button" 
                   size="sm"
+                  className="flex-1 border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700"
                   onClick={() => {
                     if (paymentDialog.payment) {
                       setPaymentDialog(prev => ({ ...prev, amountToPay: paymentDialog.payment!.remainingAmount / 2 }));
                     }
                   }}
                 >
+                  <DollarSign className="mr-1 h-4 w-4" />
                   {t('half_amount')}
                 </Button>
               </div>
             </div>
             
-            <div className="grid gap-2">
-              <Label htmlFor="paymentMethod">{t('payment_method')}</Label>
-              <Select
-                value={paymentDialog.paymentMethod}
-                onValueChange={(value: 'cash' | 'card' | 'transfer') => 
-                  setPaymentDialog(prev => ({ ...prev, paymentMethod: value }))
-                }
-              >
-                <SelectTrigger id="paymentMethod">
-                  <SelectValue placeholder={t('select_payment_method')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">{t('cash')}</SelectItem>
-                  <SelectItem value="card">{t('card')}</SelectItem>
-                  <SelectItem value="transfer">{t('transfer')}</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid gap-3">
+              <Label htmlFor="paymentMethod" className="text-base">{t('payment_method')}</Label>
+              <div className="flex items-center space-x-3 p-3 rounded-lg border bg-card">
+                <div 
+                  className={`flex-1 cursor-pointer flex flex-col items-center justify-center py-2 px-1 rounded-md transition-colors ${
+                    paymentDialog.paymentMethod === 'cash' ? 'bg-green-50 ring-1 ring-green-200' : 'hover:bg-muted'
+                  }`}
+                  onClick={() => setPaymentDialog(prev => ({ ...prev, paymentMethod: 'cash' }))}
+                >
+                  <BanknoteIcon className={`h-6 w-6 mb-1 ${paymentDialog.paymentMethod === 'cash' ? 'text-green-600' : 'text-muted-foreground'}`} />
+                  <span className={`text-sm font-medium ${paymentDialog.paymentMethod === 'cash' ? 'text-green-700' : ''}`}>{t('cash')}</span>
+                </div>
+                <div 
+                  className={`flex-1 cursor-pointer flex flex-col items-center justify-center py-2 px-1 rounded-md transition-colors ${
+                    paymentDialog.paymentMethod === 'card' ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-muted'
+                  }`}
+                  onClick={() => setPaymentDialog(prev => ({ ...prev, paymentMethod: 'card' }))}
+                >
+                  <CreditCard className={`h-6 w-6 mb-1 ${paymentDialog.paymentMethod === 'card' ? 'text-blue-600' : 'text-muted-foreground'}`} />
+                  <span className={`text-sm font-medium ${paymentDialog.paymentMethod === 'card' ? 'text-blue-700' : ''}`}>{t('card')}</span>
+                </div>
+                <div 
+                  className={`flex-1 cursor-pointer flex flex-col items-center justify-center py-2 px-1 rounded-md transition-colors ${
+                    paymentDialog.paymentMethod === 'transfer' ? 'bg-violet-50 ring-1 ring-violet-200' : 'hover:bg-muted'
+                  }`}
+                  onClick={() => setPaymentDialog(prev => ({ ...prev, paymentMethod: 'transfer' }))}
+                >
+                  <ArrowRightLeft className={`h-6 w-6 mb-1 ${paymentDialog.paymentMethod === 'transfer' ? 'text-violet-600' : 'text-muted-foreground'}`} />
+                  <span className={`text-sm font-medium ${paymentDialog.paymentMethod === 'transfer' ? 'text-violet-700' : ''}`}>{t('bank_transfer')}</span>
+                </div>
+              </div>
             </div>
             
-            <div className="grid gap-2">
-              <Label htmlFor="notes">{t('notes')}</Label>
+            <div className="grid gap-3">
+              <Label htmlFor="notes" className="flex justify-between items-center text-base">
+                {t('notes')}
+                <span className="text-xs text-muted-foreground">{t('optional')}</span>
+              </Label>
               <Textarea
                 id="notes"
                 value={paymentDialog.notes}
                 onChange={(e) => setPaymentDialog(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder={t('payment_notes')}
+                placeholder={t('payment_notes_placeholder')}
+                className="min-h-[80px]"
               />
             </div>
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
             <Button 
               variant="outline" 
               onClick={() => setPaymentDialog(prev => ({ ...prev, isOpen: false }))}
+              className="sm:flex-1"
             >
+              <X className="mr-2 h-4 w-4" />
               {t('cancel')}
             </Button>
             <Button 
               onClick={handleRecordPayment}
-              disabled={recordPaymentMutation.isPending}
+              disabled={recordPaymentMutation.isPending || paymentDialog.amountToPay <= 0}
+              className="sm:flex-1 gap-2 bg-green-600 hover:bg-green-700"
             >
               {recordPaymentMutation.isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   {t('processing')}
                 </>
               ) : (
                 <>
-                  <Check className="mr-2 h-4 w-4" />
+                  <BadgeCheck className="h-4 w-4" />
                   {t('record_payment')}
                 </>
               )}
@@ -607,43 +660,76 @@ export default function DeferredPaymentsTab() {
       <Dialog open={reminderDialog.isOpen} onOpenChange={(open) => setReminderDialog(prev => ({ ...prev, isOpen: open }))}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>{t('send_payment_reminder')}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-amber-500" />
+              {t('send_payment_reminder')}
+            </DialogTitle>
             <DialogDescription>
               {reminderDialog.payment && (
-                <div className="mt-2">
-                  <p>{t('customer')}: <span className="font-medium">{reminderDialog.payment.customerName}</span></p>
-                  <p>{t('phone')}: <span className="font-medium">{reminderDialog.payment.customerPhone}</span></p>
-                  <p>{t('remaining_amount')}: <span className="font-medium">{formatCurrency(reminderDialog.payment.remainingAmount)}</span></p>
+                <div className="mt-3 space-y-3">
+                  <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-muted/50">
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t('customer')}</p>
+                      <p className="font-medium">{reminderDialog.payment.customerName}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t('phone')}</p>
+                      <p className="font-medium">{reminderDialog.payment.customerPhone || t('no_phone')}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t('original_amount')}</p>
+                      <p className="font-medium">{formatCurrency(reminderDialog.payment.originalAmount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t('remaining_amount')}</p>
+                      <p className="font-medium text-amber-600">{formatCurrency(reminderDialog.payment.remainingAmount)}</p>
+                    </div>
+                  </div>
+                  
+                  {!reminderDialog.payment.customerPhone && (
+                    <div className="p-3 rounded-lg bg-amber-50 border border-amber-100 text-amber-700 text-sm">
+                      <p className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        {t('customer_no_phone_warning')}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="message">{t('message')}</Label>
+            <div className="grid gap-3">
+              <Label htmlFor="message" className="flex justify-between items-center text-base">
+                {t('message')}
+                <span className="text-xs text-muted-foreground">{t('whatsapp_message')}</span>
+              </Label>
               <Textarea
                 id="message"
                 value={reminderDialog.message}
                 onChange={(e) => setReminderDialog(prev => ({ ...prev, message: e.target.value }))}
-                placeholder={t('reminder_message')}
-                rows={6}
+                placeholder={t('reminder_message_placeholder')}
+                className="min-h-[120px]"
               />
             </div>
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
             <Button 
               variant="outline" 
               onClick={() => setReminderDialog(prev => ({ ...prev, isOpen: false }))}
+              className="sm:flex-1"
             >
+              <X className="mr-2 h-4 w-4" />
               {t('cancel')}
             </Button>
             <Button 
               onClick={sendWhatsAppReminder}
               disabled={!reminderDialog.payment?.customerPhone}
+              className="sm:flex-1 gap-2 bg-green-600 hover:bg-green-700"
             >
-              <MessageSquareShare className="mr-2 h-4 w-4" />
+              <MessageSquareShare className="h-4 w-4" />
               {t('send_whatsapp')}
             </Button>
           </DialogFooter>
