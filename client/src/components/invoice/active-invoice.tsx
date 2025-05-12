@@ -370,7 +370,11 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
       };
     }
     
+    // تحديث قائمة المنتجات
     setProducts(updatedProducts);
+    
+    // إعادة حساب المجاميع بعد تحديث المنتج
+    calculateSubtotalAndTotal(updatedProducts);
     
     // إذا كان الحقل هو اسم المنتج وليس هناك تحرير حالي
     // قم بعرض البحث فقط إذا كان هناك قيمة مدخلة
@@ -384,6 +388,14 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
     const updatedProducts = [...products];
     updatedProducts.splice(index, 1);
     setProducts(updatedProducts);
+    
+    // إعادة حساب المجاميع بعد حذف المنتج
+    calculateSubtotalAndTotal(updatedProducts);
+    
+    toast({
+      title: t('success'),
+      description: t('product_removed_from_invoice'),
+    });
   };
   
   // حساب المجموع الفرعي (قبل الخصم)
