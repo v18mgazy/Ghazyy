@@ -495,11 +495,11 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                   />
                 </div>
                 <Button 
-                  className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-md" 
+                  className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-md hover:shadow-lg rounded-lg transition-all" 
                   size="default"
                   onClick={() => setShowAddCustomer(true)}
                 >
-                  <Plus className="h-5 w-5 mr-1" />
+                  <Plus className="h-5 w-5 mr-2" />
                   <span className="font-medium">{t('add_new')}</span>
                 </Button>
               </div>
@@ -513,21 +513,21 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                         setSelectedCustomer(customer);
                         setActiveTab('products');
                       }}
-                      className={`p-4 border rounded-lg cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 bg-white ${
+                      className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
                         selectedCustomer?.id === customer.id 
-                          ? 'border-2 border-primary bg-gradient-to-r from-primary/5 to-secondary/5' 
-                          : 'border-border hover:border-primary hover:bg-muted/5'
+                          ? 'border-2 border-primary bg-gradient-to-r from-primary/10 to-secondary/10 shadow-md' 
+                          : 'border-primary/10 hover:border-primary/30 bg-gradient-to-r from-white to-gray-50 hover:from-primary/5 hover:to-secondary/5 shadow-sm hover:shadow-md'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg shadow-md">
                           {customer.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-foreground truncate text-base">{customer.name}</p>
                           <p className="text-sm text-muted-foreground">{customer.phone || t('no_phone')}</p>
                         </div>
-                        <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-full p-1.5">
+                        <div className="bg-gradient-to-r from-primary/20 to-secondary/20 rounded-full p-1.5 shadow-sm">
                           <ChevronRight className="h-5 w-5 text-primary" />
                         </div>
                       </div>
@@ -548,13 +548,13 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
             <TabsContent value="products">
               {selectedCustomer && (
                 <>
-                  <div className="mb-4 p-3 rounded-lg bg-gradient-to-r from-primary/10 to-pink-500/10 flex items-center justify-between shadow-md border border-primary/20">
+                  <div className="mb-4 p-3 rounded-lg bg-gradient-to-r from-primary/15 to-pink-500/15 flex items-center justify-between shadow-md border border-primary/20">
                     <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-primary to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-primary to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
                         {selectedCustomer.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-medium text-foreground text-base">{selectedCustomer.name}</p>
+                        <p className="font-semibold text-foreground text-base">{selectedCustomer.name}</p>
                         <p className="text-sm text-muted-foreground">{selectedCustomer.phone || t('no_phone')}</p>
                       </div>
                     </div>
@@ -562,7 +562,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                       variant="outline" 
                       size="default" 
                       onClick={() => setActiveTab('customer')}
-                      className="font-medium border-primary/30 hover:bg-primary/10 shadow-sm"
+                      className="font-medium border-primary/30 hover:bg-primary/10 shadow-sm bg-white/80 dark:bg-gray-800/80 rounded-lg"
                     >
                       <RefreshCcw className="mr-2 h-4 w-4 text-primary" />
                       {t('change')}
