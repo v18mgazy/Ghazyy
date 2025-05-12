@@ -85,21 +85,40 @@ export default function Header({
     setIsSubmitting(true);
     
     try {
-      // This is where you would call the API to change the password
-      // For now, we'll just simulate a successful password change
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: t('success'),
-        description: t('password_changed'),
+      // Call the API to change the password
+      const response = await fetch('/api/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,
+          currentPassword,
+          newPassword
+        }),
       });
       
-      // Close dialog and reset form
-      setPasswordDialogOpen(false);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      if (response.ok) {
+        toast({
+          title: t('success'),
+          description: t('password_changed'),
+        });
+        
+        // Close dialog and reset form
+        setPasswordDialogOpen(false);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: t('error'),
+          description: errorData.error || t('error_changing_password'),
+          variant: "destructive"
+        });
+      }
     } catch (error) {
+      console.error('Error changing password:', error);
       toast({
         title: t('error'),
         description: t('password_change_failed'),
