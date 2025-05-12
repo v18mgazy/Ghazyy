@@ -5,17 +5,17 @@ import {
   insertUserSchema, insertProductSchema, insertCustomerSchema, 
   insertInvoiceSchema, insertDamagedItemSchema,
   insertEmployeeSchema, insertPaymentApprovalSchema, insertReportDataSchema,
-  insertNotificationSchema, insertEmployeeDeductionSchema, insertStoreInfoSchema,
-  insertSupplierSchema, insertSupplierInvoiceSchema, insertSupplierPaymentSchema
+  insertNotificationSchema, insertEmployeeDeductionSchema, insertStoreInfoSchema
 } from "@shared/schema";
-import { supplierRoutes } from "./supplier-routes";
-import { supplierInvoiceRoutes } from "./supplier-invoice-routes";
-import { supplierPaymentRoutes } from "./supplier-payment-routes";
+import { registerSupplierRoutes } from "./api-routes";
 import { z } from "zod";
 import { type ZodError } from "zod-validation-error";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+  
+  // Register supplier routes
+  registerSupplierRoutes(app);
   
   // الحصول على قائمة الفواتير المؤجلة
   app.get('/api/deferred-payments', async (req, res) => {

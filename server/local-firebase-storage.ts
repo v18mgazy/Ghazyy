@@ -33,6 +33,9 @@ export class LocalFirebaseStorage implements IStorage {
   private suppliers = new Map<number, Supplier>();
   private supplierInvoices = new Map<number, SupplierInvoice>();
   private supplierPayments = new Map<number, SupplierPayment>();
+  private supplierIdCounter = 1;
+  private supplierInvoiceIdCounter = 1;
+  private supplierPaymentIdCounter = 1;
   private storeInfo: StoreInfo | undefined;
   
   private userIdCounter = 1;
