@@ -277,15 +277,35 @@ export default function DeferredPaymentsTab() {
   const getStatusBadgeProps = (status: string) => {
     switch (status) {
       case 'pending':
-        return { variant: 'outline' as const, className: 'bg-amber-50 text-amber-700 border-amber-200' };
+        return { 
+          variant: 'outline' as const, 
+          className: 'bg-amber-50 text-amber-700 border-amber-200',
+          icon: <AlertCircle className="mr-1 h-3 w-3" />
+        };
       case 'partially_paid':
-        return { variant: 'outline' as const, className: 'bg-blue-50 text-blue-700 border-blue-200' };
+        return { 
+          variant: 'outline' as const, 
+          className: 'bg-blue-50 text-blue-700 border-blue-200',
+          icon: <DollarSign className="mr-1 h-3 w-3" />
+        };
       case 'paid':
-        return { variant: 'outline' as const, className: 'bg-green-50 text-green-700 border-green-200' };
+        return { 
+          variant: 'outline' as const, 
+          className: 'bg-green-50 text-green-700 border-green-200',
+          icon: <Check className="mr-1 h-3 w-3" />
+        };
       case 'approved':
-        return { variant: 'outline' as const, className: 'bg-violet-50 text-violet-700 border-violet-200' };
+        return { 
+          variant: 'outline' as const, 
+          className: 'bg-violet-50 text-violet-700 border-violet-200',
+          icon: <CalendarClock className="mr-1 h-3 w-3" />
+        };
       default:
-        return { variant: 'outline' as const, className: 'bg-gray-50 text-gray-700 border-gray-200' };
+        return { 
+          variant: 'outline' as const, 
+          className: 'bg-gray-50 text-gray-700 border-gray-200',
+          icon: null
+        };
     }
   };
 
@@ -355,9 +375,27 @@ export default function DeferredPaymentsTab() {
                           </p>
                         </TableCell>
                         <TableCell className="font-medium">{formatCurrency(payment.originalAmount)}</TableCell>
-                        <TableCell className="font-medium">{formatCurrency(payment.remainingAmount)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className={`font-medium ${
+                              payment.remainingAmount === 0 
+                                ? "text-green-600"
+                                : payment.remainingAmount < payment.originalAmount
+                                  ? "text-blue-600"
+                                  : "text-amber-600"
+                            }`}>
+                              {formatCurrency(payment.remainingAmount)}
+                            </div>
+                            {payment.remainingAmount < payment.originalAmount && payment.remainingAmount > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                ({Math.round((1 - payment.remainingAmount / payment.originalAmount) * 100)}% {t('paid')})
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <Badge {...getStatusBadgeProps(payment.status)}>
+                            {getStatusBadgeProps(payment.status).icon}
                             {t(payment.status)}
                           </Badge>
                         </TableCell>
