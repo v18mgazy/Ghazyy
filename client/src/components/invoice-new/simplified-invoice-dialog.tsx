@@ -5,7 +5,8 @@ import { useLocale } from '@/hooks/use-locale';
 import { useToast } from '@/hooks/use-toast';
 import { 
   ReceiptText, Search, User, X, ShoppingCart, Check, Scan, ChevronRight,
-  Printer, Plus, Minus, DollarSign, Percent, Package2, Calculator, Trash2
+  Printer, Plus, Minus, DollarSign, Percent, Package2, Calculator, Trash2,
+  RefreshCcw, RotateCcw, ArrowLeft
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -570,11 +571,11 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                               <Search className="ml-2 h-5 w-5 shrink-0 opacity-70" />
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-[300px] p-0" align="start">
+                          <PopoverContent className="w-[350px] p-0" align="start">
                             <Command>
                               <CommandInput 
                                 placeholder={t('search_products')} 
-                                className="h-9" 
+                                className="h-12 text-base" 
                               />
                               <CommandList>
                                 <CommandEmpty>{t('no_products_found')}</CommandEmpty>
@@ -583,18 +584,18 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                                     <CommandItem
                                       key={product.id}
                                       onSelect={() => handleAddProduct(product)}
-                                      className="flex justify-between items-center"
+                                      className="flex justify-between items-center py-3"
                                     >
                                       <div>
-                                        <span className="font-medium">{product.name}</span>
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                          <Badge variant="outline" className="h-5">
+                                        <span className="font-medium text-base">{product.name}</span>
+                                        <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                                          <Badge variant="outline" className="h-6 px-2">
                                             {product.barcode || t('no_barcode')}
                                           </Badge>
-                                          <span>{t('in_stock')}: {product.stock}</span>
+                                          <span className="font-medium">{t('in_stock')}: {product.stock}</span>
                                         </div>
                                       </div>
-                                      <span className="text-primary font-semibold">
+                                      <span className="text-primary font-semibold text-base">
                                         {formatCurrency(product.sellingPrice)}
                                       </span>
                                     </CommandItem>
@@ -607,12 +608,12 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
 
                         {/* زر المسح الضوئي للباركود */}
                         <Button 
-                          size="sm" 
+                          size="default" 
                           variant="outline" 
                           onClick={() => setShowBarcodeScanner(!showBarcodeScanner)}
-                          className="h-9 whitespace-nowrap"
+                          className="h-11 whitespace-nowrap bg-gradient-to-r from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200 font-medium"
                         >
-                          <Scan className="h-4 w-4 mr-1" />
+                          <Scan className="h-5 w-5 mr-2 text-amber-700" />
                           {t('scan')}
                         </Button>
                       </div>
