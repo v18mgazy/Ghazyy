@@ -55,32 +55,60 @@ export default function ProductForm({
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [cameraStatus, setCameraStatus] = useState<'idle' | 'requesting' | 'denied' | 'ready'>('idle');
   const [barcodeMethod, setBarcodeMethod] = useState<'generate' | 'manual' | 'scan'>('generate');
-
+  // تخزين الباركود المكتشف لمنع حدوث حالات سباق
+  const [detectedBarcodeValue, setDetectedBarcodeValue] = useState<string | null>(null);
+  
+  // تهيئة البيانات عند فتح النموذج للمرة الأولى أو تغيير المنتج
   useEffect(() => {
-    if (product) {
-      setFormData(product);
-      // إذا كان المنتج موجودًا مسبقًا، افترض أن الباركود تم إدخاله يدويًا
-      setBarcodeMethod('manual');
-    } else {
-      setFormData({
-        name: '',
-        barcode: generateBarcodeNumber('code128'),
-        alternativeCode: '',
-        purchasePrice: 0,
-        sellingPrice: 0,
-        stock: 0
-      });
-      // للمنتجات الجديدة، افترض أن الباركود تم توليده تلقائيًا
-      setBarcodeMethod('generate');
-    }
-    
-    // تنظيف الماسح عند فتح/إغلاق النموذج
-    return () => {
-      if (isScanning) {
-        cleanupScanner();
+    // فقط قم بالتهيئة عندما يكون النموذج مفتوحاً
+    if (open) {
+      console.log('Dialog opened with product:', product);
+      
+      // إعادة تعيين قيمة الباركود المكتشف عند فتح النموذج
+      setDetectedBarcodeValue(null);
+      
+      if (product) {
+        // إذا كان المنتج موجودًا مسبقًا
+        setFormData(product);
+        setBarcodeMethod('manual');
+        console.log('Form initialized with existing product, barcode method set to manual');
+      } else {
+        // إذا كان منتجًا جديدًا
+        setFormData({
+          name: '',
+          barcode: generateBarcodeNumber('code128'),
+          alternativeCode: '',
+          purchasePrice: 0,
+          sellingPrice: 0,
+          stock: 0
+        });
+        setBarcodeMethod('generate');
+        console.log('Form initialized for new product, barcode method set to generate');
       }
+    }
+  }, [product, open]);
+  
+  // استخدام الباركود المكتشف عندما يتغير
+  useEffect(() => {
+    if (detectedBarcodeValue) {
+      console.log('Using detected barcode value for form data:', detectedBarcodeValue);
+      
+      // تطبيق الباركود المكتشف على نموذج البيانات
+      setFormData(prevData => ({
+        ...prevData,
+        barcode: detectedBarcodeValue
+      }));
+    }
+  }, [detectedBarcodeValue]);
+  
+  // تنظيف الماسح عند إغلاق النموذج
+  useEffect(() => {
+    return () => {
+      // تأكد من إيقاف الماسح عند إغلاق المكون
+      cleanupScanner();
+      console.log('Scanner cleanup on component unmount');
     };
-  }, [product, open, isScanning]);
+  }, []);
   
   const cleanupScanner = () => {
     try {
@@ -92,80 +120,92 @@ export default function ProductForm({
   };
   
   const startScanner = () => {
+    console.log('Starting scanner, setting up camera...');
     setScannerError(null);
     setCameraStatus('requesting');
+    setIsScanning(true);
 
-    // تحقق أولاً من إمكانية الوصول إلى الكاميرا
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => {
-        // إيقاف الدفق الأولي (سنستخدم Quagga للتحكم بالكاميرا)
-        stream.getTracks().forEach(track => track.stop());
-
-        setCameraStatus('ready');
-        setIsScanning(true);
-        
-        // إنشاء عنصر الكاميرا
-        setTimeout(() => {
-          if (scannerRef.current) {
-            console.log('Starting barcode scanner');
-            startBarcodeScanner(
-              'barcode-scanner-product',
-              handleBarcodeDetected,
-              (result) => {
-                // معالجة إطارات المسح (اختياري)
-                if (result && result.codeResult) {
-                  // معالجة مرئية للإطار
+    // تأخير بسيط لضمان تحديث واجهة المستخدم قبل طلب الكاميرا
+    setTimeout(() => {
+      // تحقق أولاً من إمكانية الوصول إلى الكاميرا
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          // إيقاف الدفق الأولي (سنستخدم Quagga للتحكم بالكاميرا)
+          stream.getTracks().forEach(track => track.stop());
+          
+          console.log('Camera permission granted, waiting for scanner element...');
+          setCameraStatus('ready');
+          
+          // إنشاء عنصر الكاميرا بعد تأخير بسيط للتأكد من تحديث DOM
+          setTimeout(() => {
+            if (scannerRef.current) {
+              console.log('Scanner element ready, initializing Quagga...');
+              
+              const cleanup = startBarcodeScanner(
+                'barcode-scanner-product',
+                (result) => {
+                  // استدعاء مباشر لمعالج الباركود
+                  handleBarcodeDetection(result);
+                },
+                (result) => {
+                  // معالجة إطارات المسح (اختياري)
+                  if (result && result.codeResult) {
+                    // يمكن إضافة معالجة بصرية هنا
+                  }
                 }
-              }
-            );
-          } else {
-            console.error('Scanner element not ready');
-            setCameraStatus('idle');
-            setScannerError(t('scanner_initialization_failed'));
-          }
-        }, 500); // تأخير بسيط للتأكد من جاهزية العنصر
-      })
-      .catch(err => {
-        console.error('Camera access error:', err);
-        setCameraStatus('denied');
-        setScannerError(t('camera_access_denied'));
-      });
+              );
+              
+              // تخزين وظيفة التنظيف للاستخدام لاحقًا
+              setCleanupFunction(() => cleanup);
+            } else {
+              console.error('Scanner element not found or not ready');
+              setCameraStatus('idle');
+              setIsScanning(false);
+              setScannerError(t('scanner_initialization_failed'));
+            }
+          }, 500);
+        })
+        .catch(err => {
+          console.error('Camera access error:', err);
+          setCameraStatus('denied');
+          setIsScanning(false);
+          setScannerError(t('camera_access_denied'));
+        });
+    }, 100);
   };
   
+  // وظيفة مساعدة منفصلة لإيقاف الماسح
   const stopScanner = () => {
+    console.log('Stopping scanner...');
+    // إيقاف الماسح
     cleanupScanner();
+    // إعادة تعيين الحالة
     setCameraStatus('idle');
-    console.log('Scanner stopped. Current barcode method:', barcodeMethod);
+    setIsScanning(false);
   };
   
-  const handleBarcodeDetected = (result: any) => {
+  // معالجة نتيجة المسح بطريقة أكثر موثوقية
+  const handleBarcodeDetection = (result: any) => {
+    // التحقق من وجود نتيجة صالحة
     if (result && result.codeResult && result.codeResult.code) {
-      const barcode = result.codeResult.code;
+      const detectedBarcode = result.codeResult.code;
+      console.log('Barcode detected:', detectedBarcode);
       
-      console.log('Barcode detected:', barcode);
-      
-      // إيقاف الماسح أولاً
+      // إيقاف الماسح فورًا
       stopScanner();
       
-      // التأكد من تطبيق التغييرات عبر setTimeout للتأكد من اكتمال دورة حياة React
-      setTimeout(() => {
-        // إضافة إشعار نجاح
-        toast({
-          title: t('barcode_scanned_successfully'),
-          description: barcode
-        });
-        
-        // تحديث البيانات بالباركود الجديد
-        setFormData(prev => ({
-          ...prev,
-          barcode: barcode
-        }));
-        
-        // تغيير الطريقة إلى الإدخال اليدوي بعد تحديث البيانات
-        setBarcodeMethod('manual');
-        
-        console.log('Updated barcode to:', barcode);
-      }, 100);
+      // إظهار إشعار للمستخدم
+      toast({
+        title: t('barcode_scanned_successfully'),
+        description: detectedBarcode
+      });
+      
+      // تخزين الباركود المكتشف في الحالة
+      // سيتم تطبيقه على النموذج عبر useEffect
+      setDetectedBarcodeValue(detectedBarcode);
+      
+      // تعيين وضع الإدخال اليدوي بعد اكتمال المسح
+      setBarcodeMethod('manual');
     }
   };
 
