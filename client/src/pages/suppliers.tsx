@@ -101,9 +101,9 @@ export default function SuppliersPage() {
     enabled: !!selectedSupplier,
   });
 
-  // استعلام المدفوعات للموردين
-  const { data: supplierPayments = [], isLoading: paymentsLoading } = useQuery({
-    queryKey: ["/api/supplier-payments", selectedInvoice?.id],
+  // استعلام المدفوعات للموردين (لفاتورة محددة)
+  const { data: selectedInvoicePayments = [], isLoading: paymentsLoading } = useQuery({
+    queryKey: ["/api/supplier-payments", "by-invoice", selectedInvoice?.id],
     queryFn: async () => {
       if (!selectedInvoice) return [];
       const response = await fetch(`/api/supplier-payments?invoiceId=${selectedInvoice.id}`);
@@ -113,6 +113,41 @@ export default function SuppliersPage() {
       return response.json();
     },
     enabled: !!selectedInvoice,
+  });
+  
+  // استعلام جميع المدفوعات للمورد المحدد حاليًا
+  const { data: allSupplierPayments = [], isLoading: allPaymentsLoading } = useQuery({
+    queryKey: ["/api/supplier-payments", "by-supplier", selectedSupplier?.id],
+    queryFn: async () => {
+      if (!selectedSupplier) return [];
+      
+      // احضر جميع فواتير المورد أولاً
+      const invoicesResponse = await fetch(`/api/supplier-invoices?supplierId=${selectedSupplier.id}`);
+      if (!invoicesResponse.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const invoices = await invoicesResponse.json();
+      
+      // احضر جميع المدفوعات لكل فاتورة
+      const payments = [];
+      for (const invoice of invoices) {
+        const paymentsResponse = await fetch(`/api/supplier-payments?invoiceId=${invoice.id}`);
+        if (paymentsResponse.ok) {
+          const invoicePayments = await paymentsResponse.json();
+          // أضف معلومات الفاتورة إلى كل دفعة
+          const paymentsWithInvoiceInfo = invoicePayments.map(payment => ({
+            ...payment,
+            invoiceNumber: invoice.invoiceNumber,
+            invoiceAmount: invoice.amount
+          }));
+          payments.push(...paymentsWithInvoiceInfo);
+        }
+      }
+      
+      // رتب المدفوعات من الأحدث للأقدم
+      return payments.sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
+    },
+    enabled: !!selectedSupplier,
   });
 
   // إضافة مورد جديد
@@ -308,7 +343,7 @@ export default function SuppliersPage() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-2 mb-4">
+            <TabsList className="grid grid-cols-3 mb-4">
               <TabsTrigger value="suppliers" className="text-base">
                 <Truck className="mr-2 h-5 w-5" />
                 {t("suppliers")}
@@ -316,6 +351,10 @@ export default function SuppliersPage() {
               <TabsTrigger value="invoices" className="text-base" disabled={!selectedSupplier}>
                 <FileText className="mr-2 h-5 w-5" />
                 {t("supplier_invoices")}
+              </TabsTrigger>
+              <TabsTrigger value="payments_report" className="text-base" disabled={!selectedSupplier}>
+                <CalendarClock className="mr-2 h-5 w-5" />
+                {t("supplier_payments_report")}
               </TabsTrigger>
             </TabsList>
 
@@ -697,6 +736,124 @@ export default function SuppliersPage() {
                         </Table>
                       </div>
                     </CardContent>
+                  </Card>
+                </>
+              )}
+            </TabsContent>
+
+            {/* تقرير المدفوعات للمورد  */}
+            <TabsContent value="payments_report" className="space-y-4">
+              {!selectedSupplier ? (
+                <div className="flex justify-center items-center p-8">
+                  <p>{t("select_supplier_first")}</p>
+                </div>
+              ) : (
+                <>
+                  <Card className="shadow-md border-primary/20">
+                    <CardHeader className="bg-gradient-to-r from-primary/10 to-secondary/10 pb-6">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                          <CardTitle className="text-2xl font-bold">
+                            {t("supplier_payments_report")}
+                          </CardTitle>
+                          <CardDescription className="text-base mt-2">
+                            {t("supplier")}: <span className="font-semibold">{selectedSupplier.name}</span>
+                            {selectedSupplier.phone && (
+                              <> | {t("phone")}: <span className="font-semibold">{selectedSupplier.phone}</span></>
+                            )}
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        {allPaymentsLoading ? (
+                          <div className="flex justify-center items-center p-8">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                          </div>
+                        ) : allSupplierPayments.length === 0 ? (
+                          <div className="text-center p-8 bg-muted/50 rounded-md">
+                            <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                            <h3 className="text-lg font-semibold mb-2">{t("no_payments_found")}</h3>
+                            <p className="text-muted-foreground">
+                              {t("no_payments_found_description")}
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="mb-6 p-4 bg-muted/30 rounded-lg">
+                              <h3 className="text-lg font-bold mb-3 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                                {t("payment_summary")}
+                              </h3>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="bg-white p-4 rounded-md shadow-sm border border-primary/10">
+                                  <p className="text-sm text-muted-foreground">{t("total_invoices")}</p>
+                                  <p className="text-2xl font-bold">{supplierInvoices.length}</p>
+                                </div>
+                                <div className="bg-white p-4 rounded-md shadow-sm border border-primary/10">
+                                  <p className="text-sm text-muted-foreground">{t("total_payments")}</p>
+                                  <p className="text-2xl font-bold">{allSupplierPayments.length}</p>
+                                </div>
+                                <div className="bg-white p-4 rounded-md shadow-sm border border-primary/10">
+                                  <p className="text-sm text-muted-foreground">{t("total_paid_amount")}</p>
+                                  <p className="text-2xl font-bold">
+                                    {allSupplierPayments.reduce((sum, payment) => sum + payment.amount, 0).toFixed(2)} {t("currency")}
+                                  </p>
+                                </div>
+                                <div className="bg-white p-4 rounded-md shadow-sm border border-primary/10">
+                                  <p className="text-sm text-muted-foreground">{t("remaining_balance")}</p>
+                                  <p className="text-2xl font-bold">
+                                    {(
+                                      supplierInvoices.reduce((sum, invoice) => sum + invoice.amount, 0) - 
+                                      allSupplierPayments.reduce((sum, payment) => sum + payment.amount, 0)
+                                    ).toFixed(2)} {t("currency")}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <h3 className="text-lg font-bold mb-3 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                              {t("detailed_payment_history")}
+                            </h3>
+                            <Table>
+                              <TableHeader>
+                                <TableRow className="hover:bg-muted/50 bg-muted/10">
+                                  <TableHead className="w-[180px]">{t("payment_date")}</TableHead>
+                                  <TableHead>{t("invoice_number")}</TableHead>
+                                  <TableHead>{t("payment_amount")}</TableHead>
+                                  <TableHead>{t("payment_method")}</TableHead>
+                                  <TableHead>{t("payment_notes")}</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {allSupplierPayments.map((payment, index) => (
+                                  <TableRow key={index} className="hover:bg-muted/50">
+                                    <TableCell className="font-medium">
+                                      {new Date(payment.paymentDate).toLocaleDateString()}
+                                      <div className="text-xs text-muted-foreground">
+                                        {new Date(payment.paymentDate).toLocaleTimeString()}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>{payment.invoiceNumber}</TableCell>
+                                    <TableCell>{payment.amount.toFixed(2)} {t("currency")}</TableCell>
+                                    <TableCell>{t(payment.paymentMethod)}</TableCell>
+                                    <TableCell>{payment.notes || "--"}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-between border-t p-4">
+                      <p className="text-sm text-muted-foreground">
+                        {t("last_updated")}: {new Date().toLocaleString()}
+                      </p>
+                      <Button variant="outline" className="gap-2" onClick={() => window.print()}>
+                        <span>{t("print_report")}</span>
+                      </Button>
+                    </CardFooter>
                   </Card>
                 </>
               )}
