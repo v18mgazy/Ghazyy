@@ -1604,7 +1604,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // وظائف مساعدة لإنشاء بيانات التقارير
-  function formatDateForReportType(date: Date, type: string): string {
+  function formatDateForReportType(dateInput: Date, type: string): string {
+    // نتأكد من أن dateInput هو كائن Date صحيح
+    const date = new Date(dateInput);
+    
+    // طباعة التاريخ الذي يتم معالجته للتصحيح
+    console.log(`Formatting date: ${date.toISOString()} for type: ${type}`);
+    
     if (type === 'daily') {
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     } else if (type === 'weekly') {
