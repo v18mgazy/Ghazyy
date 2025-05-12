@@ -308,20 +308,27 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
     const foundProduct = products.find((p: any) => p.barcode === scannedProd.barcode);
     
     if (foundProduct) {
-      // إضافة المنتج مباشرة إلى الفاتورة كمنتج محدد
-      setSelectedProduct({
-        id: foundProduct.id,
-        name: foundProduct.name,
-        barcode: foundProduct.barcode,
-        sellingPrice: foundProduct.sellingPrice,
-      });
+      // التحقق من المخزون المتوفر
+      const quantity = foundProduct.quantity || 0;
+      if (quantity <= 0) {
+        toast({
+          title: t('cannot_add_product'),
+          description: t('product_out_of_stock'),
+          variant: "destructive"
+        });
+        return;
+      }
       
-      // إغلاق شاشة الماسح وإنهاء عملية المسح
-      setShowBarcodeScanner(false);
+      // تعيين المنتج المسموح بإضافته
+      setScannedProduct(foundProduct);
+      
+      // تحديث الحد الأقصى للكمية المتوفرة
+      setMaxAvailableQuantity(quantity);
       
       toast({
         title: t('product_found'),
         description: `${foundProduct.name} ${t('found_in_inventory')}`,
+        variant: "default"
       });
       
       // هنا يمكن للمستخدم ضبط الكمية ثم إضافته
@@ -805,7 +812,10 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
             
             {scannedProduct && (
               <Button 
-                onClick={() => handleSelectProduct(scannedProduct)}
+                onClick={() => {
+                  // استخدام الدالة القياسية لإضافة المنتج مع التحقق من المخزون
+                  handleSelectProduct(scannedProduct);
+                }}
                 className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700"
               >
                 <ShoppingBasket className="h-4 w-4 mr-2" />
