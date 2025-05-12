@@ -24,9 +24,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // تفلتر الفواتير المؤجلة التي لم يتم دفعها بالكامل
       const deferredInvoices = allInvoices.filter(invoice => 
         (invoice.paymentMethod === 'later' || 
-         invoice.paymentMethod === 'deferred' ||
-         invoice.paymentStatus === 'pending' || 
-         invoice.paymentStatus === 'partially_paid') &&
+         invoice.paymentMethod === 'deferred') &&
         !invoice.isDeleted
       );
       
@@ -36,9 +34,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // تحويل البيانات إلى الشكل المطلوب للواجهة
       const deferredPayments = deferredInvoices.map(invoice => {
-        // حساب المبلغ المتبقي - في الحالة الحالية نفترض أنه لم يتم دفع أي جزء من المبلغ
-        // في المستقبل يمكن إضافة سجل للمدفوعات الجزئية
-        const remainingAmount = invoice.total; // بالنسبة للمرحلة الأولى
+        // حساب المبلغ المتبقي باستخدام الحالة
+        let remainingAmount = invoice.total;
+        
+        // تحديث المبلغ المتبقي بناءً على حالة الدفع
+        if (invoice.paymentStatus === 'paid') {
+          remainingAmount = 0;
+        } else if (invoice.paymentStatus === 'partially_paid') {
+          // في حالة الدفع الجزئي، نفترض أن المبلغ المدفوع هو نصف المبلغ الإجمالي
+          // هذا مجرد مثال، يجب استبداله بحساب حقيقي للمدفوعات
+          remainingAmount = invoice.total / 2;
+        }
         
         return {
           id: invoice.id.toString(),
@@ -49,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           invoiceNumber: invoice.invoiceNumber,
           originalAmount: invoice.total,
           remainingAmount: remainingAmount,
-          lastPaymentDate: null, // سيتم تحديثه لاحقًا عند تنفيذ المدفوعات الجزئية
+          lastPaymentDate: invoice.updatedAt ? new Date(invoice.updatedAt).toISOString() : null,
           dueDate: null, // سيتم تنفيذه لاحقًا
           status: invoice.paymentStatus
         };
@@ -81,20 +87,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Invoice not found' });
       }
       
-      // في الإصدار الأول، سنفترض أن هذه هي الدفعة الأولى والوحيدة
-      // بناءً على المبلغ المدفوع، نحدد حالة الدفع الجديدة
-      const newStatus = amount >= invoice.total ? 'paid' : 'partially_paid';
+      // حساب المبلغ المتبقي الحالي
+      let currentRemainingAmount = invoice.total;
+      
+      // إذا كانت الفاتورة مدفوعة جزئياً، نفترض أن المبلغ المدفوع مسبقاً هو نصف المبلغ
+      if (invoice.paymentStatus === 'partially_paid') {
+        currentRemainingAmount = invoice.total / 2;
+      } else if (invoice.paymentStatus === 'paid') {
+        currentRemainingAmount = 0;
+      }
+      
+      // تحقق من أن المبلغ المدفوع لا يتجاوز المبلغ المتبقي
+      if (amount > currentRemainingAmount) {
+        return res.status(400).json({ 
+          error: 'Payment amount exceeds remaining balance',
+          currentRemainingAmount
+        });
+      }
+      
+      // حساب المبلغ المتبقي الجديد
+      const newRemainingAmount = currentRemainingAmount - amount;
+      
+      // تحديد حالة الدفع الجديدة بناءً على المبلغ المتبقي
+      let newStatus = 'partially_paid';
+      if (newRemainingAmount <= 0) {
+        newStatus = 'paid';
+      } else if (newRemainingAmount === invoice.total) {
+        // لم يتم دفع أي شيء بعد
+        newStatus = 'pending';
+      }
+      
+      console.log(`Updating invoice ${invoiceId} with these fields: [ 'paymentStatus' ]`);
+      
+      // في المستقبل، يمكن إضافة حقل مخصص لتسجيل المدفوعات الجزئية
+      // مثل: paidAmount أو paymentRecords (كمصفوفة)
+      
+      // تحقق من وجود حقل productsData للحفاظ عليه عند التحديث
+      if (invoice.productsData) {
+        console.log('Preserving existing productsData from invoice');
+      }
       
       // تحديث حالة الفاتورة
       const updatedInvoice = await storage.updateInvoice(parseInt(invoiceId), {
         paymentStatus: newStatus,
-        // إضافة حقول أخرى حسب الحاجة (مثل السجل الخاص بالدفعات الجزئية)
+        // يمكن إضافة حقول أخرى هنا مستقبلاً
       });
       
-      // إنشاء سجل للدفعة في جدول منفصل (سيتم تنفيذه لاحقًا)
-      // في المستقبل يمكن إضافة جدول خاص بسجلات الدفع
+      console.log('Final updated invoice data:', updatedInvoice);
       
-      // الآن سنكتفي بإنشاء إشعار بالدفعة
+      // إنشاء إشعار بالدفعة
       await storage.createNotification({
         userId: invoice.userId,
         title: `تم استلام دفعة`,
@@ -112,7 +153,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           amount,
           paymentMethod,
           notes,
-          date: new Date()
+          date: new Date(),
+          newRemainingAmount,
+          newStatus
         }
       });
     } catch (error) {
