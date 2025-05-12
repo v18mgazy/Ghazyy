@@ -2452,9 +2452,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalDamagesValue += item.valueLoss || 0;
         
         // يجب التأكد من وجود اسم المنتج، إن لم يكن موجوداً بحث عنه في قائمة المنتجات
-        let productName = item.productName || 'منتج غير معروف';
+        let productName = 'منتج غير معروف';
+        
+        // محاولة العثور على اسم المنتج من البيانات المرتبطة
         if (item.product && item.product.name) {
           productName = item.product.name;
+        } else if (item.productName) {
+          productName = item.productName;
+        } else {
+          // جلب اسم المنتج من قائمة المنتجات
+          const products = await storage.getAllProducts();
+          const product = products.find(p => p.id === item.productId);
+          if (product) {
+            productName = product.name;
+          }
         }
         
         detailedReports.push({

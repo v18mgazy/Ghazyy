@@ -7,26 +7,51 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(value: number, locale = 'ar-EG', currency = 'EGP') {
+export function formatCurrency(value: number, locale = 'en-US', currency = 'EGP') {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency
+    currency,
+    // Always use Latin digits (Arabic numerals) instead of Arabic digits
+    numberingSystem: 'latn'
   }).format(value);
 }
 
 export function formatDate(date: Date | string | number, formatPattern = 'PP', localeCode = 'en') {
   const dateObj = date instanceof Date ? date : new Date(date);
-  return format(dateObj, formatPattern, { 
-    locale: localeCode === 'ar' ? ar : enUS 
-  });
+  // Always use numeric format with Latin digits even for Arabic locale
+  const options = { 
+    locale: localeCode === 'ar' ? ar : enUS
+  };
+  
+  // Format the date using date-fns library
+  let formattedDate = format(dateObj, formatPattern, options);
+  
+  // If Arabic locale, ensure we still use Western Arabic numerals (0-9)
+  if (localeCode === 'ar') {
+    formattedDate = formattedDate.replace(/[٠-٩]/g, digit => 
+      String.fromCharCode(digit.charCodeAt(0) - 1632 + 48)
+    );
+  }
+  
+  return formattedDate;
 }
 
 export function formatTimeAgo(date: Date | string | number, localeCode = 'en') {
   const dateObj = date instanceof Date ? date : new Date(date);
-  return formatDistanceToNow(dateObj, { 
+  // Format time ago using date-fns library
+  let formattedTimeAgo = formatDistanceToNow(dateObj, { 
     addSuffix: true,
     locale: localeCode === 'ar' ? ar : enUS 
   });
+  
+  // For Arabic locale, replace Arabic numerals with Western/Latin numerals
+  if (localeCode === 'ar') {
+    formattedTimeAgo = formattedTimeAgo.replace(/[٠-٩]/g, digit => 
+      String.fromCharCode(digit.charCodeAt(0) - 1632 + 48)
+    );
+  }
+  
+  return formattedTimeAgo;
 }
 
 export function generateInvoiceNumber() {
