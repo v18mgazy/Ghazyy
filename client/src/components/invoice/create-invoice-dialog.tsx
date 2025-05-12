@@ -149,6 +149,10 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
     if (searchTerm.trim()) {
       setNewCustomer({ ...newCustomer, name: searchTerm });
       setShowAddCustomerForm(true);
+      // تأكد من إغلاق نماذج أخرى
+      setShowBarcodeScanner(false);
+      setShowProductSearch(false);
+      console.log('Setting showAddCustomerForm to true');
     }
   };
   
@@ -163,7 +167,26 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
       return;
     }
     
-    addCustomerMutation.mutate(newCustomer);
+    addCustomerMutation.mutate(newCustomer, {
+      onSuccess: (customer) => {
+        console.log('Customer added successfully:', customer);
+        setSelectedCustomer(customer);
+        setShowAddCustomerForm(false);
+        setIsCustomerDialogOpen(false);
+        toast({
+          title: t('success'),
+          description: t('customer_added_successfully'),
+        });
+      },
+      onError: (error) => {
+        console.error('Error adding customer:', error);
+        toast({
+          title: t('error'),
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    });
   };
   
   // إغلاق النافذة المنبثقة
@@ -299,7 +322,188 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   
   // إظهار الشاشة الصحيحة بناءً على الحالة الحالية
   const renderDialogContent = () => {
-    if (isCustomerDialogOpen) {
+    console.log('Rendering dialog content:');
+    console.log('- isCustomerDialogOpen:', isCustomerDialogOpen);
+    console.log('- showAddCustomerForm:', showAddCustomerForm);
+    console.log('- showBarcodeScanner:', showBarcodeScanner);
+    console.log('- showProductSearch:', showProductSearch);
+    console.log('- selectedCustomer:', selectedCustomer);
+    
+    // 1. عرض نموذج إضافة عميل جديد
+    if (showAddCustomerForm) {
+      return (
+        <>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <User className="h-6 w-6 text-primary" />
+              {t('add_new_customer')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('fill_customer_details')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">{t('customer_name')}</Label>
+                <Input 
+                  id="name" 
+                  value={newCustomer.name}
+                  onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
+                  placeholder={t('enter_customer_name')}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="phone">{t('phone')}</Label>
+                <Input 
+                  id="phone" 
+                  value={newCustomer.phone}
+                  onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
+                  placeholder={t('enter_phone')}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="address">{t('address')}</Label>
+                <Input 
+                  id="address" 
+                  value={newCustomer.address}
+                  onChange={(e) => setNewCustomer({...newCustomer, address: e.target.value})}
+                  placeholder={t('enter_address')}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="customer-type">{t('customer_type')}</Label>
+                <Select 
+                  defaultValue={newCustomer.isPotential ? "potential" : "regular"}
+                  onValueChange={(value) => setNewCustomer({
+                    ...newCustomer, 
+                    isPotential: value === "potential"
+                  })}
+                >
+                  <SelectTrigger id="customer-type">
+                    <SelectValue placeholder={t('select_customer_type')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="regular">{t('regular_customer')}</SelectItem>
+                    <SelectItem value="potential">{t('potential_customer')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowAddCustomerForm(false);
+              setIsCustomerDialogOpen(true);
+            }}>
+              {t('cancel')}
+            </Button>
+            <Button onClick={handleAddCustomer} disabled={addCustomerMutation.isPending}>
+              {addCustomerMutation.isPending ? t('saving') : t('save')}
+            </Button>
+          </DialogFooter>
+        </>
+      );
+    }
+    
+    // 2. عرض واجهة ماسح الباركود
+    else if (showBarcodeScanner) {
+      return (
+        <>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <ScanLine className="h-6 w-6 text-primary" />
+              {t('scan_barcode')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('position_barcode_in_camera')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div>
+            <BarcodeScanner onDetected={handleDetected} />
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBarcodeScanner(false)}>
+              {t('cancel')}
+            </Button>
+          </DialogFooter>
+        </>
+      );
+    }
+    
+    // 3. عرض واجهة البحث عن المنتجات
+    else if (showProductSearch) {
+      return (
+        <>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <ShoppingBasket className="h-6 w-6 text-primary" />
+              {t('search_products')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('search_or_select_products')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                value={productSearchTerm}
+                onChange={(e) => setProductSearchTerm(e.target.value)}
+                placeholder={t('search_products_by_name')}
+                className="pl-10"
+              />
+            </div>
+            
+            <div className="max-h-[300px] overflow-y-auto space-y-1">
+              {products.map((product) => (
+                <div
+                  key={product.id}
+                  onClick={() => handleSelectProduct(product)}
+                  className="p-3 rounded-md border hover:border-primary hover:bg-muted cursor-pointer transition-colors"
+                >
+                  <div className="font-medium">{product.name}</div>
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>{product.barcode || t('no_barcode')}</span>
+                    <span className="font-semibold text-primary">
+                      {formatCurrency(product.sellingPrice)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              
+              {products.length === 0 && (
+                <div className="text-center py-6 text-muted-foreground">
+                  {productSearchTerm ? t('no_products_found') : t('enter_product_name')}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProductSearch(false)}>
+              {t('cancel')}
+            </Button>
+            {scannedProduct && (
+              <Button onClick={() => handleSelectProduct(scannedProduct)}>
+                {t('add_scanned_product')}
+              </Button>
+            )}
+          </DialogFooter>
+        </>
+      );
+    }
+    
+    // 4. عرض قائمة العملاء للاختيار
+    else if (isCustomerDialogOpen) {
       // شاشة اختيار العميل
       return (
         <>
@@ -394,7 +598,14 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
                 variant="outline" 
                 onClick={() => {
                   console.log('Show add customer form button clicked');
+                  setNewCustomer({
+                    name: '',
+                    phone: '',
+                    address: '',
+                    isPotential: true
+                  });
                   setShowAddCustomerForm(true);
+                  setIsCustomerDialogOpen(false);
                   toast({
                     title: 'تشخيص',
                     description: 'تم النقر على زر إضافة عميل جديد'
@@ -476,7 +687,10 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddCustomerForm(false)}>
+            <Button variant="outline" onClick={() => {
+              setShowAddCustomerForm(false);
+              setIsCustomerDialogOpen(true);
+            }}>
               {t('cancel')}
             </Button>
             <Button onClick={handleAddCustomer} disabled={addCustomerMutation.isPending}>
