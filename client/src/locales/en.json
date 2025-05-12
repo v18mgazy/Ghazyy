@@ -230,7 +230,7 @@
   "refreshing": "Refreshing",
   "custom": "Custom Date Range",
   "select_date": "Select Date",
-  "reports": {
+  "report_periods": {
     "daily": "Daily",
     "weekly": "Weekly",
     "monthly": "Monthly",
