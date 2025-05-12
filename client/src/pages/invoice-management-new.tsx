@@ -1004,8 +1004,23 @@ export default function InvoiceManagement() {
                 </TableHeader>
                 <TableBody>
                   {currentInvoices.map((invoice, index) => (
-                    <TableRow key={index} className="hover:bg-muted/40">
-                      <TableCell className="font-medium">{invoice.id}</TableCell>
+                    <TableRow 
+                      key={index} 
+                      className={`hover:bg-muted/40 ${
+                        invoice.paymentMethod === 'deferred' && invoice.status === 'pending' 
+                          ? 'bg-amber-50 dark:bg-amber-950/20' 
+                          : ''
+                      }`}
+                    >
+                      <TableCell className="font-medium">
+                        {invoice.id}
+                        {invoice.paymentMethod === 'deferred' && invoice.status === 'pending' && (
+                          <div className="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-1 flex items-center">
+                            <Clock className="h-3 w-3 me-1" />
+                            {t('awaiting_approval')}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell>{formatDate(invoice.date)}</TableCell>
                       <TableCell>
                         <div>
@@ -1045,7 +1060,16 @@ export default function InvoiceManagement() {
                           {t(invoice.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell>{t(invoice.paymentMethod)}</TableCell>
+                      <TableCell>
+                        {invoice.paymentMethod === 'deferred' && invoice.status === 'pending' ? (
+                          <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200">
+                            <AlertCircle className="h-3.5 w-3.5 me-1" />
+                            {t(invoice.paymentMethod)}
+                          </Badge>
+                        ) : (
+                          t(invoice.paymentMethod)
+                        )}
+                      </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
