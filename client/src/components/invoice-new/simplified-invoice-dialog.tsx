@@ -820,7 +820,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
               variant="outline" 
               onClick={() => onOpenChange(false)}
               size="lg"
-              className="text-base font-medium px-8 py-6 h-auto border-gray-300 hover:bg-gray-100"
+              className="text-base font-medium px-8 py-6 h-auto border-gray-300 hover:bg-gray-100 shadow-sm"
             >
               <X className="mr-2 h-5 w-5" />
               {t('cancel')}
@@ -896,7 +896,12 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
           </div>
           
           <DialogFooter className="flex items-center justify-between">
-            <Button variant="outline" onClick={() => setShowAddCustomer(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAddCustomer(false)}
+              className="font-medium text-base border-gray-300 hover:bg-gray-100 py-5 px-6 h-auto"
+            >
+              <X className="mr-2 h-5 w-5" />
               {t('cancel')}
             </Button>
             <Button 
