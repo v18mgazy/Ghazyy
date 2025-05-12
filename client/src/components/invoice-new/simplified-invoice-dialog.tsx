@@ -454,7 +454,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[95vh] p-0 overflow-hidden">
+      <DialogContent className="max-w-full sm:max-w-4xl max-h-[95vh] p-0 overflow-hidden">
         <DialogHeader className="p-4 pb-1 bg-gradient-to-r from-purple-600/20 to-pink-600/10">
           <DialogTitle className="flex items-center text-xl font-bold bg-gradient-to-r from-primary to-pink-500 bg-clip-text text-transparent">
             <ReceiptText className="h-6 w-6 text-primary mr-2" />
