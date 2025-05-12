@@ -891,10 +891,19 @@ export class RealtimeDBStorage implements IStorage {
       
       if (invoicesSnapshot.exists()) {
         invoices = Object.values(invoicesSnapshot.val() || {});
+        // استبعاد الفواتير المحذوفة
+        invoices = invoices.filter(inv => !inv.isDeleted);
+        console.log(`Found ${invoices.length} invoices`);
       }
       
       if (damagedItemsSnapshot.exists()) {
         damagedItems = Object.values(damagedItemsSnapshot.val() || {});
+        console.log(`Found ${damagedItems.length} damaged items`);
+      }
+      
+      if (expensesSnapshot.exists()) {
+        expenses = Object.values(expensesSnapshot.val() || {});
+        console.log(`Found ${expenses.length} expenses`);
       }
       
       if (productsSnapshot.exists()) {
@@ -906,8 +915,12 @@ export class RealtimeDBStorage implements IStorage {
       }
       
       // تصفية البيانات حسب التاريخ
+      console.log(`Filtering data for ${type} report, date: ${date}`);
       const filteredInvoices = this.filterByDateType(invoices, type, date);
       const filteredDamagedItems = this.filterByDateType(damagedItems, type, date);
+      const filteredExpenses = this.filterByDateType(expenses, type, date);
+      
+      console.log(`After filtering: ${filteredInvoices.length} invoices, ${filteredDamagedItems.length} damaged items, ${filteredExpenses.length} expenses`);
       
       // حساب البيانات الإجمالية
       const totalSales = filteredInvoices.reduce((sum, inv: any) => sum + (inv.total || 0), 0);
@@ -957,7 +970,7 @@ export class RealtimeDBStorage implements IStorage {
       const topProducts = this.calculateTopProducts(filteredInvoices, products);
       
       // تفاصيل التقارير اليومية
-      const detailedReports = this.generateDetailedReports(filteredInvoices, filteredDamagedItems, type, date);
+      const detailedReports = this.generateDetailedReports(filteredInvoices, filteredDamagedItems, filteredExpenses, type, date);
       
       // نحسب البيانات للفترة السابقة للمقارنة
       const prevDate = this.getPreviousPeriodDate(type, date);
@@ -1281,7 +1294,7 @@ export class RealtimeDBStorage implements IStorage {
   }
   
   // دالة مساعدة لإنشاء تقارير مفصلة
-  private generateDetailedReports(invoices: any[], damagedItems: any[], type: string, date: string): any[] {
+  private generateDetailedReports(invoices: any[], damagedItems: any[], expenses: any[], type: string, date: string): any[] {
     // إنشاء تقارير مفصلة حسب اليوم أو الأسبوع أو الشهر أو السنة
     const reports: any[] = [];
     
