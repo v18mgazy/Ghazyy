@@ -72,6 +72,7 @@ export default function InvoiceManagement() {
   const [editedProducts, setEditedProducts] = useState<any[]>([]);
   const [availableProducts, setAvailableProducts] = useState<any[]>([]);
   const [availableCustomers, setAvailableCustomers] = useState<any[]>([]);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   
   // استعلام للحصول على بيانات الفواتير
   const { 
@@ -281,7 +282,7 @@ export default function InvoiceManagement() {
   
   // تصفية الفواتير حسب معايير البحث والتصفية
   const filteredInvoices = useMemo(() => {
-    return invoices.filter(invoice => {
+    const filtered = invoices.filter(invoice => {
       const matchesSearch = 
         (invoice.id && invoice.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (invoice.customer.name && invoice.customer.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -292,7 +293,14 @@ export default function InvoiceManagement() {
       
       return matchesSearch && matchesStatus && matchesPayment;
     });
-  }, [invoices, searchTerm, filterStatus, filterPayment]);
+    
+    // ترتيب الفواتير حسب التاريخ
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+  }, [invoices, searchTerm, filterStatus, filterPayment, sortOrder]);
   
   // التقسيم الصفحي للفواتير
   const { currentInvoices, totalPages } = useMemo(() => {
