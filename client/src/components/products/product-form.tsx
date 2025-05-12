@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, RefreshCw, Loader2, QrCode, Camera, ScanLine, AlertCircle } from 'lucide-react';
+import { X, RefreshCw, Loader2, QrCode, Camera, ScanLine, AlertCircle, Edit2 } from 'lucide-react';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
 } from '@/components/ui/dialog';
@@ -54,19 +54,24 @@ export default function ProductForm({
   const [isScanning, setIsScanning] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [cameraStatus, setCameraStatus] = useState<'idle' | 'requesting' | 'denied' | 'ready'>('idle');
+  const [barcodeMethod, setBarcodeMethod] = useState<'generate' | 'manual' | 'scan'>('generate');
 
   useEffect(() => {
     if (product) {
       setFormData(product);
+      // إذا كان المنتج موجودًا مسبقًا، افترض أن الباركود تم إدخاله يدويًا
+      setBarcodeMethod('manual');
     } else {
       setFormData({
         name: '',
-        barcode: generateBarcodeNumber(),
+        barcode: generateBarcodeNumber('code128'),
         alternativeCode: '',
         purchasePrice: 0,
         sellingPrice: 0,
         stock: 0
       });
+      // للمنتجات الجديدة، افترض أن الباركود تم توليده تلقائيًا
+      setBarcodeMethod('generate');
     }
     
     // تنظيف الماسح عند فتح/إغلاق النموذج
@@ -150,6 +155,9 @@ export default function ProductForm({
         ...formData,
         barcode: barcode
       });
+      
+      // انتقل إلى وضع التعديل اليدوي بعد المسح للسماح بتعديل الباركود إذا لزم الأمر
+      setBarcodeMethod('manual');
     }
   };
 
@@ -179,10 +187,22 @@ export default function ProductForm({
   };
 
   const generateNewBarcode = () => {
+    setBarcodeMethod('generate');
     setFormData({
       ...formData,
-      barcode: generateBarcodeNumber()
+      barcode: generateBarcodeNumber('code128')
     });
+  };
+  
+  const enableManualBarcode = () => {
+    setBarcodeMethod('manual');
+    // الاحتفاظ بالباركود الحالي وتمكين التعديل اليدوي
+  };
+
+  const prepareScanBarcode = () => {
+    setBarcodeMethod('scan');
+    // بدء عملية المسح الضوئي للباركود
+    startScanner();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -272,37 +292,84 @@ export default function ProductForm({
             </div>
             
             <div className="col-span-2">
-              <Label htmlFor="barcode" className="text-sm font-medium">
-                {t('barcode')}
-              </Label>
-              <div className="flex">
-                <Input
-                  id="barcode"
-                  value={formData.barcode}
-                  onChange={handleChange}
-                  className="flex-1 rounded-r-none"
-                />
-                <Button
-                  type="button"
-                  className="rounded-l-none rounded-r-none"
-                  onClick={generateNewBarcode}
-                  title={t('generate_new_barcode')}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  className="rounded-l-none"
-                  onClick={startScanner}
-                  disabled={isScanning}
-                  title={t('scan_existing_barcode')}
-                >
-                  <Camera className="h-4 w-4" />
-                </Button>
+              {/* خيارات الباركود */}
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-sm font-medium">{t('barcode')}</Label>
+                <div className="flex gap-2 border border-input rounded-md overflow-hidden">
+                  <Button
+                    type="button"
+                    variant={barcodeMethod === 'generate' ? "default" : "ghost"}
+                    size="sm"
+                    onClick={generateNewBarcode}
+                    className={`rounded-none ${barcodeMethod === 'generate' ? 'bg-primary text-primary-foreground' : ''}`}
+                    title={t('auto_generate')}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-1" /> {t('auto_generate')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={barcodeMethod === 'manual' ? "default" : "ghost"}
+                    size="sm"
+                    onClick={enableManualBarcode}
+                    className={`rounded-none ${barcodeMethod === 'manual' ? 'bg-primary text-primary-foreground' : ''}`}
+                    title={t('manual_entry')}
+                  >
+                    <Edit2 className="h-4 w-4 mr-1" /> {t('manual_entry')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={barcodeMethod === 'scan' ? "default" : "ghost"}
+                    size="sm"
+                    onClick={prepareScanBarcode}
+                    disabled={isScanning}
+                    className={`rounded-none ${barcodeMethod === 'scan' ? 'bg-primary text-primary-foreground' : ''}`}
+                    title={t('scan_existing')}
+                  >
+                    <Camera className="h-4 w-4 mr-1" /> {t('scan_existing')}
+                  </Button>
+                </div>
               </div>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                {t('barcode_manual_edit_info')} {!isScanning && t('or_scan_existing_barcode')}
-              </p>
+              
+              {/* حقل الباركود يتغير حسب الوضع المحدد */}
+              {barcodeMethod === 'generate' ? (
+                <div className="relative">
+                  <Input
+                    id="barcode"
+                    value={formData.barcode}
+                    readOnly
+                    className="bg-muted pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={generateNewBarcode}
+                    className="absolute right-1 top-1/2 -translate-y-1/2"
+                    title={t('regenerate_barcode')}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('barcode_auto_generated')}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <Input
+                    id="barcode"
+                    value={formData.barcode}
+                    onChange={handleChange}
+                    disabled={isScanning}
+                    className={barcodeMethod === 'manual' ? 'bg-background' : 'bg-muted'}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {barcodeMethod === 'manual' 
+                      ? t('barcode_manual_edit_info')
+                      : t('scanned_barcode_manual_edit')
+                    }
+                  </p>
+                </div>
+              )}
             </div>
             
             {isScanning && (
