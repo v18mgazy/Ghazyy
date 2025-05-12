@@ -22,7 +22,9 @@
     "loadError": "Error loading notifications",
     "retry": "Retry",
     "markError": "Error marking notification as read",
-    "deleteError": "Error deleting notification"
+    "deleteError": "Error deleting notification",
+    "deleteSuccess": "Notification deleted",
+    "deleteSuccessMessage": "Notification was successfully deleted"
   },
   "deferred_payment": {
     "dialog_title": "Deferred Payment Request",

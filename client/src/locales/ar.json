@@ -22,7 +22,9 @@
     "loadError": "حدث خطأ أثناء تحميل الإشعارات",
     "retry": "إعادة المحاولة",
     "markError": "حدث خطأ أثناء تعيين الإشعار كمقروء",
-    "deleteError": "حدث خطأ أثناء حذف الإشعار"
+    "deleteError": "حدث خطأ أثناء حذف الإشعار",
+    "deleteSuccess": "تم حذف الإشعار",
+    "deleteSuccessMessage": "تم حذف الإشعار بنجاح"
   },
   "deferred_payment": {
     "dialog_title": "طلب دفع آجل",
@@ -242,6 +244,7 @@
   "manage_inventory": "إدارة المخزون",
   
   "error": "خطأ",
+  "invalid_invoice_id": "معرف الفاتورة غير صالح",
   "retry": "إعادة المحاولة",
   "cancel_scanning": "إلغاء المسح",
   "scanner_initialization_failed": "فشل تهيئة الماسح",
