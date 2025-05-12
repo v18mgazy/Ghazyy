@@ -66,6 +66,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
 
   // حالة معاينة الفاتورة
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  const [createdInvoice, setCreatedInvoice] = useState<any>(null);
   const [invoiceData, setInvoiceData] = useState<any>(null);
 
   // حالة المجاميع
@@ -98,6 +99,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       // تأكد من أن البيانات صحيحة وموجودة
       console.log('Invoice created successfully:', data);
       setInvoiceData(data);
+      setCreatedInvoice(data);
       setShowInvoicePreview(true);
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
@@ -364,8 +366,29 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
   if (showInvoicePreview && invoiceData) {
     return (
       <InvoicePreview 
-        invoice={invoiceData} 
-        onClose={() => onOpenChange(false)}
+        open={showInvoicePreview}
+        onOpenChange={(open) => {
+          setShowInvoicePreview(open);
+          if (!open) onOpenChange(false);
+        }}
+        customer={{
+          id: invoiceData.customerId?.toString() || '',
+          name: invoiceData.customerName || '',
+          phone: invoiceData.customerPhone || '',
+          address: invoiceData.customerAddress || ''
+        }}
+        invoiceNumber={invoiceData.invoiceNumber || ''}
+        invoiceDate={invoiceData.date || new Date().toISOString()}
+        products={JSON.parse(invoiceData.productsData || '[]').map((product: any) => ({
+          id: product.productId?.toString() || '',
+          name: product.productName || '',
+          barcode: product.barcode || '',
+          sellingPrice: product.sellingPrice || 0,
+          quantity: product.quantity || 0,
+          discount: product.discount || 0
+        }))}
+        notes={invoiceData.notes || ''}
+        paymentMethod={invoiceData.paymentMethod || 'cash'}
       />
     );
   }
