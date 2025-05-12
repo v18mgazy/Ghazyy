@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   ReceiptText, Search, User, X, ShoppingCart, Check, Scan, ChevronRight,
   Printer, Plus, Minus, DollarSign, Percent, Package2, Calculator, Trash2,
-  RefreshCcw, RotateCcw, ArrowLeft
+  RefreshCcw, RotateCcw, ArrowLeft, CheckCircle
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -81,7 +81,8 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
   const [newCustomer, setNewCustomer] = useState({
     name: '',
     phone: '',
-    address: ''
+    address: '',
+    isPotential: false
   });
   
   const createCustomerMutation = useMutation({
@@ -100,7 +101,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       setSelectedCustomer(data);
       setActiveTab('products');
       setShowAddCustomer(false);
-      setNewCustomer({ name: '', phone: '', address: '' });
+      setNewCustomer({ name: '', phone: '', address: '', isPotential: false });
       toast({
         title: t('success'),
         description: t('customer_created_successfully'),
@@ -906,6 +907,22 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                 placeholder={t('enter_customer_address')}
                 className="w-full"
               />
+            </div>
+            
+            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+              <Checkbox 
+                id="customer-potential" 
+                checked={newCustomer.isPotential}
+                onCheckedChange={(checked) => 
+                  setNewCustomer({ ...newCustomer, isPotential: checked as boolean })
+                }
+              />
+              <Label 
+                htmlFor="customer-potential" 
+                className="text-sm font-medium leading-none cursor-pointer"
+              >
+                {t('potential_customer')}
+              </Label>
             </div>
           </div>
           
