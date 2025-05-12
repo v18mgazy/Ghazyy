@@ -170,7 +170,10 @@ export default function SuppliersPage() {
             if (!invoicesResponse.ok) return { ...supplier, totalAmount: 0, totalPaid: 0, totalRemaining: 0 };
             
             const invoices = await invoicesResponse.json();
-            const totalAmount = invoices.reduce((sum: number, invoice: any) => sum + invoice.amount, 0);
+            // دائمًا نحسب الإجمالي حتى لو كانت القائمة فارغة
+            const totalAmount = invoices.length > 0 
+              ? invoices.reduce((sum: number, invoice: any) => sum + (invoice.amount || 0), 0)
+              : 0;
             
             // نحضر جميع المدفوعات لكل فاتورة
             let totalPaid = 0;
@@ -178,11 +181,12 @@ export default function SuppliersPage() {
               const paymentsResponse = await fetch(`/api/supplier-payments?invoiceId=${invoice.id}`);
               if (paymentsResponse.ok) {
                 const payments = await paymentsResponse.json();
-                const invoicePaid = payments.reduce((sum: number, payment: any) => sum + payment.amount, 0);
+                const invoicePaid = payments.reduce((sum: number, payment: any) => sum + (payment.amount || 0), 0);
                 totalPaid += invoicePaid;
               }
             }
             
+            // حساب المبلغ المتبقي
             const totalRemaining = totalAmount - totalPaid;
             
             return {
@@ -269,6 +273,25 @@ export default function SuppliersPage() {
       (supplier.address && supplier.address.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [suppliers, searchTerm]);
+  
+  // حساب الإحصائيات الإجمالية لجميع الموردين
+  const allSuppliersTotals = useMemo(() => {
+    if (!allSuppliersSummary || allSuppliersSummary.length === 0) {
+      return {
+        totalAmount: 0,
+        totalPaid: 0,
+        totalRemaining: 0
+      };
+    }
+    
+    return allSuppliersSummary.reduce((totals, supplier) => {
+      return {
+        totalAmount: totals.totalAmount + (supplier.totalAmount || 0),
+        totalPaid: totals.totalPaid + (supplier.totalPaid || 0),
+        totalRemaining: totals.totalRemaining + (supplier.totalRemaining || 0)
+      };
+    }, { totalAmount: 0, totalPaid: 0, totalRemaining: 0 });
+  }, [allSuppliersSummary]);
 
   // إضافة مورد جديد
   const addSupplierMutation = useMutation({
@@ -462,6 +485,33 @@ export default function SuppliersPage() {
             </TabsList>
 
             <TabsContent value="suppliers" className="space-y-4">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-3 mb-4">
+                <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 shadow-md">
+                  <CardContent className="p-4">
+                    <div className="flex flex-col">
+                      <div className="text-muted-foreground text-sm mb-1">{t("total_invoices_amount")}</div>
+                      <div className="text-2xl font-bold">{allSuppliersTotals.totalAmount.toLocaleString()} {t("currency")}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-r from-green-500/10 to-green-600/10 shadow-md">
+                  <CardContent className="p-4">
+                    <div className="flex flex-col">
+                      <div className="text-muted-foreground text-sm mb-1">{t("total_paid_amount")}</div>
+                      <div className="text-2xl font-bold text-green-600">{allSuppliersTotals.totalPaid.toLocaleString()} {t("currency")}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-r from-red-500/10 to-red-600/10 shadow-md">
+                  <CardContent className="p-4">
+                    <div className="flex flex-col">
+                      <div className="text-muted-foreground text-sm mb-1">{t("total_remaining_amount")}</div>
+                      <div className="text-2xl font-bold text-red-600">{allSuppliersTotals.totalRemaining.toLocaleString()} {t("currency")}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            
               <Card className="shadow-md border-primary/20">
                 <CardHeader className="bg-gradient-to-r from-primary/10 to-secondary/10 pb-2">
                   <div className="flex justify-between items-center">
