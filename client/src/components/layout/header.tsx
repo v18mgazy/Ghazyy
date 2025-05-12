@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Bell, User, Menu, Search, Calendar, Clock, ChevronDown, X } from 'lucide-react';
+import React from 'react';
+import { Bell, User, Menu, Calendar, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
@@ -33,8 +33,6 @@ export default function Header({
 }: HeaderProps) {
   const { t } = useTranslation();
   const { language } = useLocale();
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  
   // Get user initials for avatar
   const getInitials = (name: string) => {
     return name
@@ -81,35 +79,8 @@ export default function Header({
           </div>
         </div>
         
-        {/* Mobile search toggle */}
-        <div className="md:hidden">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="bg-muted/40 text-muted-foreground hover:text-foreground rounded-full"
-            onClick={() => setIsSearchOpen(!isSearchOpen)}
-          >
-            {isSearchOpen ? (
-              <X className="h-4 w-4" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-        
-        {/* Center search bar - hidden on mobile unless expanded */}
-        <div className={cn(
-          "absolute left-0 right-0 top-full bg-card p-2 border-b border-border md:static md:border-0 md:p-0 md:w-1/3 transition-all duration-300 z-10",
-          isSearchOpen ? "block" : "hidden md:block"
-        )}>
-          <div className="relative max-w-md mx-auto md:mx-0 w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              className="w-full pl-9 py-2 bg-muted/40 border-0 focus-visible:ring-1"
-              placeholder={t('search')}
-            />
-          </div>
-        </div>
+        {/* Space div for layout balance */}
+        <div className="md:w-1/3"></div>
         
         {/* Right side with user info */}
         <div className="flex items-center gap-1.5">
