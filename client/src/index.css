@@ -21,46 +21,42 @@
     top: 0;
     width: 100%;
     padding: 20px;
+    background-color: white;
   }
   
-  /* إظهار عنوان المتجر في الطباعة */
-  #store-info {
-    visibility: visible;
+  /* تنسيق معلومات المتجر */
+  .store-info {
     text-align: center;
-    margin-bottom: 20px;
-  }
-  
-  /* إخفاء عناصر الواجهة */
-  .no-print, 
-  button, 
-  [role="tablist"],
-  nav,
-  footer,
-  header > div:last-child {
-    display: none !important;
-  }
-  
-  /* إضافة قواعد لتحسين مظهر الرسوم البيانية عند الطباعة */
-  .chart-container {
-    page-break-inside: avoid;
     margin-bottom: 30px;
   }
   
-  /* جعل الجداول تظهر بشكل صحيح */
-  table {
+  /* تنسيق الجداول */
+  #print-area table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
   }
   
-  th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
+  #print-area table th {
+    background-color: #f3f4f6 !important;
+    color: #374151 !important;
+    font-weight: bold;
+    text-align: right;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+  }
+  
+  #print-area table td {
+    padding: 8px 10px;
+    border: 1px solid #e5e7eb;
     text-align: right;
   }
   
-  th {
-    background-color: #f2f2f2;
+  /* إخفاء أزرار وعناصر التحكم عند الطباعة */
+  #print-area button,
+  #print-area [role="tablist"],
+  #print-area .report-controls {
+    display: none !important;
   }
 }
 
