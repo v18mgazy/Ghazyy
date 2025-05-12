@@ -1,10 +1,11 @@
-import { Router } from 'express';
-import { storage } from './storage';
-import { insertSupplierInvoiceSchema } from '@shared/schema';
+import { Router } from "express";
+import { storage } from "./storage";
+import { insertSupplierInvoiceSchema } from "@shared/schema";
 
+// إنشاء router لفواتير الموردين
 export const supplierInvoiceRoutes = Router();
 
-// Get all supplier invoices
+// الحصول على جميع فواتير الموردين
 supplierInvoiceRoutes.get('/', async (req, res) => {
   try {
     const { supplierId } = req.query;
@@ -23,7 +24,7 @@ supplierInvoiceRoutes.get('/', async (req, res) => {
   }
 });
 
-// Get supplier invoice by ID
+// الحصول على فاتورة مورد محددة
 supplierInvoiceRoutes.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -40,11 +41,13 @@ supplierInvoiceRoutes.get('/:id', async (req, res) => {
   }
 });
 
-// Create new supplier invoice
+// إنشاء فاتورة مورد جديدة
 supplierInvoiceRoutes.post('/', async (req, res) => {
   try {
-    // Add the user ID from the auth session
-    const userData = req.session?.user || { id: 1 }; // Default to user ID 1 if not authenticated
+    // إضافة معرف المستخدم من جلسة المصادقة
+    const userData = { id: 1 }; // معرف افتراضي إذا لم يكن مصادق عليه
+    
+    // تجهيز بيانات الفاتورة
     const invoiceData = {
       ...insertSupplierInvoiceSchema.parse(req.body),
       userId: userData.id
@@ -58,7 +61,7 @@ supplierInvoiceRoutes.post('/', async (req, res) => {
   }
 });
 
-// Update supplier invoice
+// تحديث فاتورة مورد
 supplierInvoiceRoutes.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -76,7 +79,7 @@ supplierInvoiceRoutes.put('/:id', async (req, res) => {
   }
 });
 
-// Delete supplier invoice
+// حذف فاتورة مورد
 supplierInvoiceRoutes.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;

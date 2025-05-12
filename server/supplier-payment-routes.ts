@@ -1,10 +1,11 @@
-import { Router } from 'express';
-import { storage } from './storage';
-import { insertSupplierPaymentSchema } from '@shared/schema';
+import { Router } from "express";
+import { storage } from "./storage";
+import { insertSupplierPaymentSchema } from "@shared/schema";
 
+// إنشاء router لمدفوعات الموردين
 export const supplierPaymentRoutes = Router();
 
-// Get all supplier payments
+// الحصول على جميع مدفوعات الموردين
 supplierPaymentRoutes.get('/', async (req, res) => {
   try {
     const { invoiceId } = req.query;
@@ -23,20 +24,22 @@ supplierPaymentRoutes.get('/', async (req, res) => {
   }
 });
 
-// Create new supplier payment
+// إنشاء دفعة جديدة
 supplierPaymentRoutes.post('/', async (req, res) => {
   try {
-    // Add the user ID from the auth session
-    const userData = req.session?.user || { id: 1 }; // Default to user ID 1 if not authenticated
+    // إضافة معرف المستخدم من جلسة المصادقة
+    const userData = { id: 1 }; // معرف افتراضي إذا لم يكن مصادق عليه
+    
+    // تجهيز بيانات الدفعة
     const paymentData = {
       ...insertSupplierPaymentSchema.parse(req.body),
       userId: userData.id
     };
     
-    // Process the payment and update the invoice
+    // معالجة الدفعة وتحديث الفاتورة
     const payment = await storage.createSupplierPayment(paymentData);
     
-    // Update the invoice's paid amount and status
+    // تحديث المبلغ المدفوع وحالة الفاتورة
     const invoice = await storage.getSupplierInvoice(paymentData.supplierInvoiceId);
     if (invoice) {
       const updatedPaidAmount = invoice.paidAmount + paymentData.amount;

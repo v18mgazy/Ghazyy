@@ -1,12 +1,11 @@
-import { Router } from 'express';
-import { storage } from './storage';
-import { insertSupplierSchema, insertSupplierInvoiceSchema, insertSupplierPaymentSchema } from '@shared/schema';
+import { Router } from "express";
+import { storage } from "./storage";
+import { insertSupplierSchema } from "@shared/schema";
 
+// إنشاء router للموردين
 export const supplierRoutes = Router();
 
-// === Supplier Management Routes ===
-
-// Get all suppliers
+// الحصول على جميع الموردين
 supplierRoutes.get('/', async (req, res) => {
   try {
     const suppliers = await storage.getAllSuppliers();
@@ -17,7 +16,7 @@ supplierRoutes.get('/', async (req, res) => {
   }
 });
 
-// Get supplier by ID
+// الحصول على مورد محدد
 supplierRoutes.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -34,7 +33,7 @@ supplierRoutes.get('/:id', async (req, res) => {
   }
 });
 
-// Create new supplier
+// إنشاء مورد جديد
 supplierRoutes.post('/', async (req, res) => {
   try {
     const supplierData = insertSupplierSchema.parse(req.body);
@@ -46,7 +45,7 @@ supplierRoutes.post('/', async (req, res) => {
   }
 });
 
-// Update supplier
+// تحديث معلومات مورد
 supplierRoutes.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -64,7 +63,7 @@ supplierRoutes.put('/:id', async (req, res) => {
   }
 });
 
-// Delete supplier
+// حذف مورد
 supplierRoutes.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
