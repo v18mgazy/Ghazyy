@@ -504,17 +504,17 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                         setSelectedCustomer(customer);
                         setActiveTab('products');
                       }}
-                      className="p-3 border rounded-lg cursor-pointer hover:border-primary hover:shadow-md transition-all duration-200"
+                      className="p-4 border rounded-lg cursor-pointer hover:border-primary hover:shadow-md transition-all duration-200 bg-white"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center text-white font-bold">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center text-white font-bold text-lg">
                           {customer.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-foreground truncate">{customer.name}</p>
+                          <p className="font-semibold text-foreground truncate text-base">{customer.name}</p>
                           <p className="text-sm text-muted-foreground">{customer.phone || t('no_phone')}</p>
                         </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        <ChevronRight className="h-6 w-6 text-primary/70" />
                       </div>
                     </div>
                   ))}
@@ -533,22 +533,23 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
             <TabsContent value="products">
               {selectedCustomer && (
                 <>
-                  <div className="mb-3 p-2 rounded-lg bg-primary/5 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center text-white font-bold">
+                  <div className="mb-4 p-3 rounded-lg bg-primary/5 flex items-center justify-between shadow-sm border border-primary/10">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center text-white font-bold text-lg">
                         {selectedCustomer.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-medium text-foreground">{selectedCustomer.name}</p>
-                        <p className="text-xs text-muted-foreground">{selectedCustomer.phone || t('no_phone')}</p>
+                        <p className="font-medium text-foreground text-base">{selectedCustomer.name}</p>
+                        <p className="text-sm text-muted-foreground">{selectedCustomer.phone || t('no_phone')}</p>
                       </div>
                     </div>
                     <Button 
                       variant="outline" 
-                      size="sm" 
+                      size="default" 
                       onClick={() => setActiveTab('customer')}
-                      className="h-7 text-xs"
+                      className="font-medium"
                     >
+                      <RefreshCcw className="mr-2 h-4 w-4" />
                       {t('change')}
                     </Button>
                   </div>
@@ -563,10 +564,10 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                               variant="outline"
                               role="combobox"
                               aria-expanded={productCommandOpen}
-                              className="w-full justify-between h-9 text-start font-normal"
+                              className="w-full justify-between h-11 text-start font-normal text-base"
                             >
                               {t('select_products')}
-                              <ChevronRight className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              <Search className="ml-2 h-5 w-5 shrink-0 opacity-70" />
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-[300px] p-0" align="start">
