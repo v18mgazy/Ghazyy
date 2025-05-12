@@ -584,5 +584,11 @@
   "customer_updated": "Customer Updated",
   "customer_updated_successfully": "Customer updated successfully",
   "customer_phone": "Customer Phone",
-  "customer_address": "Customer Address"
+  "customer_address": "Customer Address",
+  "password_changed": "Password Changed Successfully",
+  "password_change_failed": "Failed to change password",
+  "passwords_dont_match": "Passwords don't match",
+  "password_too_short": "Password must be at least 6 characters",
+  "change_password_description": "Update your account password",
+  "saving": "Saving..."
 }
