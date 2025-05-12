@@ -1543,9 +1543,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return dateToCheck >= startDateObj && dateToCheck <= endDateObj;
       }
       
-      // فلترة الفواتير حسب التاريخ إذا كان التقرير مخصصًا
+      // فلترة الفواتير حسب التاريخ إذا كان التقرير مخصصًا أو أسبوعيًا
       let filteredInvoices = invoices;
-      if (type === 'custom' && startDate && endDate) {
+      if ((type === 'custom' || type === 'weekly') && startDate && endDate) {
         console.log(`Filtering invoices between ${startDate} and ${endDate}`);
         const startDateObj = new Date(startDate as string);
         const endDateObj = new Date(endDate as string);
@@ -1555,15 +1555,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return isDateInRange(new Date(invoice.date), startDateObj, endDateObj);
         });
         
-        console.log(`Found ${filteredInvoices.length} invoices in date range`);
+        console.log(`Found ${filteredInvoices.length} invoices in date range for ${type} report`);
       } else {
         // لأنواع التقارير الأخرى، نستخدم جميع الفواتير
         filteredInvoices = invoices;
       }
       
-      // فلترة العناصر التالفة حسب التاريخ إذا كان التقرير مخصصًا
+      // فلترة العناصر التالفة حسب التاريخ إذا كان التقرير مخصصًا أو أسبوعيًا
       let filteredDamagedItems = damagedItems;
-      if (type === 'custom' && startDate && endDate) {
+      if ((type === 'custom' || type === 'weekly') && startDate && endDate) {
         const startDateObj = new Date(startDate as string);
         const endDateObj = new Date(endDate as string);
         
@@ -1572,15 +1572,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return isDateInRange(new Date(item.date), startDateObj, endDateObj);
         });
         
-        console.log(`Found ${filteredDamagedItems.length} damaged items in date range`);
+        console.log(`Found ${filteredDamagedItems.length} damaged items in date range for ${type} report`);
       } else {
         // لأنواع التقارير الأخرى، نستخدم جميع العناصر التالفة
         filteredDamagedItems = damagedItems;
       }
       
-      // فلترة المصاريف حسب التاريخ إذا كان التقرير مخصصًا
+      // فلترة المصاريف حسب التاريخ إذا كان التقرير مخصصًا أو أسبوعيًا
       let filteredExpenses = expenses;
-      if (type === 'custom' && startDate && endDate) {
+      if ((type === 'custom' || type === 'weekly') && startDate && endDate) {
         const startDateObj = new Date(startDate as string);
         const endDateObj = new Date(endDate as string);
         
@@ -1589,7 +1589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return isDateInRange(new Date(expense.date), startDateObj, endDateObj);
         });
         
-        console.log(`Found ${filteredExpenses.length} expenses in date range`);
+        console.log(`Found ${filteredExpenses.length} expenses in date range for ${type} report`);
       } else {
         // لأنواع التقارير الأخرى، نستخدم جميع المصاريف
         filteredExpenses = expenses;
