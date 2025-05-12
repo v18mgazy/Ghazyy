@@ -233,16 +233,52 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   
   // إضافة المنتج المحدد إلى الفاتورة
   const addSelectedProductToInvoice = () => {
+    console.log('addSelectedProductToInvoice called', selectedProduct);
+    
     if (selectedProduct) {
+      // البحث عن المنتج في قاعدة البيانات للتحقق من المخزون
+      const productInDb = products.find((p: any) => p.id === selectedProduct.id);
+      console.log('Product in DB:', productInDb);
+      
+      if (!productInDb) {
+        toast({
+          title: t('error'),
+          description: t('product_not_found_in_db'),
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const availableQuantity = productInDb.quantity || 0;
+      console.log('Available quantity:', availableQuantity);
+      
+      // التحقق من وجود المنتج في المخزون
+      if (availableQuantity <= 0) {
+        toast({
+          title: t('cannot_add_product'),
+          description: t('product_out_of_stock'),
+          variant: "destructive"
+        });
+        return;
+      }
+      
       // التحقق من أن الكمية المطلوبة لا تتجاوز الكمية المتوفرة
-      if (productQuantity > maxAvailableQuantity) {
-        alert(t('quantity_exceeds_available', { available: maxAvailableQuantity }));
+      if (productQuantity > availableQuantity) {
+        toast({
+          title: t('quantity_exceeds_available'),
+          description: t('only_available', { available: availableQuantity }),
+          variant: "destructive"
+        });
         return;
       }
       
       // التحقق من أن الكمية موجبة
       if (productQuantity <= 0) {
-        alert(t('quantity_must_be_positive'));
+        toast({
+          title: t('error'),
+          description: t('quantity_must_be_positive'),
+          variant: "destructive"
+        });
         return;
       }
       
@@ -255,11 +291,23 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
         discount: productDiscount
       };
       
-      // إضافة المنتج إلى الفاتورة النشطة
+      console.log('Adding product to invoice:', newProduct);
+      
+      // إضافة المنتج إلى قائمة المنتجات في الفاتورة
+      // إضافة المنتج إلى الفاتورة النشطة وإعادة تعيين الحالة
       setSelectedProduct(null);
       setProductQuantity(1);
       setProductDiscount(0);
       setMaxAvailableQuantity(0);
+      setShowProductSearch(false);
+      
+      // إظهار رسالة نجاح
+      toast({
+        title: t('success'),
+        description: t('product_added_to_invoice'),
+      });
+    } else {
+      console.log('No product selected');
     }
   };
 

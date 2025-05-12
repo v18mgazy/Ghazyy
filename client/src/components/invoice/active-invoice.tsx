@@ -179,11 +179,27 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
   
   // معالجة المنتج الممسوح ضوئيًا
   const handleProductScanned = (scannedProd: any) => {
+    console.log('Product scanned:', scannedProd);
+    
     // البحث عن المنتج بالباركود
     const foundProduct = allProducts.find((p: any) => p.barcode === scannedProd.barcode);
+    console.log('Product found in database:', foundProduct);
     
     if (foundProduct) {
-      // إضافة المنتج مباشرة عند المسح
+      // التحقق من وجود كمية متاحة في المخزون
+      const availableQuantity = foundProduct.quantity || 0;
+      console.log('Available quantity:', availableQuantity);
+      
+      if (availableQuantity <= 0) {
+        toast({
+          title: t('cannot_add_product'),
+          description: t('product_out_of_stock'),
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // إضافة المنتج مباشرة عند المسح (مع التحقق من المخزون)
       const newProduct = {
         id: foundProduct.id,
         name: foundProduct.name,
@@ -192,19 +208,25 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
         quantity: 1,
         discount: 0
       };
+      console.log('Adding product to invoice:', newProduct);
+      
       setProducts([...products, newProduct]);
+      
+      toast({
+        title: t('success'),
+        description: t('product_added_to_invoice'),
+      });
     } else {
-      // إنشاء منتج جديد إذا لم يتم العثور عليه
-      const newProduct = {
-        id: 'new-' + Date.now(),
-        name: scannedProd.name || 'منتج جديد',
-        barcode: scannedProd.barcode,
-        sellingPrice: scannedProd.sellingPrice || 0,
-        quantity: 1,
-        discount: 0
-      };
-      setProducts([...products, newProduct]);
+      console.log('Product not found in database');
+      
+      toast({
+        title: t('error'),
+        description: t('barcode_not_recognized'),
+        variant: "destructive"
+      });
+      return;
     }
+    
     // إغلاق نافذة ماسح الباركود بعد إضافة المنتج
     setShowBarcodeScanner(false);
   };
