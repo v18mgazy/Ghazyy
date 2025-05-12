@@ -2048,17 +2048,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // إضافة الربح - استخدام حقل الربح المحسوب مسبقًا (profit) إذا كان موجودًا
                 // أو حساب الربح من سعر الشراء وسعر البيع
                 console.log('Calculating profit for product:', product);
-                if (product.profit) {
+                if (product.profit !== null && product.profit !== undefined) {
                   console.log('Using existing profit:', product.profit);
-                  totalProfit += product.profit;
-                } else if (product.purchasePrice) {
-                  const profit = (product.price - product.purchasePrice) * product.quantity;
-                  console.log('Calculated profit from price difference:', profit);
+                  totalProfit += Number(product.profit);
+                } else if (product.purchasePrice != null && (product.sellingPrice != null || product.price != null)) {
+                  // استخدم sellingPrice إذا كان موجودًا، وإلا استخدم price
+                  const sellingPrice = product.sellingPrice || product.price || 0;
+                  const purchasePrice = Number(product.purchasePrice) || 0;
+                  const quantity = Number(product.quantity) || 1;
+                  const profit = (sellingPrice - purchasePrice) * quantity;
+                  console.log(`Calculated profit from price difference: (${sellingPrice} - ${purchasePrice}) * ${quantity} = ${profit}`);
                   totalProfit += profit;
                 } else {
                   // استخدام تقدير للربح (30% من سعر البيع) للفواتير التي لا تحتوي على سعر الشراء
-                  const estimatedProfit = product.price * product.quantity * 0.3;
-                  console.log('Using estimated profit (30%):', estimatedProfit);
+                  const sellingPrice = product.sellingPrice || product.price || 0;
+                  const quantity = Number(product.quantity) || 1;
+                  const estimatedProfit = sellingPrice * quantity * 0.3;
+                  console.log(`Using estimated profit (30%): ${sellingPrice} * ${quantity} * 0.3 = ${estimatedProfit}`);
                   totalProfit += estimatedProfit;
                 }
               }
