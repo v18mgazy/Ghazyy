@@ -481,7 +481,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                   />
                 </div>
                 <Button 
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white" 
+                  className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white" 
                   size="sm"
                   onClick={() => setShowAddCustomer(true)}
                 >
@@ -783,7 +783,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
             <Button
               onClick={handleSaveInvoice}
               disabled={createInvoiceMutation.isPending || invoiceProducts.length === 0}
-              className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white"
+              className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white"
             >
               {createInvoiceMutation.isPending ? (
                 <>
@@ -856,7 +856,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
             <Button 
               onClick={handleCreateCustomer}
               disabled={createCustomerMutation.isPending}
-              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+              className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white"
             >
               {createCustomerMutation.isPending ? (
                 <>
