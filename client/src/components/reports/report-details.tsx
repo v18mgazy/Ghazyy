@@ -260,11 +260,11 @@ export default function ReportDetails({
                   />
                   <YAxis 
                     tick={{ fontSize: 12 }}
-                    tickFormatter={(value) => formatCurrency(value, true)}
+                    tickFormatter={(value) => formatCurrency(value, "short")}
                   />
                   <Tooltip 
-                    formatter={(value) => [formatCurrency(Number(value)), '']}
-                    labelFormatter={(label) => `${label}`}
+                    formatter={(value: any) => [formatCurrency(Number(value)), '']}
+                    labelFormatter={(label: string) => `${label}`}
                     contentStyle={{ 
                       backgroundColor: 'rgba(255, 255, 255, 0.9)', 
                       borderRadius: '8px',
@@ -450,27 +450,30 @@ export default function ReportDetails({
                           <TableRow key={report.id} className={index % 2 === 0 ? 'bg-muted/5' : ''}>
                             <TableCell>
                               <div className="flex items-center">
-                                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                                <Calendar className="h-4 w-4 mr-2 text-blue-500 opacity-70" />
                                 {formatDate(report.date, 'PP', language)}
                               </div>
                             </TableCell>
                             <TableCell className="font-medium">
                               {report.customerName || t('unknown_customer')}
                             </TableCell>
-                            <TableCell className="max-w-xs truncate">
+                            <TableCell className="max-w-xs truncate font-medium text-slate-600 dark:text-slate-300">
                               {report.details}
                             </TableCell>
-                            <TableCell className="font-medium text-right">
+                            <TableCell className="font-bold text-right text-slate-700 dark:text-slate-200">
                               {formatCurrency(report.amount)}
                             </TableCell>
                             <TableCell>
-                              <Badge variant={
-                                report.paymentStatus === 'paid' 
-                                  ? 'success' 
-                                  : report.paymentStatus === 'pending'
-                                    ? 'warning'
-                                    : 'secondary'
-                              }>
+                              <Badge 
+                                variant="outline" 
+                                className={`px-2 py-1 font-semibold ${
+                                  report.paymentStatus === 'paid' 
+                                    ? 'bg-green-50 border-green-200 text-green-600 dark:bg-green-950/20 dark:border-green-900/30 dark:text-green-400' 
+                                    : report.paymentStatus === 'pending'
+                                      ? 'bg-amber-50 border-amber-200 text-amber-600 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400'
+                                      : 'bg-gray-50 border-gray-200 text-gray-600 dark:bg-gray-900/20 dark:border-gray-800/30 dark:text-gray-400'
+                                }`}
+                              >
                                 {t(report.paymentStatus || 'unknown')}
                               </Badge>
                             </TableCell>
@@ -535,36 +538,38 @@ export default function ReportDetails({
               {/* جدول المصاريف */}
               {summaryGroups.expenses.length > 0 && (
                 <div>
-                  <h3 className="font-semibold mb-3 flex items-center">
-                    <Badge variant="warning" className="mr-2">{summaryGroups.expenses.length}</Badge>
+                  <h3 className="font-semibold mb-4 flex items-center text-amber-600 dark:text-amber-400">
+                    <Badge variant="outline" className="mr-2 bg-amber-100 border-amber-300 text-amber-700 font-bold dark:bg-amber-900/20 dark:border-amber-800/40 dark:text-amber-400">{summaryGroups.expenses.length}</Badge>
                     {t('expenses')}
                   </h3>
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto rounded-lg border">
                     <Table>
-                      <TableHeader className="bg-muted/50">
+                      <TableHeader className="bg-amber-50 dark:bg-amber-950/20">
                         <TableRow>
-                          <TableHead className="font-medium">{t('date')}</TableHead>
-                          <TableHead className="font-medium">{t('expense_type')}</TableHead>
-                          <TableHead className="font-medium">{t('details')}</TableHead>
-                          <TableHead className="font-medium text-right">{t('amount')}</TableHead>
+                          <TableHead className="font-medium text-amber-700 dark:text-amber-400">{t('date')}</TableHead>
+                          <TableHead className="font-medium text-amber-700 dark:text-amber-400">{t('expense_type')}</TableHead>
+                          <TableHead className="font-medium text-amber-700 dark:text-amber-400">{t('details')}</TableHead>
+                          <TableHead className="font-medium text-right text-amber-700 dark:text-amber-400">{t('amount')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {summaryGroups.expenses.map((report, index) => (
-                          <TableRow key={report.id} className={index % 2 === 0 ? 'bg-muted/20' : ''}>
+                          <TableRow key={report.id} className={index % 2 === 0 ? 'bg-amber-50/30 dark:bg-amber-950/10' : ''}>
                             <TableCell>
                               <div className="flex items-center">
-                                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                                <Calendar className="h-4 w-4 mr-2 text-amber-500 opacity-70" />
                                 {formatDate(report.date, 'PP', language)}
                               </div>
                             </TableCell>
                             <TableCell>
-                              {t(report.expenseType || 'miscellaneous')}
+                              <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/10 dark:border-amber-800/30 dark:text-amber-400">
+                                {t(report.expenseType || 'miscellaneous')}
+                              </Badge>
                             </TableCell>
-                            <TableCell className="max-w-xs truncate">
-                              {report.details}
+                            <TableCell className="max-w-xs truncate font-medium">
+                              {report.details || t('no_description')}
                             </TableCell>
-                            <TableCell className="font-medium text-right">
+                            <TableCell className="font-bold text-right text-amber-600 dark:text-amber-400">
                               {formatCurrency(report.amount)}
                             </TableCell>
                           </TableRow>
