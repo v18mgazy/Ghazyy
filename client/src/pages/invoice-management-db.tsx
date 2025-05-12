@@ -185,6 +185,27 @@ export default function InvoiceManagementDB() {
     }
   }, [processedInvoices]);
   
+  // التحقق من وجود معلمة URL تحتوي على رقم الفاتورة للفتح التلقائي
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const openInvoiceId = searchParams.get('openInvoice');
+    
+    if (openInvoiceId && processedInvoices.length > 0) {
+      const numericId = parseInt(openInvoiceId);
+      if (!isNaN(numericId)) {
+        console.log('Automatically opening invoice:', numericId);
+        const invoiceToOpen = processedInvoices.find(inv => inv.dbId === numericId);
+        
+        if (invoiceToOpen) {
+          // استخدام timeout لضمان تحميل البيانات أولاً
+          setTimeout(() => {
+            viewInvoice(invoiceToOpen);
+          }, 300);
+        }
+      }
+    }
+  }, [processedInvoices, viewInvoice]);
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState('all');
