@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { ReceiptText, Search, X, ChevronRight, Users, PlusCircle, Scan } from 'lucide-react';
 import { useLocale } from '@/hooks/use-locale';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from '@/components/ui/dialog';
@@ -10,6 +10,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import BarcodeScanner from '@/components/barcode-scanner';
 import ActiveInvoice from '@/components/invoice/active-invoice';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 // نوع بيانات العميل
 interface Customer {
@@ -47,6 +51,7 @@ interface CreateInvoiceDialogProps {
 
 export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogProps) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const { language } = useLocale();
   const isRtl = language === 'ar';
   
@@ -54,6 +59,13 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   const [searchTerm, setSearchTerm] = useState('');
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(true);  // افتح مربع حوار العملاء افتراضيًا
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showAddCustomerForm, setShowAddCustomerForm] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    isPotential: true
+  });
   
   // حالة المنتجات
   const [productSearchResults, setProductSearchResults] = useState<ProductSearchResult[]>([]);
@@ -85,20 +97,73 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
     setIsCustomerDialogOpen(false);
   };
   
-  // إنشاء عميل جديد
-  const handleCreateNewCustomer = () => {
-    // إنشاء عميل محتمل باسم البحث إذا كان غير فارغ
-    if (searchTerm.trim()) {
-      const newCustomer: Customer = {
-        id: 'new-' + Date.now(),
-        name: searchTerm,
+  // mutation لإضافة عميل جديد
+  const addCustomerMutation = useMutation({
+    mutationFn: async (customer: Omit<Customer, 'id' | 'totalPurchases'>) => {
+      const response = await apiRequest('POST', '/api/customers', customer);
+      return await response.json();
+    },
+    onSuccess: (newCustomerData: any) => {
+      const customer: Customer = {
+        id: newCustomerData.id.toString(),
+        name: newCustomerData.name,
+        phone: newCustomerData.phone || '',
+        address: newCustomerData.address || '',
+        isPotential: newCustomerData.isPotential || false
+      };
+      
+      // تحديث قائمة العملاء
+      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      
+      // اختيار العميل الجديد للفاتورة
+      handleSelectCustomer(customer);
+      
+      // إظهار رسالة نجاح
+      toast({
+        title: t('customer_added'),
+        description: t('customer_added_successfully'),
+      });
+      
+      // إعادة تعيين الحالة
+      setShowAddCustomerForm(false);
+      setNewCustomer({
+        name: '',
         phone: '',
         address: '',
         isPotential: true
-      };
-      
-      handleSelectCustomer(newCustomer);
+      });
+    },
+    onError: (error) => {
+      console.error('Error adding customer:', error);
+      toast({
+        title: t('error'),
+        description: t('error_adding_customer'),
+        variant: 'destructive',
+      });
     }
+  });
+  
+  // إنشاء عميل جديد من نموذج البحث
+  const handleCreateNewCustomer = () => {
+    // إنشاء عميل محتمل باسم البحث إذا كان غير فارغ
+    if (searchTerm.trim()) {
+      setNewCustomer({ ...newCustomer, name: searchTerm });
+      setShowAddCustomerForm(true);
+    }
+  };
+  
+  // إضافة عميل جديد من النموذج
+  const handleAddCustomer = () => {
+    if (!newCustomer.name) {
+      toast({
+        title: t('validation_error'),
+        description: t('customer_name_required'),
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    addCustomerMutation.mutate(newCustomer);
   };
   
   // إغلاق النافذة المنبثقة
