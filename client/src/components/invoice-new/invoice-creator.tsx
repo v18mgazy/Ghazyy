@@ -27,7 +27,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Custom Components
 import BarcodeScanner from '@/components/barcode-scanner';
-import InvoicePreview from '@/components/invoice/invoice-preview';
+import InvoicePreview from '@/components/invoice-new/invoice-preview';
 
 // نوع بيانات العميل
 interface Customer {
