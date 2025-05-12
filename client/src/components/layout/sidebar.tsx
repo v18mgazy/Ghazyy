@@ -111,13 +111,13 @@ export default function Sidebar({ isOpen, onClose, isAdmin }: SidebarProps) {
         dir={rtlEnabled ? "rtl" : "ltr"}
       >
         {/* Header with تصميم محسن */}
-        <div className="bg-primary/10 dark:bg-primary/5 p-5 border-b border-border">
+        <div className="bg-gradient-to-r from-primary/20 to-secondary/20 dark:from-primary/10 dark:to-secondary/10 p-5 border-b border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className="bg-primary text-primary-foreground p-2 rounded-md">
+              <div className="bg-gradient-to-br from-primary to-secondary text-primary-foreground p-2 rounded-md shadow-md">
                 <ShoppingCart className="h-5 w-5" />
               </div>
-              <h1 className="text-xl font-bold gradient-heading mx-2">Sales Ghazy</h1>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mx-2">Sales Ghazy</h1>
             </div>
             <button 
               onClick={onClose} 
@@ -129,16 +129,16 @@ export default function Sidebar({ isOpen, onClose, isAdmin }: SidebarProps) {
         </div>
         
         {/* User info section جديد */}
-        <div className="p-4 border-b border-border bg-muted/40">
+        <div className="p-4 border-b border-border bg-gradient-to-r from-muted/40 to-muted/10">
           <div className="flex items-center mb-1">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-              <span className="font-bold">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/80 to-secondary/80 flex items-center justify-center text-white shadow-md">
+              <span className="font-bold text-lg">
                 {isAdmin ? 'A' : 'U'}
               </span>
             </div>
             <div className={`${marginClass} flex-1 overflow-hidden`}>
-              <p className="font-medium truncate">{isAdmin ? 'Admin' : 'User'}</p>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="font-medium text-base truncate">{isAdmin ? 'Admin' : 'User'}</p>
+              <p className="text-xs text-muted-foreground truncate bg-muted/40 py-0.5 px-2 rounded-full inline-block mt-1">
                 {isAdmin ? t('admin') : t('user')}
               </p>
             </div>
@@ -159,10 +159,10 @@ export default function Sidebar({ isOpen, onClose, isAdmin }: SidebarProps) {
                 <div 
                   key={item.href}
                   className={cn(
-                    "flex flex-col w-full p-3 rounded-md transition-all card-hover cursor-pointer", 
+                    "flex flex-col w-full p-3 rounded-lg transition-all card-hover cursor-pointer", 
                     isActive 
-                      ? "bg-primary text-primary-foreground shadow-md" 
-                      : "hover:bg-muted"
+                      ? "bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-md" 
+                      : "hover:bg-muted hover:shadow-sm"
                   )}
                   onClick={() => {
                     navigate(item.href);
@@ -171,10 +171,10 @@ export default function Sidebar({ isOpen, onClose, isAdmin }: SidebarProps) {
                 >
                   <div className="flex items-center">
                     <div className={cn(
-                      "rounded-md p-2",
+                      "rounded-full p-2 shadow-sm",
                       isActive 
-                        ? "bg-primary-foreground/20" 
-                        : "bg-primary/10" 
+                        ? "bg-white text-primary" 
+                        : "bg-gradient-to-br from-primary/10 to-secondary/10" 
                     )}>
                       {item.icon}
                     </div>
@@ -199,14 +199,14 @@ export default function Sidebar({ isOpen, onClose, isAdmin }: SidebarProps) {
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full justify-between mb-3 p-2 h-10"
+            className="w-full justify-between mb-3 p-2 h-10 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border-blue-200 dark:border-blue-800 hover:bg-blue-100/20"
             onClick={toggleLanguage}
           >
             <div className="flex items-center">
-              <Globe className={`h-4 w-4 ${marginClass}`} />
-              <span>{t('language')}</span>
+              <Globe className={`h-4 w-4 ${marginClass} text-blue-500`} />
+              <span className="font-medium">{t('language')}</span>
             </div>
-            <span className="text-xs bg-muted px-2 py-1 rounded-md">
+            <span className="text-xs bg-gradient-to-r from-blue-500/10 to-indigo-500/10 px-2 py-1 rounded-full border border-blue-200 dark:border-blue-800 font-medium text-blue-700 dark:text-blue-300">
               {language === 'en' ? 'العربية' : 'English'}
             </span>
           </Button>
@@ -214,11 +214,11 @@ export default function Sidebar({ isOpen, onClose, isAdmin }: SidebarProps) {
           <Button 
             variant="destructive" 
             size="sm" 
-            className="w-full justify-start p-2 h-10 btn-glow"
+            className="w-full justify-start p-2 h-10 bg-gradient-to-r from-red-500 to-pink-500 shadow-md hover:shadow-lg transition-all"
             onClick={handleLogout}
           >
             <LogOut className={`h-4 w-4 ${marginClass}`} />
-            <span>{t('logout')}</span>
+            <span className="font-medium">{t('logout')}</span>
           </Button>
         </div>
       </div>
