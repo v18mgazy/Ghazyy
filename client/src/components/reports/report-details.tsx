@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   BarChart, Calendar, FileSpreadsheet, Printer, Loader2, 
-  MoreVertical, Download, Clock, ArrowUpDown, Search
+  MoreVertical, Download, Clock, ArrowUpDown, Search,
+  DollarSign, TrendingUp, Receipt, CreditCard, AlertTriangle,
+  LineChart as LucideLineChart
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -157,19 +159,31 @@ export default function ReportDetails({
       {/* بطاقات الملخص في أعلى الصفحة للتقارير المفصلة */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* بطاقة إجمالي المبيعات والأرباح */}
-        <Card className="shadow-sm border-primary/40 bg-gradient-to-br from-white to-primary/5 dark:from-gray-900 dark:to-primary/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-primary">{t('sales_summary')}</CardTitle>
+        <Card className="shadow-md border-primary/40 overflow-hidden bg-gradient-to-br from-white to-primary/5 dark:from-gray-900 dark:to-primary/10">
+          <div className="absolute inset-0 bg-primary/5 border-b-4 border-primary/30 opacity-50 pointer-events-none"></div>
+          <CardHeader className="pb-2 relative">
+            <CardTitle className="text-lg text-primary flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary/80" />
+              {t('sales_summary')}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+          <CardContent className="relative">
+            <div className="grid grid-cols-2 gap-6">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{t('total_sales')}</p>
-                <p className="text-2xl font-bold">{formatCurrency(summaryGroups.sales.reduce((sum, sale) => sum + sale.amount, 0))}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                  <TrendingUp className="h-4 w-4 text-primary/70" />
+                  {t('total_sales')}
+                </p>
+                <p className="text-2xl font-extrabold bg-gradient-to-r from-primary/90 to-primary/70 bg-clip-text text-transparent">
+                  {formatCurrency(summaryGroups.sales.reduce((sum, sale) => sum + sale.amount, 0))}
+                </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{t('total_profit')}</p>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                  <LineChart className="h-4 w-4 text-emerald-500/70" />
+                  {t('total_profit')}
+                </p>
+                <p className="text-2xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent">
                   {formatCurrency(summaryGroups.sales.reduce((sum, sale) => sum + (sale.profit || 0), 0))}
                 </p>
               </div>
@@ -178,21 +192,31 @@ export default function ReportDetails({
         </Card>
 
         {/* بطاقة التوالف والمصروفات */}
-        <Card className="shadow-sm border-amber-400/40 bg-gradient-to-br from-white to-amber-50 dark:from-gray-900 dark:to-amber-900/10">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-amber-600 dark:text-amber-400">{t('expenses_and_damages')}</CardTitle>
+        <Card className="shadow-md border-amber-400/40 overflow-hidden bg-gradient-to-br from-white to-amber-50/50 dark:from-gray-900 dark:to-amber-900/10">
+          <div className="absolute inset-0 bg-amber-500/5 border-b-4 border-amber-400/30 opacity-50 pointer-events-none"></div>
+          <CardHeader className="pb-2 relative">
+            <CardTitle className="text-lg text-amber-600 dark:text-amber-400 flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-amber-500/80" />
+              {t('expenses_and_damages')}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+          <CardContent className="relative">
+            <div className="grid grid-cols-2 gap-6">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{t('total_expenses')}</p>
-                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                  <CreditCard className="h-4 w-4 text-amber-500/70" />
+                  {t('total_expenses')}
+                </p>
+                <p className="text-2xl font-extrabold bg-gradient-to-r from-amber-600 to-amber-500 bg-clip-text text-transparent">
                   {formatCurrency(summaryGroups.expenses.reduce((sum, expense) => sum + expense.amount, 0))}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{t('total_damages')}</p>
-                <p className="text-2xl font-bold text-red-500 dark:text-red-400">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                  <AlertTriangle className="h-4 w-4 text-red-500/70" />
+                  {t('total_damages')}
+                </p>
+                <p className="text-2xl font-extrabold bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent">
                   {formatCurrency(summaryGroups.damages.reduce((sum, damage) => sum + damage.amount, 0))}
                 </p>
               </div>
@@ -201,19 +225,31 @@ export default function ReportDetails({
         </Card>
 
         {/* بطاقة الملخص العام */}
-        <Card className="shadow-sm border-blue-400/40 bg-gradient-to-br from-white to-blue-50 dark:from-gray-900 dark:to-blue-900/10">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-blue-600 dark:text-blue-400">{t('performance')}</CardTitle>
+        <Card className="shadow-md border-blue-400/40 overflow-hidden bg-gradient-to-br from-white to-blue-50/50 dark:from-gray-900 dark:to-blue-900/10">
+          <div className="absolute inset-0 bg-blue-500/5 border-b-4 border-blue-400/30 opacity-50 pointer-events-none"></div>
+          <CardHeader className="pb-2 relative">
+            <CardTitle className="text-lg text-blue-600 dark:text-blue-400 flex items-center gap-2">
+              <BarChart className="h-5 w-5 text-blue-500/80" />
+              {t('performance')}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+          <CardContent className="relative">
+            <div className="grid grid-cols-2 gap-6">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{t('total_orders')}</p>
-                <p className="text-2xl font-bold">{summaryGroups.sales.length}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                  <ArrowUpDown className="h-4 w-4 text-blue-500/70" />
+                  {t('total_orders')}
+                </p>
+                <p className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent">
+                  {summaryGroups.sales.length}
+                </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{t('profit_margin')}</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                  <LucideLineChart className="h-4 w-4 text-blue-500/70" />
+                  {t('profit_margin')}
+                </p>
+                <p className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent">
                   {(() => {
                     const totalSales = summaryGroups.sales.reduce((sum, sale) => sum + sale.amount, 0);
                     const totalProfit = summaryGroups.sales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
