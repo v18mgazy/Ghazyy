@@ -5,6 +5,8 @@ import { PlusCircle, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import CustomerList from '@/components/customers/customer-list';
+import DeferredPaymentsTab from '@/components/customers/deferred-payments-tab';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -239,12 +241,25 @@ export default function CustomersPage() {
         </div>
       </div>
       
-      <CustomerList 
-        customers={customers}
-        isLoading={isLoadingCustomers}
-        onExportToExcel={exportToExcel}
-        onEditCustomer={handleEditCustomer}
-      />
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="all">{t('all_customers')}</TabsTrigger>
+          <TabsTrigger value="deferred">{t('deferred_payments')}</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="all" className="mt-4">
+          <CustomerList 
+            customers={customers}
+            isLoading={isLoadingCustomers}
+            onExportToExcel={exportToExcel}
+            onEditCustomer={handleEditCustomer}
+          />
+        </TabsContent>
+        
+        <TabsContent value="deferred" className="mt-4">
+          <DeferredPaymentsTab />
+        </TabsContent>
+      </Tabs>
       
       {/* Add Customer Dialog */}
       <Dialog open={addCustomerOpen} onOpenChange={setAddCustomerOpen}>
