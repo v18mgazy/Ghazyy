@@ -857,6 +857,8 @@ export class RealtimeDBStorage implements IStorage {
   // إدارة بيانات التقارير
   async getReportData(type: string, date: string): Promise<any> {
     try {
+      console.log('Report request:', { type, date });
+      
       // جمع البيانات المطلوبة من مختلف الجداول للتقرير
       
       // البيانات من جدول الفواتير
@@ -1027,15 +1029,62 @@ export class RealtimeDBStorage implements IStorage {
   
   // دالة مساعدة لتصفية البيانات حسب نوع التاريخ (يومي، أسبوعي، شهري، سنوي)
   private filterByDateType(items: any[], type: string, date: string): any[] {
+    console.log(`Filtering ${items.length} items by date type: ${type}, date: ${date}`);
+    
     return items.filter((item) => {
-      const itemDate = new Date(item.createdAt);
+      // نستخدم حقل date إذا كان موجودًا، وإلا نستخدم createdAt
+      const itemDateStr = item.date || (item.createdAt ? new Date(item.createdAt).toISOString().substring(0, 10) : null);
+      
+      if (!itemDateStr) {
+        console.log(`Item has no valid date:`, item);
+        return false;
+      }
+      
+      const itemDate = new Date(itemDateStr);
       const targetDate = new Date(date);
       
+      console.log(`Item date: ${itemDateStr}, Target date: ${date}, Type: ${type}`);
+      
       if (type === 'daily') {
-        return itemDate.toISOString().substring(0, 10) === date;
+        const result = itemDateStr === date;
+        console.log(`Daily comparison: ${itemDateStr} === ${date}: ${result}`);
+        return result;
       } else if (type === 'weekly') {
-        // نحتاج أن نضيف منطق الأسبوع هنا
-        return true;
+        // نحتاج للتعامل مع التاريخ في نطاق الأسبوع الحالي
+        
+        // إذا كانت الفترة هي عام كامل (مثل '2025') بدلاً من تاريخ محدد، نقوم باستخدام الأسبوع الحالي
+        if (date.length === 4) {
+          console.log(`Found year-only date: ${date}, converting to this week`);
+          const currentDate = new Date();
+          if (currentDate.getFullYear().toString() === date) {
+            // إذا كان التاريخ المطلوب هو العام الحالي، نجلب الأسبوع الحالي
+            const todayStr = currentDate.toISOString().substring(0, 10);
+            return this.filterByDateType(items, 'weekly', todayStr);
+          }
+          return false;
+        }
+        
+        try {
+          // الحصول على أول يوم في الأسبوع (الأحد)
+          const weekStart = new Date(targetDate);
+          weekStart.setDate(targetDate.getDate() - targetDate.getDay());
+          
+          // الحصول على آخر يوم في الأسبوع (السبت)
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6);
+          
+          // تنسيق التواريخ للمقارنة بتنسيق ISO جزئي (YYYY-MM-DD)
+          const weekStartStr = weekStart.toISOString().substring(0, 10);
+          const weekEndStr = weekEnd.toISOString().substring(0, 10);
+          
+          console.log(`Checking if ${itemDateStr} is between ${weekStartStr} and ${weekEndStr}`);
+          
+          // التحقق مما إذا كان التاريخ في نطاق الأسبوع
+          return itemDateStr >= weekStartStr && itemDateStr <= weekEndStr;
+        } catch (error) {
+          console.error(`Error in weekly date filtering:`, error);
+          return false;
+        }
       } else if (type === 'monthly') {
         return itemDate.getFullYear() === targetDate.getFullYear() && 
                itemDate.getMonth() === targetDate.getMonth();
