@@ -24,6 +24,22 @@
     "markError": "Error marking notification as read",
     "deleteError": "Error deleting notification"
   },
+  "deferred_payment": {
+    "dialog_title": "Deferred Payment Request",
+    "invoice_details": "Invoice Details",
+    "approval_question": "Do you approve this deferred payment request?",
+    "approve": "Approve",
+    "reject": "Reject",
+    "loading": "Loading...",
+    "customer": "Customer",
+    "products": "Products",
+    "total_amount": "Total Amount",
+    "approve_success": "Deferred payment request approved successfully",
+    "reject_success": "Deferred payment request rejected successfully",
+    "approve_error": "Error approving deferred payment request",
+    "reject_error": "Error rejecting deferred payment request",
+    "not_found": "Invoice not found"
+  },
   "dashboard": "Dashboard",
   "sales": "Sales",
   "management": "Management",

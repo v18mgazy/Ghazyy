@@ -24,6 +24,22 @@
     "markError": "حدث خطأ أثناء تعيين الإشعار كمقروء",
     "deleteError": "حدث خطأ أثناء حذف الإشعار"
   },
+  "deferred_payment": {
+    "dialog_title": "طلب دفع آجل",
+    "invoice_details": "تفاصيل الفاتورة",
+    "approval_question": "هل توافق على طلب الدفع الآجل؟",
+    "approve": "موافقة",
+    "reject": "رفض",
+    "loading": "جاري التحميل...",
+    "customer": "العميل",
+    "products": "المنتجات",
+    "total_amount": "المبلغ الإجمالي",
+    "approve_success": "تمت الموافقة على طلب الدفع الآجل بنجاح",
+    "reject_success": "تم رفض طلب الدفع الآجل بنجاح",
+    "approve_error": "حدث خطأ أثناء الموافقة على طلب الدفع الآجل",
+    "reject_error": "حدث خطأ أثناء رفض طلب الدفع الآجل",
+    "not_found": "لم يتم العثور على الفاتورة"
+  },
   "dashboard": "لوحة التحكم",
   "sales": "المبيعات",
   "management": "الإدارة",

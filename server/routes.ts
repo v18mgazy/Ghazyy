@@ -1089,6 +1089,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Endpoints para aprobar/rechazar pagos diferidos
+  app.post('/api/payment-approvals/approve/:invoiceId', async (req, res) => {
+    try {
+      const invoiceId = parseInt(req.params.invoiceId);
+      
+      if (isNaN(invoiceId)) {
+        return res.status(400).json({ message: 'Invalid invoice ID' });
+      }
+      
+      // Obtener la factura
+      const invoice = await storage.getInvoice(invoiceId);
+      
+      if (!invoice) {
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+      
+      if (invoice.paymentStatus !== 'pending') {
+        return res.status(400).json({ message: 'Invoice is not in pending status' });
+      }
+      
+      // Actualizar el estado de la factura
+      const updatedInvoice = await storage.updateInvoice(invoiceId, {
+        paymentStatus: 'approved',
+        updatedAt: new Date()
+      });
+      
+      // Crear notificación para el usuario que solicitó la aprobación
+      await storage.createNotification({
+        userId: invoice.userId,
+        title: 'تمت الموافقة على طلب الدفع الآجل',
+        message: `تمت الموافقة على الدفع الآجل للفاتورة ${invoice.invoiceNumber}`,
+        type: 'deferred_payment_approved',
+        referenceId: invoiceId.toString(),
+        isRead: false,
+        createdAt: new Date().toISOString()
+      });
+      
+      res.status(200).json(updatedInvoice);
+    } catch (error) {
+      console.error('Error approving payment:', error);
+      res.status(500).json({ message: 'Failed to approve payment' });
+    }
+  });
+  
+  app.post('/api/payment-approvals/reject/:invoiceId', async (req, res) => {
+    try {
+      const invoiceId = parseInt(req.params.invoiceId);
+      
+      if (isNaN(invoiceId)) {
+        return res.status(400).json({ message: 'Invalid invoice ID' });
+      }
+      
+      // Obtener la factura
+      const invoice = await storage.getInvoice(invoiceId);
+      
+      if (!invoice) {
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+      
+      if (invoice.paymentStatus !== 'pending') {
+        return res.status(400).json({ message: 'Invoice is not in pending status' });
+      }
+      
+      // Actualizar el estado de la factura
+      const updatedInvoice = await storage.updateInvoice(invoiceId, {
+        paymentStatus: 'rejected',
+        updatedAt: new Date()
+      });
+      
+      // Devolver los productos al inventario
+      if (invoice.productsData) {
+        try {
+          const productsData = JSON.parse(invoice.productsData);
+          
+          for (const item of productsData) {
+            // Obtener el producto actual
+            const product = await storage.getProduct(item.productId);
+            
+            if (product) {
+              // Añadir la cantidad vendida de nuevo al inventario
+              const updatedStock = (product.stock || 0) + item.quantity;
+              
+              await storage.updateProduct(item.productId, {
+                stock: updatedStock
+              });
+              
+              console.log(`Restored ${item.quantity} units of product ${product.name} to inventory`);
+            }
+          }
+        } catch (error) {
+          console.error('Error restoring product quantities:', error);
+        }
+      }
+      
+      // Crear notificación para el usuario que solicitó la aprobación
+      await storage.createNotification({
+        userId: invoice.userId,
+        title: 'تم رفض طلب الدفع الآجل',
+        message: `تم رفض الدفع الآجل للفاتورة ${invoice.invoiceNumber}`,
+        type: 'deferred_payment_rejected',
+        referenceId: invoiceId.toString(),
+        isRead: false,
+        createdAt: new Date().toISOString()
+      });
+      
+      res.status(200).json(updatedInvoice);
+    } catch (error) {
+      console.error('Error rejecting payment:', error);
+      res.status(500).json({ message: 'Failed to reject payment' });
+    }
+  });
+
   // Employee routes
   app.get('/api/employees', async (req, res) => {
     try {
