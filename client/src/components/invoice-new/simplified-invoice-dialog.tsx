@@ -829,20 +829,20 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
         </div>
         
         {activeTab === 'products' && selectedCustomer && (
-          <div className="flex justify-between bg-muted/10 p-5 pt-6 border-t">
+          <div className="flex justify-between items-center bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-5 pt-6 border-t">
             <Button 
               variant="outline" 
               onClick={() => onOpenChange(false)}
               size="lg"
-              className="text-base font-medium px-8 py-6 h-auto border-gray-300 hover:bg-gray-100 shadow-sm"
+              className="text-base font-medium px-8 py-6 h-auto border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800 shadow-md rounded-lg"
             >
-              <X className="mr-2 h-5 w-5" />
+              <X className="mr-3 h-5 w-5" />
               {t('cancel')}
             </Button>
             <Button
               onClick={handleSaveInvoice}
               disabled={createInvoiceMutation.isPending || invoiceProducts.length === 0}
-              className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white text-lg font-bold px-10 py-6 h-auto shadow-lg rounded-lg"
+              className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white text-lg font-bold px-10 py-6 h-auto shadow-lg hover:shadow-xl transition-all rounded-lg disabled:opacity-70 disabled:cursor-not-allowed"
               size="lg"
             >
               {createInvoiceMutation.isPending ? (

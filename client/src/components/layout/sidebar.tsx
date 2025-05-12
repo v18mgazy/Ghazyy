@@ -156,34 +156,37 @@ export default function Sidebar({ isOpen, onClose, isAdmin }: SidebarProps) {
                 (item.href !== '/' && location.startsWith(item.href));
               
               return (
-                <div 
+                <motion.div 
                   key={item.href}
                   className={cn(
                     "flex flex-col w-full p-3 rounded-lg transition-all card-hover cursor-pointer", 
                     isActive 
-                      ? "bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-md" 
-                      : "hover:bg-muted hover:shadow-sm"
+                      ? "bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-lg" 
+                      : "hover:bg-gradient-to-r hover:from-primary/5 hover:to-secondary/5 hover:shadow-md"
                   )}
                   onClick={() => {
                     navigate(item.href);
                     onClose();
                   }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.2 }}
                 >
                   <div className="flex items-center">
                     <div className={cn(
-                      "rounded-full p-2 shadow-sm",
+                      "rounded-full p-2.5 shadow-md",
                       isActive 
-                        ? "bg-white text-primary" 
-                        : "bg-gradient-to-br from-primary/10 to-secondary/10" 
+                        ? "bg-white bg-opacity-90 text-primary" 
+                        : "bg-gradient-to-br from-primary/15 to-secondary/15 hover:from-primary/25 hover:to-secondary/25" 
                     )}>
                       {item.icon}
                     </div>
                     <div className={`${marginClass} flex-1`}>
-                      <span className="font-medium block">{item.title}</span>
-                      <span className="text-xs opacity-80 block">{item.description}</span>
+                      <span className={cn("font-semibold text-base", isActive ? "text-primary-foreground" : "text-foreground")}>{item.title}</span>
+                      <span className={cn("text-xs block mt-0.5", isActive ? "text-primary-foreground/90" : "text-muted-foreground")}>{item.description}</span>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>
