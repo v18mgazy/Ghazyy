@@ -44,6 +44,9 @@ export class LocalFirebaseStorage implements IStorage {
   private employeeIdCounter = 1;
   private paymentApprovalIdCounter = 1;
   private reportDataIdCounter = 1;
+  private supplierIdCounter = 1;
+  private supplierInvoiceIdCounter = 1;
+  private supplierPaymentIdCounter = 1;
   
   constructor() {
     // Initialize with some default data
@@ -619,5 +622,147 @@ export class LocalFirebaseStorage implements IStorage {
     
     this.reportData.set(newReportData.id, newReportData);
     return newReportData;
+  }
+
+  // وظائف إدارة الموردين
+  async getSupplier(id: number): Promise<Supplier | undefined> {
+    return this.suppliers.get(id);
+  }
+
+  async getAllSuppliers(): Promise<Supplier[]> {
+    return Array.from(this.suppliers.values());
+  }
+
+  async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
+    console.log("LocalFirebaseStorage: Creating new supplier", supplier);
+    const id = this.supplierIdCounter++;
+    
+    const newSupplier: Supplier = {
+      id,
+      ...supplier,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.suppliers.set(id, newSupplier);
+    return newSupplier;
+  }
+
+  async updateSupplier(id: number, supplierData: Partial<Supplier>): Promise<Supplier | undefined> {
+    const supplier = this.suppliers.get(id);
+    
+    if (!supplier) {
+      return undefined;
+    }
+    
+    const updatedSupplier: Supplier = {
+      ...supplier,
+      ...supplierData,
+      updatedAt: new Date()
+    };
+    
+    this.suppliers.set(id, updatedSupplier);
+    return updatedSupplier;
+  }
+
+  async deleteSupplier(id: number): Promise<void> {
+    this.suppliers.delete(id);
+  }
+
+  // وظائف إدارة فواتير الموردين
+  async getSupplierInvoice(id: number): Promise<SupplierInvoice | undefined> {
+    return this.supplierInvoices.get(id);
+  }
+
+  async getAllSupplierInvoices(): Promise<SupplierInvoice[]> {
+    return Array.from(this.supplierInvoices.values());
+  }
+
+  async getSupplierInvoicesBySupplierId(supplierId: number): Promise<SupplierInvoice[]> {
+    return Array.from(this.supplierInvoices.values()).filter(
+      invoice => invoice.supplierId === supplierId
+    );
+  }
+
+  async createSupplierInvoice(invoice: InsertSupplierInvoice): Promise<SupplierInvoice> {
+    const id = this.supplierInvoiceIdCounter++;
+    
+    const newInvoice: SupplierInvoice = {
+      id,
+      ...invoice,
+      paidAmount: invoice.paidAmount || 0,
+      paymentStatus: invoice.paymentStatus || 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.supplierInvoices.set(id, newInvoice);
+    return newInvoice;
+  }
+
+  async updateSupplierInvoice(id: number, invoiceData: Partial<SupplierInvoice>): Promise<SupplierInvoice | undefined> {
+    const invoice = this.supplierInvoices.get(id);
+    
+    if (!invoice) {
+      return undefined;
+    }
+    
+    const updatedInvoice: SupplierInvoice = {
+      ...invoice,
+      ...invoiceData,
+      updatedAt: new Date()
+    };
+    
+    this.supplierInvoices.set(id, updatedInvoice);
+    return updatedInvoice;
+  }
+
+  async deleteSupplierInvoice(id: number): Promise<void> {
+    this.supplierInvoices.delete(id);
+  }
+
+  // وظائف إدارة مدفوعات الموردين
+  async getSupplierPayment(id: number): Promise<SupplierPayment | undefined> {
+    return this.supplierPayments.get(id);
+  }
+
+  async getAllSupplierPayments(): Promise<SupplierPayment[]> {
+    return Array.from(this.supplierPayments.values());
+  }
+
+  async getSupplierPaymentsByInvoiceId(invoiceId: number): Promise<SupplierPayment[]> {
+    return Array.from(this.supplierPayments.values()).filter(
+      payment => payment.supplierInvoiceId === invoiceId
+    );
+  }
+
+  async createSupplierPayment(payment: InsertSupplierPayment): Promise<SupplierPayment> {
+    const id = this.supplierPaymentIdCounter++;
+    
+    const newPayment: SupplierPayment = {
+      id,
+      ...payment,
+      createdAt: new Date()
+    };
+    
+    this.supplierPayments.set(id, newPayment);
+    
+    // تحديث المبلغ المدفوع وحالة الفاتورة
+    const invoice = this.supplierInvoices.get(payment.supplierInvoiceId);
+    if (invoice) {
+      const updatedPaidAmount = invoice.paidAmount + payment.amount;
+      const updatedStatus = updatedPaidAmount >= invoice.amount
+        ? 'paid'
+        : updatedPaidAmount > 0
+          ? 'partially_paid'
+          : 'pending';
+      
+      this.updateSupplierInvoice(invoice.id, {
+        paidAmount: updatedPaidAmount,
+        paymentStatus: updatedStatus
+      });
+    }
+    
+    return newPayment;
   }
 }
