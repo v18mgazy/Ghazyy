@@ -36,58 +36,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log("محاولة تسجيل الدخول باستخدام:", username);
     
     try {
-      // أولاً نحاول المصادقة المضمنة للمستخدمين الثابتين
-      if (username === 'admin' && password === '123123') {
-        console.log("بيانات المستخدم صحيحة - تسجيل دخول ادمن");
-        
-        setUser({
-          id: '1',
-          email: 'admin@example.com',
-          name: 'مدير النظام',
-          role: 'admin'
-        });
-        
-        return true;
-      } 
-      else if (username === 'cashier' && password === '123456') {
-        console.log("بيانات المستخدم صحيحة - تسجيل دخول كاشير");
-        
-        setUser({
-          id: '2',
-          email: 'cashier@example.com',
-          name: 'كاشير',
-          role: 'cashier'
-        });
-        
-        return true;
-      }
+      // استخدام نقطة النهاية الجديدة المُصممة للتعامل مع جميع أنواع المستخدمين
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
       
-      // ثم نحاول المصادقة عبر واجهة برمجة التطبيقات
-      try {
-        const response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ username, password }),
+      if (response.ok) {
+        const userData = await response.json();
+        console.log("تم تسجيل الدخول بنجاح:", userData);
+        
+        setUser({
+          id: userData.id.toString(),
+          email: userData.username,
+          name: userData.name || userData.username,
+          role: userData.role || 'cashier',
+          lastLogin: userData.lastLogin ? new Date(userData.lastLogin) : null
         });
         
-        if (response.ok) {
-          const userData = await response.json();
-          console.log("تم تسجيل الدخول عبر واجهة برمجة التطبيقات:", userData);
-          
-          setUser({
-            id: userData.id.toString(),
-            email: userData.username, // استخدام اسم المستخدم كبريد إلكتروني مؤقت
-            name: userData.name || userData.username,
-            role: userData.role || 'cashier',
-            lastLogin: userData.lastLogin ? new Date(userData.lastLogin) : null
-          });
-          
-          return true;
-        }
-      } catch (error) {
-        console.error("خطأ في تسجيل الدخول عبر واجهة برمجة التطبيقات:", error);
+        return true;
       }
       
       console.log("بيانات المستخدم غير صحيحة");

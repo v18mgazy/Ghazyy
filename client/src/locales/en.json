@@ -503,6 +503,8 @@
   "expenses_management": "Expenses Management",
   "users_management": "Users Management",
   "system_settings": "System Settings",
+  "last_login": "Last Login",
+  "never": "Never logged in",
   "barcodes": "Barcodes",
   "print_barcodes": "Print Barcodes",
   "print_inventory": "Print Inventory",
