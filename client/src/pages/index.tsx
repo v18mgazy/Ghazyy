@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { ReceiptText, Plus, ArrowRight, Loader2, ShoppingCart } from 'lucide-react';
 import BarcodeScanner from '@/components/barcode-scanner';
 import ActiveInvoice from '@/components/invoice/active-invoice';
-// استيراد مكون إنشاء الفاتورة الجديد
-import InvoiceCreator from '@/components/invoice-new/invoice-creator';
+// استيراد مكون إنشاء الفاتورة المبسط
+import SimplifiedInvoiceDialog from '@/components/invoice-new/simplified-invoice-dialog';
 import { useQuery } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { Customer, Product } from '@shared/schema';
@@ -153,8 +153,8 @@ export default function SalesPage() {
         </>
       )}
       
-      {/* نافذة إنشاء الفاتورة المنبثقة الجديدة والمحسنة */}
-      <InvoiceCreator 
+      {/* نافذة إنشاء الفاتورة المنبثقة المبسطة والمحسنة */}
+      <SimplifiedInvoiceDialog 
         open={isCreateInvoiceOpen} 
         onOpenChange={setIsCreateInvoiceOpen}
         preSelectedProduct={lastScannedProduct}
