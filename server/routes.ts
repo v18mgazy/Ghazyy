@@ -849,8 +849,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Skipping notification creation - invoice created by admin');
       }
       
-      // If payment method is 'later', handle approval
-      if (invoiceData.paymentMethod === 'later') {
+      // If payment method is 'later' or 'deferred', handle approval
+      if (invoiceData.paymentMethod === 'later' || invoiceData.paymentMethod === 'deferred') {
         // Create payment approval request
         const approvalData = {
           invoiceId: invoice.id,
