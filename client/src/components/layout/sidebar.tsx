@@ -63,6 +63,13 @@ export default function Sidebar({ isOpen, onClose, isAdmin }: SidebarProps) {
       adminOnly: true // تعديل: إخفاؤها عن الكاشير
     },
     {
+      title: t('suppliers'),
+      icon: <Truck className="h-5 w-5" />,
+      description: t('suppliers_management'),
+      href: '/suppliers',
+      adminOnly: true
+    },
+    {
       title: t('management'),
       icon: <Settings className="h-5 w-5" />,
       description: t('system_settings'),

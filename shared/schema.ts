@@ -336,3 +336,79 @@ export const insertStoreInfoSchema = z.object({
 
 export type StoreInfo = typeof storeInfo.$inferSelect;
 export type InsertStoreInfo = z.infer<typeof insertStoreInfoSchema>;
+
+// الموردين (Suppliers)
+export const suppliers = pgTable("suppliers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  address: text("address"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSupplierSchema = createInsertSchema(suppliers).pick({
+  name: true,
+  phone: true,
+  address: true,
+  notes: true,
+});
+
+export type Supplier = typeof suppliers.$inferSelect;
+export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+
+// فواتير الموردين (Supplier Invoices)
+export const supplierInvoices = pgTable("supplier_invoices", {
+  id: serial("id").primaryKey(),
+  invoiceNumber: text("invoice_number").notNull(),
+  supplierId: integer("supplier_id").references(() => suppliers.id).notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  amount: real("amount").notNull(),
+  paidAmount: real("paid_amount").default(0),
+  paymentStatus: text("payment_status").notNull().default("pending"), // pending, partially_paid, paid
+  dueDate: timestamp("due_date"),
+  notes: text("notes"),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSupplierInvoiceSchema = createInsertSchema(supplierInvoices).pick({
+  invoiceNumber: true,
+  supplierId: true,
+  date: true,
+  amount: true,
+  paidAmount: true,
+  paymentStatus: true,
+  dueDate: true,
+  notes: true,
+  userId: true,
+});
+
+export type SupplierInvoice = typeof supplierInvoices.$inferSelect;
+export type InsertSupplierInvoice = z.infer<typeof insertSupplierInvoiceSchema>;
+
+// مدفوعات فواتير الموردين (Supplier Payments)
+export const supplierPayments = pgTable("supplier_payments", {
+  id: serial("id").primaryKey(),
+  supplierInvoiceId: integer("supplier_invoice_id").references(() => supplierInvoices.id).notNull(),
+  amount: real("amount").notNull(),
+  paymentMethod: text("payment_method").notNull(), // cash, bank_transfer, cheque
+  paymentDate: timestamp("payment_date").notNull().defaultNow(),
+  notes: text("notes"),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSupplierPaymentSchema = createInsertSchema(supplierPayments).pick({
+  supplierInvoiceId: true,
+  amount: true,
+  paymentMethod: true,
+  paymentDate: true,
+  notes: true,
+  userId: true,
+});
+
+export type SupplierPayment = typeof supplierPayments.$inferSelect;
+export type InsertSupplierPayment = z.infer<typeof insertSupplierPaymentSchema>;
