@@ -1510,10 +1510,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid report type' });
       }
       
-      // جلب بيانات الفواتير والمنتجات والعناصر التالفة
+      // التحقق من تنسيق التاريخ
+      if (!date) {
+        return res.status(400).json({ message: 'Date is required' });
+      }
+      
+      // جلب بيانات الفواتير والمنتجات والعناصر التالفة والمصاريف
       const invoices = await storage.getAllInvoices();
       const products = await storage.getAllProducts();
       const damagedItems = await storage.getAllDamagedItems();
+      const expenses = await storage.getAllExpenses();
       
       console.log(`Found ${invoices.length} invoices, ${products.length} products, ${damagedItems.length} damaged items`);
       
