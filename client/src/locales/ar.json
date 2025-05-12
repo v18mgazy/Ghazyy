@@ -515,6 +515,8 @@
   "refreshing": "تحديث البيانات",
   "refreshing_data": "جاري تحديث البيانات...",
   "refresh": "تحديث",
+  "newest_to_oldest": "من الأحدث إلى الأقدم",
+  "oldest_to_newest": "من الأقدم إلى الأحدث",
   "custom": "نطاق تاريخ مخصص",
   "select_date": "اختر التاريخ",
   "report_periods": {
