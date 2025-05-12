@@ -273,12 +273,15 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   const [maxAvailableQuantity, setMaxAvailableQuantity] = useState<number>(0);
   
   // إضافة المنتج المحدد إلى الفاتورة
-  const addSelectedProductToInvoice = () => {
-    console.log('addSelectedProductToInvoice called', selectedProduct);
+  const addSelectedProductToInvoice = (productToAdd?: any) => {
+    console.log('addSelectedProductToInvoice called', productToAdd || selectedProduct);
     
-    if (selectedProduct) {
+    // استخدام المنتج المقدم مباشرة أو المنتج المحدد
+    const productToProcess = productToAdd || selectedProduct;
+    
+    if (productToProcess) {
       // البحث عن المنتج في قاعدة البيانات للتحقق من المخزون
-      const productInDb = products.find((p: any) => p.id === selectedProduct.id);
+      const productInDb = products.find((p: any) => p.id === productToProcess.id);
       console.log('Product in DB:', productInDb);
       
       if (!productInDb) {
@@ -303,8 +306,11 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
         return;
       }
       
+      // تحديد الكمية المناسبة (إما من المنتج المقدم مباشرة أو من حالة المكون)
+      const quantityToUse = productToAdd ? productToAdd.quantity : productQuantity;
+      
       // التحقق من أن الكمية المطلوبة لا تتجاوز الكمية المتوفرة
-      if (productQuantity > availableQuantity) {
+      if (quantityToUse > availableQuantity) {
         toast({
           title: t('quantity_exceeds_available'),
           description: t('only_available', { available: availableQuantity }),
@@ -314,7 +320,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
       }
       
       // التحقق من أن الكمية موجبة
-      if (productQuantity <= 0) {
+      if (quantityToUse <= 0) {
         toast({
           title: t('error'),
           description: t('quantity_must_be_positive'),
@@ -324,12 +330,12 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
       }
       
       const newProduct: Product = {
-        id: selectedProduct.id,
-        name: selectedProduct.name,
-        barcode: selectedProduct.barcode,
-        sellingPrice: selectedProduct.sellingPrice,
-        quantity: productQuantity,
-        discount: productDiscount
+        id: productToProcess.id,
+        name: productToProcess.name,
+        barcode: productToProcess.barcode,
+        sellingPrice: productToProcess.sellingPrice,
+        quantity: quantityToUse,
+        discount: productToAdd ? (productToAdd.discount || 0) : productDiscount
       };
       
       console.log('Adding product to invoice:', newProduct);
