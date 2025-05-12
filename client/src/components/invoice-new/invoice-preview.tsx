@@ -313,10 +313,19 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ invoice, onClose }) => 
                 <span>{formatCurrency(invoice.subtotal)}</span>
               </div>
               
-              {invoice.discount > 0 && (
+              {invoice.itemsDiscount > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{t('discount')}:</span>
-                  <span>- {formatCurrency(invoice.discount)}</span>
+                  <span className="text-muted-foreground">{t('item_discounts')}:</span>
+                  <span>- {formatCurrency(invoice.itemsDiscount)}</span>
+                </div>
+              )}
+              
+              {invoice.invoiceDiscount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {t('invoice_discount')} {invoice.discountPercentage && `(${invoice.discountPercentage}%)`}:
+                  </span>
+                  <span>- {formatCurrency(invoice.invoiceDiscount)}</span>
                 </div>
               )}
               
