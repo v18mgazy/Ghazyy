@@ -716,37 +716,38 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                             })}
                           </div>
                         ) : (
-                          <div className="text-center p-4 border border-dashed rounded-md">
-                            <ShoppingCart className="h-6 w-6 mx-auto text-muted-foreground opacity-50 mb-1" />
-                            <p className="text-sm text-muted-foreground">{t('no_products_in_invoice')}</p>
+                          <div className="text-center p-6 border border-dashed rounded-md bg-muted/5">
+                            <ShoppingCart className="h-10 w-10 mx-auto text-muted-foreground opacity-40 mb-2" />
+                            <p className="text-base text-muted-foreground font-medium">{t('no_products_in_invoice')}</p>
+                            <p className="text-sm text-muted-foreground/80 mt-1">{t('use_product_search')}</p>
                           </div>
                         )}
                       </div>
                     </div>
 
                     <div className="md:col-span-2">
-                      <div className="mb-2">
-                        <Label htmlFor="paymentMethod" className="text-sm">
+                      <div className="mb-3">
+                        <Label htmlFor="paymentMethod" className="text-base font-medium">
                           {t('payment_method')}
                         </Label>
                         <Select
                           value={paymentMethod}
                           onValueChange={setPaymentMethod}
                         >
-                          <SelectTrigger id="paymentMethod" className="mt-1 h-9">
+                          <SelectTrigger id="paymentMethod" className="mt-1.5 h-11 text-base font-medium">
                             <SelectValue placeholder={t('select_payment_method')} />
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="cash">{t('cash')}</SelectItem>
-                            <SelectItem value="card">{t('card')}</SelectItem>
-                            <SelectItem value="deferred">{t('pay_later')}</SelectItem>
-                            <SelectItem value="e-wallet">{t('e_wallet')}</SelectItem>
+                          <SelectContent className="text-base">
+                            <SelectItem value="cash" className="py-3 cursor-pointer">{t('cash')}</SelectItem>
+                            <SelectItem value="card" className="py-3 cursor-pointer">{t('card')}</SelectItem>
+                            <SelectItem value="deferred" className="py-3 cursor-pointer">{t('pay_later')}</SelectItem>
+                            <SelectItem value="e-wallet" className="py-3 cursor-pointer">{t('e_wallet')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       <div>
-                        <Label htmlFor="notes" className="text-sm">
+                        <Label htmlFor="notes" className="text-base font-medium">
                           {t('notes')}
                         </Label>
                         <Input
@@ -754,17 +755,17 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                           placeholder={t('invoice_notes')}
                           value={invoiceNotes}
                           onChange={(e) => setInvoiceNotes(e.target.value)}
-                          className="mt-1 h-9"
+                          className="mt-1.5 h-11 text-base"
                         />
                       </div>
                       
                       {/* خصم الفاتورة والمجاميع */}
                       <div className="mt-3 space-y-2 border-t pt-3">
-                        <div className="flex items-center gap-2">
-                          <Label htmlFor="invoice-discount" className="text-sm text-muted-foreground">
+                        <div className="flex items-center gap-3">
+                          <Label htmlFor="invoice-discount" className="text-base text-muted-foreground font-medium">
                             {t('invoice_discount')}:
                           </Label>
-                          <div className="relative w-20">
+                          <div className="relative w-24">
                             <Input
                               id="invoice-discount"
                               type="number"
@@ -772,34 +773,34 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                               max="100"
                               value={invoiceDiscount || 0}
                               onChange={(e) => setInvoiceDiscount(parseInt(e.target.value) || 0)}
-                              className="pr-7 py-1 h-8 text-sm"
+                              className="pr-8 py-1 h-10 text-base"
                             />
-                            <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                            <Percent className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           </div>
                         </div>
                         
-                        <div className="space-y-1 pt-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">{t('subtotal')}:</span>
-                            <span>{formatCurrency(subtotal)}</span>
+                        <div className="space-y-2 pt-3 px-2">
+                          <div className="flex justify-between text-base">
+                            <span className="text-muted-foreground font-medium">{t('subtotal')}:</span>
+                            <span className="font-medium">{formatCurrency(subtotal)}</span>
                           </div>
                           
                           {totalDiscount > 0 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">{t('item_discounts')}:</span>
-                              <span className="text-muted-foreground">- {formatCurrency(totalDiscount)}</span>
+                            <div className="flex justify-between text-base">
+                              <span className="text-muted-foreground font-medium">{t('item_discounts')}:</span>
+                              <span className="text-destructive/90 font-medium">- {formatCurrency(totalDiscount)}</span>
                             </div>
                           )}
                           
                           {invoiceDiscount > 0 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">{t('invoice_discount')} ({invoiceDiscount}%):</span>
-                              <span className="text-muted-foreground">- {formatCurrency(subtotal * (invoiceDiscount / 100))}</span>
+                            <div className="flex justify-between text-base">
+                              <span className="text-muted-foreground font-medium">{t('invoice_discount')} ({invoiceDiscount}%):</span>
+                              <span className="text-destructive/90 font-medium">- {formatCurrency(subtotal * (invoiceDiscount / 100))}</span>
                             </div>
                           )}
                           
-                          <Separator />
-                          <div className="flex justify-between font-bold text-base pt-1">
+                          <Separator className="my-2" />
+                          <div className="flex justify-between font-bold text-lg pt-1">
                             <span>{t('total')}:</span>
                             <span className="text-primary">{formatCurrency(total - (subtotal * (invoiceDiscount / 100)))}</span>
                           </div>
