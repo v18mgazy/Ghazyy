@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DeferredPaymentDialog } from './deferred-payment-dialog';
 
 interface Notification {
   id: number;
@@ -38,6 +39,8 @@ export function NotificationsDropdown({ userId }: NotificationsDropdownProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [showDeferredPaymentDialog, setShowDeferredPaymentDialog] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
   
   // استعلام لجلب الإشعارات
   const {
@@ -182,8 +185,20 @@ export function NotificationsDropdown({ userId }: NotificationsDropdownProps) {
     // يمكن إضافة تنقل إلى صفحة ذات صلة بالإشعار هنا
     // مثلاً إذا كان نوع الإشعار هو طلب الموافقة على الدفع المؤجل
     if (notification.type === 'deferred_payment_request' && notification.referenceId) {
-      // window.location.href = `/payment-approvals/${notification.referenceId}`;
-      console.log('Navigate to payment approval:', notification.referenceId);
+      try {
+        const invoiceId = parseInt(notification.referenceId);
+        if (!isNaN(invoiceId)) {
+          setSelectedInvoiceId(invoiceId);
+          setShowDeferredPaymentDialog(true);
+        }
+      } catch (error) {
+        console.error('Invalid invoice ID:', notification.referenceId);
+        toast({
+          title: t('error'),
+          description: t('invalid_invoice_id'),
+          variant: 'destructive'
+        });
+      }
     }
     // أو إذا كان نوع الإشعار هو إنشاء فاتورة
     else if (notification.type === 'invoice_created' && notification.referenceId) {
