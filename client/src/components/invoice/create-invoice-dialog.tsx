@@ -79,6 +79,46 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   const [scannedProduct, setScannedProduct] = useState<ProductSearchResult | null>(null);
   const [invoiceProducts, setInvoiceProducts] = useState<Product[]>([]);
   
+  // حالة الفاتورة
+  const [subtotal, setSubtotal] = useState(0);
+  const [discount, setDiscount] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'deferred'>('cash');
+  const [notes, setNotes] = useState('');
+  
+  // حساب المجموع الفرعي والخصم والمجموع الكلي
+  const updateTotals = (products: Product[]) => {
+    console.log('Updating totals for products:', products);
+    
+    // حساب المجموع الفرعي (مجموع سعر المنتجات × الكمية)
+    const calculatedSubtotal = products.reduce((sum, product) => {
+      return sum + (product.sellingPrice * product.quantity);
+    }, 0);
+    
+    // حساب إجمالي الخصم
+    const calculatedDiscount = products.reduce((sum, product) => {
+      // الخصم على كل منتج = السعر × الكمية × نسبة الخصم
+      const productDiscount = product.discount 
+        ? (product.sellingPrice * product.quantity * (product.discount / 100)) 
+        : 0;
+      return sum + productDiscount;
+    }, 0);
+    
+    // حساب المجموع الكلي
+    const calculatedTotal = calculatedSubtotal - calculatedDiscount;
+    
+    // تحديث الحالة
+    setSubtotal(calculatedSubtotal);
+    setDiscount(calculatedDiscount);
+    setTotal(calculatedTotal);
+    
+    console.log('Calculated totals:', {
+      subtotal: calculatedSubtotal,
+      discount: calculatedDiscount,
+      total: calculatedTotal
+    });
+  };
+  
   // استرجاع العملاء من قاعدة البيانات
   const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
     queryKey: ['/api/customers'],

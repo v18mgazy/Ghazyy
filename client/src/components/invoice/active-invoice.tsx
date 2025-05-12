@@ -67,6 +67,15 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
   const [notes, setNotes] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
   
+  // حساب المجموع الفرعي والخصم والمجموع الكلي
+  const calculateSubtotalAndTotal = (productsList: Product[]) => {
+    console.log('Calculating totals for products:', productsList);
+    
+    // المجموعات سيتم حسابها عند الاستخدام في الواجهة
+    // نستخدم هذه الدالة فقط لإعادة حساب المجاميع بعد إضافة/تعديل المنتجات
+    console.log('Updated products list, UI will recalculate totals automatically');
+  };
+  
   // حالة ماسح الباركود
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [scannedProduct, setScannedProduct] = useState<any>(null);
@@ -226,7 +235,7 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
       setProducts(updatedProducts);
       
       // إعادة حساب المجاميع
-      calculateTotals(updatedProducts);
+      calculateSubtotalAndTotal(updatedProducts);
       
       toast({
         title: t('success'),
