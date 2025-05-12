@@ -815,12 +815,12 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
         </div>
         
         {activeTab === 'products' && selectedCustomer && (
-          <div className="flex justify-between bg-muted/10 p-5 border-t">
+          <div className="flex justify-between bg-muted/10 p-5 pt-6 border-t">
             <Button 
               variant="outline" 
               onClick={() => onOpenChange(false)}
               size="lg"
-              className="text-base font-medium px-6"
+              className="text-base font-medium px-8 py-6 h-auto border-gray-300 hover:bg-gray-100"
             >
               <X className="mr-2 h-5 w-5" />
               {t('cancel')}
@@ -828,12 +828,12 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
             <Button
               onClick={handleSaveInvoice}
               disabled={createInvoiceMutation.isPending || invoiceProducts.length === 0}
-              className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white text-base font-medium px-8"
+              className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white text-lg font-bold px-10 py-6 h-auto shadow-md"
               size="lg"
             >
               {createInvoiceMutation.isPending ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -841,7 +841,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                 </>
               ) : (
                 <>
-                  <Calculator className="mr-2 h-4 w-4" />
+                  <Calculator className="mr-3 h-5 w-5" />
                   {t('save_invoice')}
                 </>
               )}
@@ -902,11 +902,11 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
             <Button 
               onClick={handleCreateCustomer}
               disabled={createCustomerMutation.isPending}
-              className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white"
+              className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold py-5 px-6 h-auto text-base shadow-md"
             >
               {createCustomerMutation.isPending ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -914,7 +914,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                 </>
               ) : (
                 <>
-                  <Check className="mr-2 h-4 w-4" />
+                  <Check className="mr-2 h-5 w-5" />
                   {t('save')}
                 </>
               )}
