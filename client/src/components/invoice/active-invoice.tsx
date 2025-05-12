@@ -179,7 +179,18 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
   
   // معالجة المنتج الممسوح ضوئيًا
   const handleProductScanned = (scannedProd: any) => {
-    console.log('Product scanned:', scannedProd);
+    console.log('Product scanned in ActiveInvoice:', scannedProd);
+    
+    // إذا تم تمرير معالج المسح من الأب، استخدمه
+    if (onProductScanned) {
+      console.log('Using parent onProductScanned function');
+      onProductScanned(scannedProd);
+      setShowBarcodeScanner(false);
+      return;
+    }
+    
+    // وإلا، استخدم المنطق المحلي للمكون
+    console.log('Using local product scan handling');
     
     // البحث عن المنتج بالباركود
     const foundProduct = allProducts.find((p: any) => p.barcode === scannedProd.barcode);
@@ -210,7 +221,12 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
       };
       console.log('Adding product to invoice:', newProduct);
       
-      setProducts([...products, newProduct]);
+      // إضافة المنتج إلى قائمة المنتجات
+      const updatedProducts = [...products, newProduct];
+      setProducts(updatedProducts);
+      
+      // إعادة حساب المجاميع
+      calculateTotals(updatedProducts);
       
       toast({
         title: t('success'),

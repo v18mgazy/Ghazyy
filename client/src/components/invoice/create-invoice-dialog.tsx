@@ -77,6 +77,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [scannedProduct, setScannedProduct] = useState<ProductSearchResult | null>(null);
+  const [invoiceProducts, setInvoiceProducts] = useState<Product[]>([]);
   
   // استرجاع العملاء من قاعدة البيانات
   const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
