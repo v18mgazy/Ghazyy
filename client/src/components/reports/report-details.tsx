@@ -265,7 +265,16 @@ export default function ReportDetails({
                           </div>
                         </TableCell>
                         <TableCell>
-                          {report.customerName || t('unknown_customer')}
+                          {report.type === 'sale' 
+                            ? (report.customerName || t('unknown_customer'))
+                            : report.type === 'damage'
+                              ? (report.productName || t('unknown_product'))
+                              : report.type === 'expense'
+                                ? t(report.expenseType || 'miscellaneous')
+                                : report.type === 'summary'
+                                  ? (report.category ? t(report.category) : '')
+                                  : ''
+                          }
                         </TableCell>
                         <TableCell className="max-w-xs truncate">
                           {report.details}
@@ -274,20 +283,51 @@ export default function ReportDetails({
                           {formatCurrency(report.amount)}
                         </TableCell>
                         <TableCell>
-                          <span className={
-                            report.paymentStatus === 'paid' 
-                              ? 'bg-green-100 text-green-800 py-1 px-2 rounded text-xs font-medium' 
-                              : report.paymentStatus === 'pending' 
-                                ? 'bg-amber-100 text-amber-800 py-1 px-2 rounded text-xs font-medium'
-                                : 'bg-gray-100 text-gray-800 py-1 px-2 rounded text-xs font-medium'
-                          }>
-                            {t(report.paymentStatus)}
-                          </span>
+                          {report.type === 'sale' && (
+                            <span className={
+                              report.paymentStatus === 'paid' 
+                                ? 'bg-green-100 text-green-800 py-1 px-2 rounded text-xs font-medium' 
+                                : report.paymentStatus === 'pending' 
+                                  ? 'bg-amber-100 text-amber-800 py-1 px-2 rounded text-xs font-medium'
+                                  : 'bg-gray-100 text-gray-800 py-1 px-2 rounded text-xs font-medium'
+                            }>
+                              {t(report.paymentStatus || 'unknown')}
+                            </span>
+                          )}
+                          {report.type === 'damage' && (
+                            <span className="bg-red-100 text-red-800 py-1 px-2 rounded text-xs font-medium">
+                              {t('damaged')}
+                            </span>
+                          )}
+                          {report.type === 'expense' && (
+                            <span className="bg-purple-100 text-purple-800 py-1 px-2 rounded text-xs font-medium">
+                              {t('expense')}
+                            </span>
+                          )}
+                          {report.type === 'summary' && (
+                            <span className="bg-blue-100 text-blue-800 py-1 px-2 rounded text-xs font-medium">
+                              {t('summary')}
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell>
-                          <div className="bg-green-50 text-green-700 px-2 py-1 rounded-md font-medium inline-block">
-                            {formatCurrency(report.profit)}
-                          </div>
+                          {report.type === 'sale' ? (
+                            <div className="bg-green-50 text-green-700 px-2 py-1 rounded-md font-medium inline-block">
+                              {formatCurrency(report.profit || 0)}
+                            </div>
+                          ) : report.type === 'damage' ? (
+                            <div className="bg-red-50 text-red-700 px-2 py-1 rounded-md font-medium inline-block">
+                              {t('loss')}
+                            </div>
+                          ) : report.type === 'expense' ? (
+                            <div className="bg-purple-50 text-purple-700 px-2 py-1 rounded-md font-medium inline-block">
+                              {t('expense')}
+                            </div>
+                          ) : (
+                            <div className="bg-gray-50 text-gray-700 px-2 py-1 rounded-md font-medium inline-block">
+                              -
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))

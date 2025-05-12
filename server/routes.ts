@@ -1568,7 +1568,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const topProducts = calculateTopProducts(invoices, products, type as string, date as string);
       
       // إنشاء تقارير مفصلة
-      const detailedReports = createDetailedReports(invoices, damagedItems, type as string, date as string);
+      const detailedReports = await createDetailedReports(invoices, damagedItems, type as string, date as string);
       
       // بيانات الفترة السابقة لعرض نسبة التغيير
       const previousDate = getPreviousPeriod(type as string, date as string);
@@ -1880,10 +1880,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .slice(0, 5);
   }
   
-  function createDetailedReports(invoices: any[], damagedItems: any[], type: string, date: string): any[] {
+  async function createDetailedReports(invoices: any[], damagedItems: any[], type: string, date: string): Promise<any[]> {
     const detailedReports: any[] = [];
     let totalDamagesValue = 0;
     let totalEmployeeDeductions = 0;
+    let totalExpensesValue = 0;
+    
+    // جلب بيانات المصاريف والنثريات
+    const expenses = await storage.getAllExpenses();
     
     // إضافة تقارير مفصلة للفواتير
     for (const invoice of invoices) {
@@ -1940,14 +1944,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // حساب إجمالي قيمة التوالف
         totalDamagesValue += item.valueLoss || 0;
         
+        // يجب التأكد من وجود اسم المنتج، إن لم يكن موجوداً بحث عنه في قائمة المنتجات
+        let productName = item.productName || 'منتج غير معروف';
+        if (item.product && item.product.name) {
+          productName = item.product.name;
+        }
+        
         detailedReports.push({
           id: item.id,
           date: new Date(item.date).toISOString().split('T')[0],
           type: 'damage',
           amount: item.valueLoss,
           details: item.description || 'No description',
-          productName: item.productName || 'منتج غير معروف',
+          productName: productName,
           quantity: item.quantity
+        });
+      }
+    }
+    
+    // إضافة تقارير مفصلة للمصاريف والنثريات
+    for (const expense of expenses) {
+      const expenseDate = new Date(expense.date);
+      const formattedDate = formatDateForReportType(expenseDate, type);
+      
+      if (formattedDate === date) {
+        // حساب إجمالي قيمة المصاريف
+        totalExpensesValue += expense.amount || 0;
+        
+        detailedReports.push({
+          id: expense.id,
+          date: new Date(expense.date).toISOString().split('T')[0],
+          type: 'expense',
+          amount: expense.amount,
+          details: expense.details || 'بدون تفاصيل',
+          expenseType: expense.expenseType || 'miscellaneous'
         });
       }
     }
@@ -1961,6 +1991,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category: 'damaged',
         amount: totalDamagesValue,
         details: `إجمالي قيمة التوالف للفترة`
+      });
+    }
+    
+    // إضافة ملخص للمصاريف إذا كانت موجودة
+    if (totalExpensesValue > 0) {
+      detailedReports.push({
+        id: `summary-expenses-${date}`,
+        date: date,
+        type: 'summary',
+        category: 'expenses',
+        amount: totalExpensesValue,
+        details: `إجمالي المصاريف والنثريات للفترة`
       });
     }
     
