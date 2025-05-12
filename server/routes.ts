@@ -2197,7 +2197,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const expenseDate = new Date(expense.date);
       const formattedDate = formatDateForReportType(expenseDate, type);
       
-      if (formattedDate === date) {
+      // للتقارير الأسبوعية أو المخصصة، نحسب جميع المصاريف المفلترة سابقًا
+      // للتقارير اليومية/الشهرية/السنوية، نتحقق من تطابق التاريخ
+      const isInDateRange = (type === 'weekly' || type === 'custom') ? true : (formattedDate === date);
+      
+      if (isInDateRange) {
         // حساب إجمالي قيمة المصاريف
         totalExpensesValue += expense.amount || 0;
         
