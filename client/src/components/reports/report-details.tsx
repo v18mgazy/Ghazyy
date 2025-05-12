@@ -263,67 +263,90 @@ export default function ReportDetails({
       </div>
 
       {/* الرسم البياني للمبيعات */}
-      <Card className="print:shadow-none shadow-sm">
-        <CardHeader className="pb-2 border-b">
+      <Card className="print:shadow-none shadow-md overflow-hidden">
+        <div className="absolute inset-0 bg-primary/5 opacity-30 pointer-events-none"></div>
+        <CardHeader className="pb-2 border-b relative">
           <CardTitle className="text-lg flex items-center">
             <BarChart className="h-5 w-5 mr-2 text-primary" />
             {chartLayout.title}
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-4">
+        <CardContent className="pt-6 relative">
           {isLoading ? (
-            <div className="h-64 w-full flex items-center justify-center">
+            <div className="h-72 w-full flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : chartData.length === 0 ? (
-            <div className="h-64 w-full flex items-center justify-center border border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg">
+            <div className="h-72 w-full flex items-center justify-center border border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg bg-neutral-50/50 dark:bg-neutral-900/20">
               <p className="text-neutral-500 dark:text-neutral-400 text-center">
                 <BarChart className="mx-auto mb-2 h-10 w-10 opacity-50" />
                 {t('no_sales_data')}
               </p>
             </div>
           ) : (
-            <div className="h-64 w-full">
+            <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={chartData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  margin={{ top: 10, right: 30, left: 20, bottom: 10 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#1976D2" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#1976D2" stopOpacity={0.1}/>
+                    </linearGradient>
+                    <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4CAF50" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#4CAF50" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                   <XAxis 
                     dataKey="name" 
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: '#718096' }}
+                    tickLine={{ stroke: '#cfd8dc' }}
+                    axisLine={{ stroke: '#cfd8dc' }}
                   />
                   <YAxis 
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: '#718096' }}
+                    tickLine={{ stroke: '#cfd8dc' }}
+                    axisLine={{ stroke: '#cfd8dc' }}
                     tickFormatter={(value) => formatCurrency(value, "short")}
                   />
                   <Tooltip 
                     formatter={(value: any) => [formatCurrency(Number(value)), '']}
                     labelFormatter={(label: string) => `${label}`}
                     contentStyle={{ 
-                      backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)', 
                       borderRadius: '8px',
-                      border: '1px solid #ddd',
-                      boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
+                      padding: '10px'
                     }}
+                    itemStyle={{ padding: '4px 0' }}
                   />
-                  <Legend />
+                  <Legend 
+                    wrapperStyle={{ paddingTop: '10px', fontWeight: 500 }}
+                    iconSize={10}
+                    iconType="circle"
+                  />
                   <Line 
                     type="monotone" 
                     dataKey="revenue" 
                     stroke="#1976D2" 
-                    strokeWidth={2}
+                    strokeWidth={3}
                     name={t('revenue')}
-                    activeDot={{ r: 8 }}
+                    activeDot={{ r: 8, fill: '#1976D2', stroke: 'white', strokeWidth: 2 }}
+                    dot={{ r: 3, fill: '#1976D2', stroke: 'white', strokeWidth: 2 }}
                   />
                   <Line 
                     type="monotone" 
                     dataKey="profit" 
                     stroke="#4CAF50" 
-                    strokeWidth={2}
+                    strokeWidth={3}
                     name={t('profit')}
-                    activeDot={{ r: 8 }}
+                    activeDot={{ r: 6, fill: '#4CAF50', stroke: 'white', strokeWidth: 2 }}
+                    dot={{ r: 3, fill: '#4CAF50', stroke: 'white', strokeWidth: 2 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -393,13 +416,15 @@ export default function ReportDetails({
               {t('detailed_report')}
             </CardTitle>
             <div className="flex flex-wrap gap-2">
-              <Input
-                placeholder={t('search_report')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-[200px]"
-                startIcon={<Search className="h-4 w-4 text-muted-foreground" />}
-              />
+              <div className="relative max-w-[200px]">
+                <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder={t('search_report')}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 max-w-[200px]"
+                />
+              </div>
               <Button 
                 variant="outline"
                 size="sm" 
