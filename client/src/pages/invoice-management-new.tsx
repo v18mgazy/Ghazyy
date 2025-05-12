@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   FileText, Search, Pencil, Trash2, Printer, Filter, CheckCircle, XCircle, Clock, 
   RefreshCw, ArrowUpDown, ChevronRight, ChevronLeft, Loader2, Share, Scan, MoreVertical,
-  Building, Store, AlertCircle
+  Building, Store, AlertCircle, SortDesc
 } from 'lucide-react';
 import BarcodeScanner from '@/components/barcode-scanner';
 import { StoreInfoDialog } from '@/components/store-info/store-info-dialog';
@@ -980,8 +980,17 @@ export default function InvoiceManagement() {
       
       {/* جدول الفواتير */}
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-2 flex justify-between items-center">
           <CardTitle className="text-xl">{t('invoices')}</CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600"
+            onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
+          >
+            <SortDesc className="h-4 w-4 mr-1" />
+            {sortOrder === 'newest' ? t('newest_to_oldest') : t('oldest_to_newest')}
+          </Button>
         </CardHeader>
         <CardContent>
           {isLoadingInvoices ? (
