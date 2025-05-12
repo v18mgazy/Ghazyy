@@ -12,7 +12,11 @@ import type {
   ReportData, InsertReportData,
   EmployeeDeduction, InsertEmployeeDeduction,
   Notification, InsertNotification,
-  Expense, InsertExpense
+  Expense, InsertExpense,
+  StoreInfo, InsertStoreInfo,
+  Supplier, InsertSupplier,
+  SupplierInvoice, InsertSupplierInvoice,
+  SupplierPayment, InsertSupplierPayment
 } from "@shared/schema";
 import { IStorage } from "./storage";
 
@@ -1966,6 +1970,487 @@ export class RealtimeDBStorage implements IStorage {
       };
     } catch (error) {
       console.error('Error updating store information:', error);
+      throw error;
+    }
+  }
+
+  // وظائف إدارة الموردين (Supplier Management)
+  async getSupplier(id: number): Promise<Supplier | undefined> {
+    try {
+      const supplierRef = ref(database, `suppliers/${id}`);
+      const snapshot = await get(supplierRef);
+      
+      if (!snapshot.exists()) {
+        return undefined;
+      }
+      
+      const data = snapshot.val();
+      return {
+        id,
+        name: data.name,
+        phone: data.phone || null,
+        address: data.address || null,
+        notes: data.notes || null,
+        createdAt: new Date(data.createdAt),
+        updatedAt: new Date(data.updatedAt)
+      };
+    } catch (error) {
+      console.error('Error getting supplier:', error);
+      return undefined;
+    }
+  }
+
+  async getAllSuppliers(): Promise<Supplier[]> {
+    try {
+      const suppliersRef = ref(database, 'suppliers');
+      const snapshot = await get(suppliersRef);
+      
+      if (!snapshot.exists()) {
+        return [];
+      }
+      
+      const suppliers: Supplier[] = [];
+      snapshot.forEach((childSnapshot) => {
+        const id = parseInt(childSnapshot.key || '0');
+        const data = childSnapshot.val();
+        
+        suppliers.push({
+          id,
+          name: data.name,
+          phone: data.phone || null,
+          address: data.address || null,
+          notes: data.notes || null,
+          createdAt: new Date(data.createdAt),
+          updatedAt: new Date(data.updatedAt)
+        });
+      });
+      
+      return suppliers;
+    } catch (error) {
+      console.error('Error getting all suppliers:', error);
+      return [];
+    }
+  }
+
+  async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
+    try {
+      console.log("RealtimeDBStorage: Creating supplier", supplier);
+      const id = this.generateId('suppliers');
+      const now = new Date().toISOString();
+      
+      const newSupplier = {
+        ...supplier,
+        createdAt: now,
+        updatedAt: now
+      };
+      
+      const supplierRef = ref(database, `suppliers/${id}`);
+      await set(supplierRef, newSupplier);
+      
+      return {
+        id,
+        ...supplier,
+        createdAt: new Date(now),
+        updatedAt: new Date(now)
+      };
+    } catch (error) {
+      console.error('Error creating supplier:', error);
+      throw error;
+    }
+  }
+
+  async updateSupplier(id: number, supplierData: Partial<Supplier>): Promise<Supplier | undefined> {
+    try {
+      const supplierRef = ref(database, `suppliers/${id}`);
+      const snapshot = await get(supplierRef);
+      
+      if (!snapshot.exists()) {
+        return undefined;
+      }
+      
+      const now = new Date().toISOString();
+      const updates = {
+        ...supplierData,
+        updatedAt: now
+      };
+      
+      await update(supplierRef, updates);
+      
+      // Get updated supplier
+      const updatedSnapshot = await get(supplierRef);
+      const updatedData = updatedSnapshot.val();
+      
+      return {
+        id,
+        name: updatedData.name,
+        phone: updatedData.phone || null,
+        address: updatedData.address || null,
+        notes: updatedData.notes || null,
+        createdAt: new Date(updatedData.createdAt),
+        updatedAt: new Date(updatedData.updatedAt)
+      };
+    } catch (error) {
+      console.error('Error updating supplier:', error);
+      return undefined;
+    }
+  }
+
+  async deleteSupplier(id: number): Promise<void> {
+    try {
+      const supplierRef = ref(database, `suppliers/${id}`);
+      await remove(supplierRef);
+    } catch (error) {
+      console.error('Error deleting supplier:', error);
+      throw error;
+    }
+  }
+
+  // وظائف إدارة فواتير الموردين (Supplier Invoice Management)
+  async getSupplierInvoice(id: number): Promise<SupplierInvoice | undefined> {
+    try {
+      const invoiceRef = ref(database, `supplier_invoices/${id}`);
+      const snapshot = await get(invoiceRef);
+      
+      if (!snapshot.exists()) {
+        return undefined;
+      }
+      
+      const data = snapshot.val();
+      return {
+        id,
+        invoiceNumber: data.invoiceNumber,
+        supplierId: data.supplierId,
+        date: new Date(data.date),
+        amount: data.amount,
+        paidAmount: data.paidAmount || 0,
+        paymentStatus: data.paymentStatus,
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        notes: data.notes || null,
+        userId: data.userId,
+        createdAt: new Date(data.createdAt),
+        updatedAt: new Date(data.updatedAt)
+      };
+    } catch (error) {
+      console.error('Error getting supplier invoice:', error);
+      return undefined;
+    }
+  }
+
+  async getAllSupplierInvoices(): Promise<SupplierInvoice[]> {
+    try {
+      const invoicesRef = ref(database, 'supplier_invoices');
+      const snapshot = await get(invoicesRef);
+      
+      if (!snapshot.exists()) {
+        return [];
+      }
+      
+      const invoices: SupplierInvoice[] = [];
+      snapshot.forEach((childSnapshot) => {
+        const id = parseInt(childSnapshot.key || '0');
+        const data = childSnapshot.val();
+        
+        invoices.push({
+          id,
+          invoiceNumber: data.invoiceNumber,
+          supplierId: data.supplierId,
+          date: new Date(data.date),
+          amount: data.amount,
+          paidAmount: data.paidAmount || 0,
+          paymentStatus: data.paymentStatus,
+          dueDate: data.dueDate ? new Date(data.dueDate) : null,
+          notes: data.notes || null,
+          userId: data.userId,
+          createdAt: new Date(data.createdAt),
+          updatedAt: new Date(data.updatedAt)
+        });
+      });
+      
+      return invoices;
+    } catch (error) {
+      console.error('Error getting all supplier invoices:', error);
+      return [];
+    }
+  }
+
+  async getSupplierInvoicesBySupplierId(supplierId: number): Promise<SupplierInvoice[]> {
+    try {
+      const invoicesRef = ref(database, 'supplier_invoices');
+      const snapshot = await get(invoicesRef);
+      
+      if (!snapshot.exists()) {
+        return [];
+      }
+      
+      const invoices: SupplierInvoice[] = [];
+      snapshot.forEach((childSnapshot) => {
+        const id = parseInt(childSnapshot.key || '0');
+        const data = childSnapshot.val();
+        
+        if (data.supplierId === supplierId) {
+          invoices.push({
+            id,
+            invoiceNumber: data.invoiceNumber,
+            supplierId: data.supplierId,
+            date: new Date(data.date),
+            amount: data.amount,
+            paidAmount: data.paidAmount || 0,
+            paymentStatus: data.paymentStatus,
+            dueDate: data.dueDate ? new Date(data.dueDate) : null,
+            notes: data.notes || null,
+            userId: data.userId,
+            createdAt: new Date(data.createdAt),
+            updatedAt: new Date(data.updatedAt)
+          });
+        }
+      });
+      
+      return invoices;
+    } catch (error) {
+      console.error('Error getting supplier invoices by supplier ID:', error);
+      return [];
+    }
+  }
+
+  async createSupplierInvoice(invoice: InsertSupplierInvoice): Promise<SupplierInvoice> {
+    try {
+      const id = this.generateId('supplier_invoices');
+      const now = new Date().toISOString();
+      
+      const newInvoice = {
+        ...invoice,
+        paidAmount: invoice.paidAmount || 0,
+        paymentStatus: invoice.paymentStatus || 'pending',
+        createdAt: now,
+        updatedAt: now
+      };
+      
+      const invoiceRef = ref(database, `supplier_invoices/${id}`);
+      await set(invoiceRef, newInvoice);
+      
+      return {
+        id,
+        ...invoice,
+        paidAmount: invoice.paidAmount || 0,
+        paymentStatus: invoice.paymentStatus || 'pending',
+        date: new Date(invoice.date),
+        dueDate: invoice.dueDate ? new Date(invoice.dueDate) : null,
+        createdAt: new Date(now),
+        updatedAt: new Date(now)
+      };
+    } catch (error) {
+      console.error('Error creating supplier invoice:', error);
+      throw error;
+    }
+  }
+
+  async updateSupplierInvoice(id: number, invoiceData: Partial<SupplierInvoice>): Promise<SupplierInvoice | undefined> {
+    try {
+      const invoiceRef = ref(database, `supplier_invoices/${id}`);
+      const snapshot = await get(invoiceRef);
+      
+      if (!snapshot.exists()) {
+        return undefined;
+      }
+      
+      const now = new Date().toISOString();
+      const updates = {
+        ...invoiceData,
+        updatedAt: now
+      };
+      
+      // Convert Date objects to ISO strings for Firebase
+      if (invoiceData.date) {
+        updates.date = invoiceData.date.toISOString();
+      }
+      if (invoiceData.dueDate) {
+        updates.dueDate = invoiceData.dueDate.toISOString();
+      }
+      
+      await update(invoiceRef, updates);
+      
+      // Get updated invoice
+      const updatedSnapshot = await get(invoiceRef);
+      const data = updatedSnapshot.val();
+      
+      return {
+        id,
+        invoiceNumber: data.invoiceNumber,
+        supplierId: data.supplierId,
+        date: new Date(data.date),
+        amount: data.amount,
+        paidAmount: data.paidAmount || 0,
+        paymentStatus: data.paymentStatus,
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        notes: data.notes || null,
+        userId: data.userId,
+        createdAt: new Date(data.createdAt),
+        updatedAt: new Date(data.updatedAt)
+      };
+    } catch (error) {
+      console.error('Error updating supplier invoice:', error);
+      return undefined;
+    }
+  }
+
+  async deleteSupplierInvoice(id: number): Promise<void> {
+    try {
+      const invoiceRef = ref(database, `supplier_invoices/${id}`);
+      await remove(invoiceRef);
+    } catch (error) {
+      console.error('Error deleting supplier invoice:', error);
+      throw error;
+    }
+  }
+
+  // وظائف إدارة مدفوعات الموردين (Supplier Payment Management)
+  async getSupplierPayment(id: number): Promise<SupplierPayment | undefined> {
+    try {
+      const paymentRef = ref(database, `supplier_payments/${id}`);
+      const snapshot = await get(paymentRef);
+      
+      if (!snapshot.exists()) {
+        return undefined;
+      }
+      
+      const data = snapshot.val();
+      return {
+        id,
+        supplierInvoiceId: data.supplierInvoiceId,
+        amount: data.amount,
+        paymentMethod: data.paymentMethod,
+        paymentDate: new Date(data.paymentDate),
+        notes: data.notes || null,
+        userId: data.userId,
+        createdAt: new Date(data.createdAt)
+      };
+    } catch (error) {
+      console.error('Error getting supplier payment:', error);
+      return undefined;
+    }
+  }
+
+  async getAllSupplierPayments(): Promise<SupplierPayment[]> {
+    try {
+      const paymentsRef = ref(database, 'supplier_payments');
+      const snapshot = await get(paymentsRef);
+      
+      if (!snapshot.exists()) {
+        return [];
+      }
+      
+      const payments: SupplierPayment[] = [];
+      snapshot.forEach((childSnapshot) => {
+        const id = parseInt(childSnapshot.key || '0');
+        const data = childSnapshot.val();
+        
+        payments.push({
+          id,
+          supplierInvoiceId: data.supplierInvoiceId,
+          amount: data.amount,
+          paymentMethod: data.paymentMethod,
+          paymentDate: new Date(data.paymentDate),
+          notes: data.notes || null,
+          userId: data.userId,
+          createdAt: new Date(data.createdAt)
+        });
+      });
+      
+      return payments;
+    } catch (error) {
+      console.error('Error getting all supplier payments:', error);
+      return [];
+    }
+  }
+
+  async getSupplierPaymentsByInvoiceId(invoiceId: number): Promise<SupplierPayment[]> {
+    try {
+      const paymentsRef = ref(database, 'supplier_payments');
+      const snapshot = await get(paymentsRef);
+      
+      if (!snapshot.exists()) {
+        return [];
+      }
+      
+      const payments: SupplierPayment[] = [];
+      snapshot.forEach((childSnapshot) => {
+        const id = parseInt(childSnapshot.key || '0');
+        const data = childSnapshot.val();
+        
+        if (data.supplierInvoiceId === invoiceId) {
+          payments.push({
+            id,
+            supplierInvoiceId: data.supplierInvoiceId,
+            amount: data.amount,
+            paymentMethod: data.paymentMethod,
+            paymentDate: new Date(data.paymentDate),
+            notes: data.notes || null,
+            userId: data.userId,
+            createdAt: new Date(data.createdAt)
+          });
+        }
+      });
+      
+      return payments;
+    } catch (error) {
+      console.error('Error getting supplier payments by invoice ID:', error);
+      return [];
+    }
+  }
+
+  async createSupplierPayment(payment: InsertSupplierPayment): Promise<SupplierPayment> {
+    try {
+      const id = this.generateId('supplier_payments');
+      const now = new Date().toISOString();
+      
+      const newPayment = {
+        ...payment,
+        createdAt: now
+      };
+      
+      // Convert Date objects to ISO strings for Firebase
+      if (payment.paymentDate) {
+        newPayment.paymentDate = payment.paymentDate.toISOString();
+      }
+      
+      const paymentRef = ref(database, `supplier_payments/${id}`);
+      await set(paymentRef, newPayment);
+      
+      // Update the invoice's paidAmount and status
+      try {
+        const invoiceRef = ref(database, `supplier_invoices/${payment.supplierInvoiceId}`);
+        const invoiceSnapshot = await get(invoiceRef);
+        
+        if (invoiceSnapshot.exists()) {
+          const invoiceData = invoiceSnapshot.val();
+          const newPaidAmount = (invoiceData.paidAmount || 0) + payment.amount;
+          let newStatus = 'pending';
+          
+          if (newPaidAmount >= invoiceData.amount) {
+            newStatus = 'paid';
+          } else if (newPaidAmount > 0) {
+            newStatus = 'partially_paid';
+          }
+          
+          await update(invoiceRef, {
+            paidAmount: newPaidAmount,
+            paymentStatus: newStatus,
+            updatedAt: now
+          });
+        }
+      } catch (error) {
+        console.error('Error updating invoice after payment:', error);
+        // Continue even if updating the invoice fails
+      }
+      
+      return {
+        id,
+        ...payment,
+        paymentDate: new Date(payment.paymentDate),
+        createdAt: new Date(now)
+      };
+    } catch (error) {
+      console.error('Error creating supplier payment:', error);
       throw error;
     }
   }
