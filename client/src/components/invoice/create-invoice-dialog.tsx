@@ -207,15 +207,20 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
   // اختيار منتج من نتائج البحث
   const handleSelectProduct = (product: ProductSearchResult) => {
     // التحقق من توفر المخزون
-    if ((product as any).quantity <= 0) {
-      // إظهار رسالة تنبيه أن المنتج غير متوفر في المخزون
-      alert(t('product_out_of_stock'));
+    const quantity = (product as any).quantity || 0;
+    if (quantity <= 0) {
+      // استخدام toast بدلاً من alert
+      toast({
+        title: t('cannot_add_product'),
+        description: t('product_out_of_stock'),
+        variant: "destructive"
+      });
       return;
     }
     
     setSelectedProduct(product);
     // وضع الحد الأقصى للكمية المتوفرة
-    setMaxAvailableQuantity((product as any).quantity || 0);
+    setMaxAvailableQuantity(quantity);
   };
   
   // متغير لتخزين الحد الأقصى للكمية المتوفرة من المنتج
@@ -862,11 +867,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
                       className={`p-3 cursor-pointer transition-colors ${
                         isOutOfStock ? 'opacity-60 hover:bg-red-50 dark:hover:bg-red-950/10' : 'hover:bg-primary/5'
                       } ${index !== productSearchResults.length - 1 ? "border-b border-primary/10" : ""}`}
-                      onClick={() => isOutOfStock ? toast({
-                        title: t('cannot_add_product'),
-                        description: t('product_out_of_stock'),
-                        variant: "destructive"
-                      }) : handleSelectProduct(product)}
+                      onClick={() => handleSelectProduct(product)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
