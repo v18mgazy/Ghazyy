@@ -141,7 +141,7 @@ export default function ProductForm({
             if (scannerRef.current) {
               console.log('Scanner element ready, initializing Quagga...');
               
-              const cleanup = startBarcodeScanner(
+              startBarcodeScanner(
                 'barcode-scanner-product',
                 (result) => {
                   // استدعاء مباشر لمعالج الباركود
@@ -154,9 +154,6 @@ export default function ProductForm({
                   }
                 }
               );
-              
-              // تخزين وظيفة التنظيف للاستخدام لاحقًا
-              setCleanupFunction(() => cleanup);
             } else {
               console.error('Scanner element not found or not ready');
               setCameraStatus('idle');
