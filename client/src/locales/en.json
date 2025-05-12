@@ -129,6 +129,7 @@
   "manage_inventory": "Manage Inventory",
   
   "error": "Error",
+  "invalid_invoice_id": "Invalid invoice ID",
   "retry": "Retry",
   "cancel_scanning": "Cancel Scanning",
   "scanner_initialization_failed": "Scanner initialization failed",

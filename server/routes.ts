@@ -1019,6 +1019,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Approve deferred payment request
+  app.post('/api/payment-approvals/approve/:invoiceId', async (req, res) => {
+    try {
+      const { invoiceId } = req.params;
+      const parsedInvoiceId = parseInt(invoiceId);
+      
+      if (isNaN(parsedInvoiceId)) {
+        return res.status(400).json({ message: 'Invalid invoice ID' });
+      }
+      
+      // 1. Get the invoice
+      const invoice = await storage.getInvoice(parsedInvoiceId);
+      if (!invoice) {
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+      
+      // 2. Check if it's a deferred payment request
+      if (invoice.paymentMethod !== 'deferred') {
+        return res.status(400).json({ message: 'This is not a deferred payment invoice' });
+      }
+      
+      // 3. Update the invoice status to approved
+      const updatedInvoice = await storage.updateInvoice(parsedInvoiceId, {
+        paymentStatus: 'approved'
+      });
+      
+      // 4. Create a notification for the cashier who created the invoice
+      await storage.createNotification({
+        userId: invoice.userId,
+        title: 'Deferred Payment Approved',
+        message: `Invoice #${invoice.invoiceNumber} deferred payment request has been approved.`,
+        type: 'deferred_payment_approved',
+        referenceId: String(invoice.id),
+        isRead: false,
+        createdAt: new Date()
+      });
+      
+      // 5. Create an approval record
+      const approval = await storage.createPaymentApproval({
+        invoiceId: parsedInvoiceId,
+        status: 'approved',
+        approvedBy: req.session?.userId || 1, // Default to user 1 if not available
+        approvedAt: new Date(),
+        notes: 'Approved through system'
+      });
+      
+      res.json({ success: true, invoice: updatedInvoice, approval });
+    } catch (err) {
+      console.error('Error approving payment:', err);
+      res.status(500).json({ message: 'Failed to approve payment' });
+    }
+  });
+  
+  // Reject deferred payment request
+  app.post('/api/payment-approvals/reject/:invoiceId', async (req, res) => {
+    try {
+      const { invoiceId } = req.params;
+      const parsedInvoiceId = parseInt(invoiceId);
+      
+      if (isNaN(parsedInvoiceId)) {
+        return res.status(400).json({ message: 'Invalid invoice ID' });
+      }
+      
+      // 1. Get the invoice
+      const invoice = await storage.getInvoice(parsedInvoiceId);
+      if (!invoice) {
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+      
+      // 2. Check if it's a deferred payment request
+      if (invoice.paymentMethod !== 'deferred') {
+        return res.status(400).json({ message: 'This is not a deferred payment invoice' });
+      }
+      
+      // 3. Update the invoice status to rejected
+      const updatedInvoice = await storage.updateInvoice(parsedInvoiceId, {
+        paymentStatus: 'rejected'
+      });
+      
+      // 4. Create a notification for the cashier who created the invoice
+      await storage.createNotification({
+        userId: invoice.userId,
+        title: 'Deferred Payment Rejected',
+        message: `Invoice #${invoice.invoiceNumber} deferred payment request has been rejected.`,
+        type: 'deferred_payment_rejected',
+        referenceId: String(invoice.id),
+        isRead: false,
+        createdAt: new Date()
+      });
+      
+      // 5. Create an approval record
+      const approval = await storage.createPaymentApproval({
+        invoiceId: parsedInvoiceId,
+        status: 'rejected',
+        approvedBy: req.session?.userId || 1, // Default to user 1 if not available
+        approvedAt: new Date(),
+        notes: 'Rejected through system'
+      });
+      
+      res.json({ success: true, invoice: updatedInvoice, approval });
+    } catch (err) {
+      console.error('Error rejecting payment:', err);
+      res.status(500).json({ message: 'Failed to reject payment' });
+    }
+  });
+  
   app.patch('/api/payment-approvals/:id', async (req, res) => {
     // Check admin permissions in session - لتبسيط التطبيق سنسمح بالوصول مباشرة للاختبار
     // لكن في التطبيق النهائي يجب التحقق من أن المستخدم هو مدير
