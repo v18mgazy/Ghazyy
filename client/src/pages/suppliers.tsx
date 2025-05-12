@@ -68,15 +68,15 @@ export default function SuppliersPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("suppliers");
-  const [selectedSupplier, setSelectedSupplier] = useState(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isNewSupplierOpen, setIsNewSupplierOpen] = useState(false);
   const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
 
   // استعلام قائمة الموردين
-  const { data: suppliers = [], isLoading: suppliersLoading } = useQuery({
+  const { data: suppliers = [], isLoading: suppliersLoading } = useQuery<any[]>({
     queryKey: ["/api/suppliers"],
     queryFn: async () => {
       const response = await fetch("/api/suppliers");
