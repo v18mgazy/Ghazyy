@@ -33,6 +33,7 @@ interface Customer {
   name: string;
   phone: string;
   address: string;
+  notes: string;
   isPotential: boolean;
   totalPurchases: number;
 }
@@ -263,6 +264,7 @@ export default function CustomerList({
                     <TableHead className="font-semibold">{t('name')}</TableHead>
                     <TableHead className="font-semibold">{t('phone')}</TableHead>
                     <TableHead className="font-semibold">{t('address')}</TableHead>
+                    <TableHead className="font-semibold">{t('notes')}</TableHead>
                     <TableHead className="font-semibold">{t('potential')}</TableHead>
                     <TableHead className="font-semibold">{t('total_purchases')}</TableHead>
                     <TableHead className="font-semibold text-right">{t('actions')}</TableHead>

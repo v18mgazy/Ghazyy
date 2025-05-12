@@ -83,6 +83,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
     name: '',
     phone: '',
     address: '',
+    notes: '',
     isPotential: false
   });
   
@@ -102,7 +103,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       setSelectedCustomer(data);
       setActiveTab('products');
       setShowAddCustomer(false);
-      setNewCustomer({ name: '', phone: '', address: '', isPotential: false });
+      setNewCustomer({ name: '', phone: '', address: '', notes: '', isPotential: false });
       toast({
         title: t('success'),
         description: t('customer_created_successfully'),
@@ -906,6 +907,17 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                 value={newCustomer.address}
                 onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
                 placeholder={t('enter_customer_address')}
+                className="w-full"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="customer-notes">{t('customer_notes')}</Label>
+              <Input
+                id="customer-notes"
+                value={newCustomer.notes}
+                onChange={(e) => setNewCustomer({ ...newCustomer, notes: e.target.value })}
+                placeholder={t('customer_notes')}
                 className="w-full"
               />
             </div>
