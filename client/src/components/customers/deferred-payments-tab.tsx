@@ -54,7 +54,7 @@ interface DeferredPayment {
   remainingAmount: number;
   lastPaymentDate: string | null;
   dueDate: string | null;
-  status: 'pending' | 'partially_paid' | 'paid';
+  status: string; // 'pending' | 'partially_paid' | 'paid' | 'approved'
 }
 
 interface PaymentDialogState {
@@ -282,6 +282,8 @@ export default function DeferredPaymentsTab() {
         return { variant: 'outline' as const, className: 'bg-blue-50 text-blue-700 border-blue-200' };
       case 'paid':
         return { variant: 'outline' as const, className: 'bg-green-50 text-green-700 border-green-200' };
+      case 'approved':
+        return { variant: 'outline' as const, className: 'bg-violet-50 text-violet-700 border-violet-200' };
       default:
         return { variant: 'outline' as const, className: 'bg-gray-50 text-gray-700 border-gray-200' };
     }

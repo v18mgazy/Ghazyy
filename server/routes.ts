@@ -51,8 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           remainingAmount: remainingAmount,
           lastPaymentDate: null, // سيتم تحديثه لاحقًا عند تنفيذ المدفوعات الجزئية
           dueDate: null, // سيتم تنفيذه لاحقًا
-          status: invoice.paymentStatus === 'paid' ? 'paid' : 
-                 invoice.paymentStatus === 'partially_paid' ? 'partially_paid' : 'pending'
+          status: invoice.paymentStatus
         };
       });
       
