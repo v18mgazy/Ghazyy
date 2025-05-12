@@ -321,8 +321,9 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
         return;
       }
       
-      // تعيين المنتج المسموح بإضافته
+      // تعيين المنتج المسموح بإضافته (تحديث كلا المتغيرين للتوافق)
       setScannedProduct(foundProduct);
+      setSelectedProduct(foundProduct);
       
       // تحديث الحد الأقصى للكمية المتوفرة
       setMaxAvailableQuantity(quantity);
@@ -336,12 +337,16 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
       // هنا يمكن للمستخدم ضبط الكمية ثم إضافته
     } else if (scannedProd) {
       // إذا وجدنا المنتج من ماسح الباركود مباشرة
-      setSelectedProduct({
+      const productData = {
         id: scannedProd.id,
         name: scannedProd.name,
         barcode: scannedProd.barcode,
         sellingPrice: scannedProd.sellingPrice,
-      });
+      };
+      
+      // تعيين كلا المتغيرين للتوافق
+      setSelectedProduct(productData);
+      setScannedProduct(productData);
       
       setShowBarcodeScanner(false);
       
