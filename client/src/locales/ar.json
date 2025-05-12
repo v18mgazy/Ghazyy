@@ -322,7 +322,7 @@
   "reminder_sent": "تم إرسال التذكير",
   "whatsapp_reminder_sent": "تم إرسال تذكير الواتساب بنجاح",
   "customer_has_no_phone": "العميل ليس لديه رقم هاتف",
-  "deferred_payment_reminder_template": "برجاء التواصل معنا بخصوص فاتورة رقم {{invoiceNumber}} والمتبقى منها مبلغ {{amount}} برجاء التواصل مع الإدارة لترتيب موعد الدفع.",
+  "deferred_payment_reminder_template": "عزيزي العميل, برجاء التواصل معنا بخصوص فاتورة رقم {{invoiceNumber}} والمتبقى منها مبلغ {{amount}} برجاء التواصل مع الإدارة لترتيب موعد الدفع. شكراً",
   
   "invoices": "الفواتير",
   "invoice_management": "إدارة الفواتير",
