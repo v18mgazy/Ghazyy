@@ -454,22 +454,30 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0 overflow-hidden">
-        <DialogHeader className="p-4 pb-1 bg-gradient-to-r from-blue-600/20 to-indigo-600/10">
-          <DialogTitle className="flex items-center text-xl">
-            <ReceiptText className="h-5 w-5 text-primary mr-2" />
+      <DialogContent className="sm:max-w-4xl max-h-[95vh] p-0 overflow-hidden">
+        <DialogHeader className="p-4 pb-1 bg-gradient-to-r from-purple-600/20 to-pink-600/10">
+          <DialogTitle className="flex items-center text-xl font-bold bg-gradient-to-r from-primary to-pink-500 bg-clip-text text-transparent">
+            <ReceiptText className="h-6 w-6 text-primary mr-2" />
             {t('create_new_invoice')}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="p-2 bg-white overflow-y-auto" style={{maxHeight: "calc(90vh - 160px)"}}>
+        <div className="p-3 bg-white overflow-y-auto" style={{maxHeight: "calc(95vh - 160px)"}}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4 h-auto py-3">
-              <TabsTrigger value="customer" disabled={activeTab === 'products' && selectedCustomer} className="text-base py-3">
+            <TabsList className="grid w-full grid-cols-2 mb-4 h-auto py-2 bg-gradient-to-r from-primary/10 to-pink-500/10 p-1 rounded-lg">
+              <TabsTrigger 
+                value="customer" 
+                disabled={activeTab === 'products' && selectedCustomer} 
+                className="text-base py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-pink-500 data-[state=active]:text-white transition-all duration-200"
+              >
                 <User className="mr-2 h-5 w-5" />
                 {t('customer')}
               </TabsTrigger>
-              <TabsTrigger value="products" disabled={!selectedCustomer} className="text-base py-3">
+              <TabsTrigger 
+                value="products" 
+                disabled={!selectedCustomer} 
+                className="text-base py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-pink-500 data-[state=active]:text-white transition-all duration-200"
+              >
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 {t('products')}
               </TabsTrigger>
@@ -487,7 +495,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                   />
                 </div>
                 <Button 
-                  className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white" 
+                  className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-md" 
                   size="default"
                   onClick={() => setShowAddCustomer(true)}
                 >
@@ -534,9 +542,9 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
             <TabsContent value="products">
               {selectedCustomer && (
                 <>
-                  <div className="mb-4 p-3 rounded-lg bg-primary/5 flex items-center justify-between shadow-sm border border-primary/10">
+                  <div className="mb-4 p-3 rounded-lg bg-gradient-to-r from-primary/10 to-pink-500/10 flex items-center justify-between shadow-md border border-primary/20">
                     <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center text-white font-bold text-lg">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-primary to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-sm">
                         {selectedCustomer.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
@@ -548,9 +556,9 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                       variant="outline" 
                       size="default" 
                       onClick={() => setActiveTab('customer')}
-                      className="font-medium"
+                      className="font-medium border-primary/30 hover:bg-primary/10 shadow-sm"
                     >
-                      <RefreshCcw className="mr-2 h-4 w-4" />
+                      <RefreshCcw className="mr-2 h-4 w-4 text-primary" />
                       {t('change')}
                     </Button>
                   </div>
@@ -828,7 +836,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
             <Button
               onClick={handleSaveInvoice}
               disabled={createInvoiceMutation.isPending || invoiceProducts.length === 0}
-              className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white text-lg font-bold px-10 py-6 h-auto shadow-md"
+              className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white text-lg font-bold px-10 py-6 h-auto shadow-lg rounded-lg"
               size="lg"
             >
               {createInvoiceMutation.isPending ? (
@@ -853,9 +861,9 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       {/* نافذة إضافة عميل جديد */}
       <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center text-xl">
-              <User className="h-5 w-5 text-primary mr-2" />
+          <DialogHeader className="pb-2 bg-gradient-to-r from-amber-500/10 to-orange-600/10">
+            <DialogTitle className="flex items-center text-xl font-bold bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">
+              <User className="h-6 w-6 text-amber-500 mr-2" />
               {t('add_new_customer')}
             </DialogTitle>
           </DialogHeader>
