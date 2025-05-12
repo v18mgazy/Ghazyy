@@ -106,6 +106,7 @@ export default function DeferredPaymentsTab() {
         // استعلام عن الفواتير المؤجلة
         const response = await apiRequest('GET', '/api/deferred-payments');
         const data = await response.json();
+        console.log('Deferred payments data received:', data);
         return data;
       } catch (error) {
         console.error('Error fetching deferred payments:', error);
@@ -116,10 +117,11 @@ export default function DeferredPaymentsTab() {
   });
 
   // تصفية المدفوعات المؤجلة بناءً على البحث
-  const filteredPayments = deferredPayments.filter(payment => 
-    payment.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    payment.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  console.log('Current deferred payments:', deferredPayments);
+  const filteredPayments = deferredPayments.length > 0 ? deferredPayments.filter(payment => 
+    (payment.customerName && payment.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (payment.invoiceNumber && payment.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()))
+  ) : [];
 
   // حساب الصفحات
   const totalPages = Math.ceil(filteredPayments.length / perPage);
