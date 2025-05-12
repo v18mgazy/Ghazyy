@@ -20,6 +20,7 @@ interface CustomerResponse {
   name: string;
   phone: string;
   address: string;
+  notes: string;
   isPotential: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -31,6 +32,7 @@ interface Customer {
   name: string;
   phone: string;
   address: string;
+  notes: string;
   isPotential: boolean;
   totalPurchases: number;
 }
@@ -45,6 +47,7 @@ export default function CustomersPage() {
     name: '',
     phone: '',
     address: '',
+    notes: '',
     isPotential: true
   });
   
@@ -303,6 +306,16 @@ export default function CustomersPage() {
             </div>
             
             <div className="grid gap-2">
+              <Label htmlFor="notes">{t('customer_notes')}</Label>
+              <Input
+                id="notes"
+                value={newCustomer.notes}
+                onChange={(e) => setNewCustomer({ ...newCustomer, notes: e.target.value })}
+                placeholder={t('notes')}
+              />
+            </div>
+            
+            <div className="grid gap-2">
               <Label htmlFor="isPotential">{t('potential_client')}</Label>
               <Select
                 value={newCustomer.isPotential ? 'yes' : 'no'}
@@ -377,6 +390,19 @@ export default function CustomersPage() {
                   address: e.target.value 
                 })}
                 placeholder={t('customer_address')}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-notes">{t('customer_notes')}</Label>
+              <Input
+                id="edit-notes"
+                value={currentCustomer?.notes || ''}
+                onChange={(e) => currentCustomer && setCurrentCustomer({ 
+                  ...currentCustomer, 
+                  notes: e.target.value 
+                })}
+                placeholder={t('notes')}
               />
             </div>
             
