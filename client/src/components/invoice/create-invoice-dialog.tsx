@@ -308,9 +308,11 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
     const foundProduct = products.find((p: any) => p.barcode === scannedProd.barcode);
     
     if (foundProduct) {
-      // التحقق من المخزون المتوفر
+      // التحقق من المخزون
       const quantity = foundProduct.quantity || 0;
-      if (quantity <= 0) {
+      const isOutOfStock = quantity <= 0;
+      
+      if (isOutOfStock) {
         toast({
           title: t('cannot_add_product'),
           description: t('product_out_of_stock'),
@@ -905,7 +907,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
                             )}
                             {isLowStock && (
                               <span className="ml-2 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5 rounded-full">
-                                {t('low_stock')}
+                                {t('only')} {quantity} {t('left')}
                               </span>
                             )}
                           </div>
