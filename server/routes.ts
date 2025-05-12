@@ -20,6 +20,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Supplier routes are now registered via app.use below
   
   // Register auth routes
+  
+  // نقطة نهاية لتسجيل الدخول وتحديث آخر تسجيل دخول
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ error: 'Missing username or password' });
+      }
+      
+      // إذا كان المستخدم هو "admin" بكلمة المرور الثابتة
+      if (username === 'admin' && password === '123123') {
+        // تحديث وقت آخر تسجيل دخول في قاعدة البيانات
+        await storage.updateUser(1, {
+          lastLogin: new Date()
+        });
+        
+        return res.status(200).json({
+          id: 1,
+          username: 'admin',
+          name: 'مدير النظام',
+          role: 'admin',
+          status: 'active',
+          lastLogin: new Date()
+        });
+      }
+      
+      // إذا كان المستخدم هو "cashier" بكلمة المرور الثابتة
+      if (username === 'cashier' && password === '123456') {
+        // تحديث وقت آخر تسجيل دخول في قاعدة البيانات
+        await storage.updateUser(2, {
+          lastLogin: new Date()
+        });
+        
+        return res.status(200).json({
+          id: 2,
+          username: 'cashier',
+          name: 'كاشير',
+          role: 'cashier',
+          status: 'active',
+          lastLogin: new Date()
+        });
+      }
+      
+      // للمستخدمين في قاعدة البيانات
+      const user = await storage.getUserByUsername(username);
+      if (user && user.password === password) {
+        // تحديث وقت آخر تسجيل دخول
+        const updatedUser = await storage.updateUser(user.id, {
+          lastLogin: new Date()
+        });
+        
+        return res.status(200).json({
+          id: user.id,
+          username: user.username,
+          name: user.name || user.username,
+          role: user.role || 'cashier',
+          status: user.status || 'active',
+          lastLogin: new Date()
+        });
+      }
+      
+      // في حالة عدم تطابق بيانات المستخدم
+      return res.status(401).json({ message: 'Invalid username or password' });
+    } catch (error) {
+      console.error('Login error:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
   app.post('/api/change-password', async (req, res) => {
     try {
       const { userId, currentPassword, newPassword } = req.body;

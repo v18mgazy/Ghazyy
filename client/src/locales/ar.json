@@ -711,6 +711,8 @@
   "expenses_management": "إدارة المصاريف",
   "users_management": "إدارة المستخدمين",
   "system_settings": "إعدادات النظام",
+  "last_login": "آخر تسجيل دخول",
+  "never": "لم يتم تسجيل الدخول",
   "barcodes": "الباركود",
   "print_barcodes": "طباعة الباركود",
   "print_inventory": "طباعة المخزون",

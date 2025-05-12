@@ -5,6 +5,7 @@ export interface User {
   email: string;
   name: string;
   role: 'admin' | 'cashier';
+  lastLogin?: Date | null;
 }
 
 export interface AuthContextType {
@@ -78,8 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser({
             id: userData.id.toString(),
             email: userData.username, // استخدام اسم المستخدم كبريد إلكتروني مؤقت
-            name: userData.username,
-            role: userData.role || 'cashier'
+            name: userData.name || userData.username,
+            role: userData.role || 'cashier',
+            lastLogin: userData.lastLogin ? new Date(userData.lastLogin) : null
           });
           
           return true;
