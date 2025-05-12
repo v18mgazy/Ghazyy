@@ -24,6 +24,7 @@ import { useLocale } from '@/hooks/use-locale';
 import ReportSummary from '@/components/reports/report-summary';
 import ReportDetails from '@/components/reports/report-details';
 import { Skeleton } from '@/components/ui/skeleton';
+import * as XLSX from 'xlsx';
 import { Badge } from "@/components/ui/badge";
 
 // تعريف أنواع البيانات للتقارير
@@ -147,8 +148,83 @@ export default function ReportsPage() {
   
   // معالجات الأحداث
   const handleExport = () => {
-    // تصدير البيانات كملف Excel
-    console.log('تصدير التقرير');
+    if (!reportData) return;
+    
+    // تحديد اسم الملف بناءً على نوع التقرير والتاريخ
+    let reportTitle = '';
+    let fileName = '';
+    
+    if (period === 'daily') {
+      reportTitle = t('daily_report');
+      fileName = `${t('daily_report')}_${formatDate(date, 'yyyy-MM-dd')}`;
+    } else if (period === 'weekly') {
+      reportTitle = t('weekly_report');
+      fileName = `${t('weekly_report')}_${formatDate(weekStartDate, 'yyyy-MM-dd')}_${formatDate(weekEndDate, 'yyyy-MM-dd')}`;
+    } else if (period === 'monthly') {
+      reportTitle = t('monthly_report');
+      fileName = `${t('monthly_report')}_${month}`;
+    } else {
+      reportTitle = t('yearly_report');
+      fileName = `${t('yearly_report')}_${year}`;
+    }
+    
+    // إنشاء workbook جديد
+    const wb = XLSX.utils.book_new();
+    
+    // ملخص التقرير - الصفحة الأولى
+    const summaryData = [
+      [t('summary')],
+      [t('total_sales'), reportData.summary.totalSales],
+      [t('total_profit'), reportData.summary.totalProfit],
+      [t('profit_margin'), `${(reportData.summary.totalProfit / reportData.summary.totalSales * 100).toFixed(1)}%`],
+      [t('total_orders'), reportData.summary.salesCount],
+      [t('total_damaged_items'), reportData.summary.totalDamages],
+    ];
+    
+    const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, summaryWs, t('summary'));
+    
+    // بيانات الرسم البياني - الصفحة الثانية
+    const chartData = reportData.chartData.map(item => ({
+      [t('period')]: item.name,
+      [t('revenue')]: item.revenue,
+      [t('profit')]: item.profit
+    }));
+    
+    const chartWs = XLSX.utils.json_to_sheet(chartData);
+    XLSX.utils.book_append_sheet(wb, chartWs, t('chart_data'));
+    
+    // أفضل المنتجات - الصفحة الثالثة
+    const topProductsData = reportData.topProducts.map(item => ({
+      [t('product_name')]: item.name,
+      [t('quantity')]: item.soldQuantity,
+      [t('revenue')]: item.revenue,
+      [t('profit')]: item.profit
+    }));
+    
+    const topProductsWs = XLSX.utils.json_to_sheet(topProductsData);
+    XLSX.utils.book_append_sheet(wb, topProductsWs, t('top_products'));
+    
+    // التقارير التفصيلية - الصفحة الرابعة
+    const detailedData = reportData.detailedReports.map(item => {
+      // تجاهل الملخصات في التقارير التفصيلية
+      if (item.type === 'summary') return null;
+      
+      return {
+        [t('date')]: item.date,
+        [t('type')]: t(item.type),
+        [t('amount')]: item.amount,
+        [t('details')]: item.details,
+        [t('profit')]: item.profit || '-',
+        [t('customer_name')]: item.customerName || '-',
+      };
+    }).filter(item => item !== null);
+    
+    const detailedWs = XLSX.utils.json_to_sheet(detailedData);
+    XLSX.utils.book_append_sheet(wb, detailedWs, t('detailed_reports'));
+    
+    // تصدير الملف
+    XLSX.writeFile(wb, `${fileName}.xlsx`);
   };
   
   const handlePrint = () => {
