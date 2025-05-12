@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { ReceiptText, Search, X, ChevronRight, Users, PlusCircle, Scan } from 'lucide-react';
+import { ReceiptText, Search, X, ChevronRight, Users, PlusCircle, Scan, User, ScanLine, ShoppingBasket } from 'lucide-react';
 import { useLocale } from '@/hooks/use-locale';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -426,7 +426,7 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
           </DialogHeader>
           
           <div>
-            <BarcodeScanner onDetected={handleDetected} />
+            <BarcodeScanner onProductScanned={handleProductScanned} />
           </div>
           
           <DialogFooter>
