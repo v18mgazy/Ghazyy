@@ -348,12 +348,19 @@ export const suppliers = pgTable("suppliers", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertSupplierSchema = createInsertSchema(suppliers).pick({
-  name: true,
-  phone: true,
-  address: true,
-  notes: true,
-});
+export const insertSupplierSchema = createInsertSchema(suppliers)
+  .pick({
+    name: true,
+    phone: true,
+    address: true,
+    notes: true,
+  })
+  .extend({
+    name: z.string().min(2, "اسم المورد يجب أن يكون حرفين على الأقل"),
+    phone: z.string().nullable().optional(),
+    address: z.string().nullable().optional(),
+    notes: z.string().nullable().optional()
+  });
 
 export type Supplier = typeof suppliers.$inferSelect;
 export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
@@ -374,17 +381,42 @@ export const supplierInvoices = pgTable("supplier_invoices", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertSupplierInvoiceSchema = createInsertSchema(supplierInvoices).pick({
-  invoiceNumber: true,
-  supplierId: true,
-  date: true,
-  amount: true,
-  paidAmount: true,
-  paymentStatus: true,
-  dueDate: true,
-  notes: true,
-  userId: true,
-});
+export const insertSupplierInvoiceSchema = createInsertSchema(supplierInvoices)
+  .pick({
+    invoiceNumber: true,
+    supplierId: true,
+    date: true,
+    amount: true,
+    paidAmount: true,
+    paymentStatus: true,
+    dueDate: true,
+    notes: true,
+    userId: true,
+  })
+  .extend({
+    date: z.date().or(z.string().transform(str => new Date(str))),
+    dueDate: z.date().or(z.string().transform(str => new Date(str))).nullable(),
+    amount: z.union([z.number().positive(), z.string().transform(val => {
+      const parsed = Number(val);
+      if (isNaN(parsed) || parsed <= 0) throw new Error("المبلغ يجب أن يكون رقمًا موجبًا");
+      return parsed;
+    })]),
+    paidAmount: z.union([z.number().default(0), z.string().transform(val => {
+      const parsed = Number(val);
+      return isNaN(parsed) ? 0 : parsed;
+    })]),
+    supplierId: z.union([z.number(), z.string().transform(val => {
+      const parsed = Number(val);
+      if (isNaN(parsed)) throw new Error("معرف المورد يجب أن يكون رقمًا");
+      return parsed;
+    })]),
+    userId: z.union([z.number(), z.string().transform(val => {
+      const parsed = Number(val);
+      if (isNaN(parsed)) throw new Error("معرف المستخدم يجب أن يكون رقمًا");
+      return parsed;
+    })]).optional(),
+    paymentStatus: z.enum(["pending", "partially_paid", "paid"]).default("pending")
+  });
 
 export type SupplierInvoice = typeof supplierInvoices.$inferSelect;
 export type InsertSupplierInvoice = z.infer<typeof insertSupplierInvoiceSchema>;
@@ -401,14 +433,34 @@ export const supplierPayments = pgTable("supplier_payments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertSupplierPaymentSchema = createInsertSchema(supplierPayments).pick({
-  supplierInvoiceId: true,
-  amount: true,
-  paymentMethod: true,
-  paymentDate: true,
-  notes: true,
-  userId: true,
-});
+export const insertSupplierPaymentSchema = createInsertSchema(supplierPayments)
+  .pick({
+    supplierInvoiceId: true,
+    amount: true,
+    paymentMethod: true,
+    paymentDate: true,
+    notes: true,
+    userId: true,
+  })
+  .extend({
+    paymentDate: z.date().or(z.string().transform(str => new Date(str))),
+    amount: z.union([z.number().positive(), z.string().transform(val => {
+      const parsed = Number(val);
+      if (isNaN(parsed) || parsed <= 0) throw new Error("المبلغ يجب أن يكون رقمًا موجبًا");
+      return parsed;
+    })]),
+    supplierInvoiceId: z.union([z.number(), z.string().transform(val => {
+      const parsed = Number(val);
+      if (isNaN(parsed)) throw new Error("معرف فاتورة المورد يجب أن يكون رقمًا");
+      return parsed;
+    })]),
+    userId: z.union([z.number(), z.string().transform(val => {
+      const parsed = Number(val);
+      if (isNaN(parsed)) throw new Error("معرف المستخدم يجب أن يكون رقمًا");
+      return parsed;
+    })]).optional(),
+    paymentMethod: z.enum(["cash", "bank_transfer", "cheque"]).default("cash")
+  });
 
 export type SupplierPayment = typeof supplierPayments.$inferSelect;
 export type InsertSupplierPayment = z.infer<typeof insertSupplierPaymentSchema>;
