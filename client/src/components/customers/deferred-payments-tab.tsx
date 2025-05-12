@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { 
   Search, Loader2, CreditCard, Check, CalendarClock,
-  MessageSquare, MessageSquareShare, DollarSign, AlertCircle
+  MessageSquare, MessageSquareShare, DollarSign, AlertCircle,
+  ArrowRightLeft, X, BadgeCheck, Bell, AlertTriangle
 } from 'lucide-react';
 import { useLocale } from '@/hooks/use-locale';
 import { useToast } from '@/hooks/use-toast';
@@ -610,7 +611,7 @@ export default function DeferredPaymentsTab() {
                   }`}
                   onClick={() => setPaymentDialog(prev => ({ ...prev, paymentMethod: 'cash' }))}
                 >
-                  <BanknoteIcon className={`h-6 w-6 mb-1 ${paymentDialog.paymentMethod === 'cash' ? 'text-green-600' : 'text-muted-foreground'}`} />
+                  <DollarSign className={`h-6 w-6 mb-1 ${paymentDialog.paymentMethod === 'cash' ? 'text-green-600' : 'text-muted-foreground'}`} />
                   <span className={`text-sm font-medium ${paymentDialog.paymentMethod === 'cash' ? 'text-green-700' : ''}`}>{t('cash')}</span>
                 </div>
                 <div 
