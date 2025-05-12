@@ -71,9 +71,41 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
   const calculateSubtotalAndTotal = (productsList: Product[]) => {
     console.log('Calculating totals for products:', productsList);
     
-    // المجموعات سيتم حسابها عند الاستخدام في الواجهة
-    // نستخدم هذه الدالة فقط لإعادة حساب المجاميع بعد إضافة/تعديل المنتجات
-    console.log('Updated products list, UI will recalculate totals automatically');
+    if (!productsList || productsList.length === 0) {
+      console.log('No products to calculate totals for');
+      return;
+    }
+    
+    try {
+      // حساب المجموع الفرعي (سعر × كمية)
+      const newSubtotal = productsList.reduce((sum, product) => {
+        const productTotal = product.sellingPrice * product.quantity;
+        return sum + productTotal;
+      }, 0);
+      
+      // حساب الخصم (سعر × كمية × نسبة الخصم)
+      const newTotalDiscount = productsList.reduce((sum, product) => {
+        const discount = product.discount ? 
+          (product.sellingPrice * product.quantity * (product.discount / 100)) : 0;
+        return sum + discount;
+      }, 0);
+      
+      // المجموع النهائي
+      const newTotal = newSubtotal - newTotalDiscount;
+      
+      console.log('Calculation complete:', {
+        subtotal: newSubtotal,
+        totalDiscount: newTotalDiscount,
+        total: newTotal
+      });
+    } catch (error) {
+      console.error('Error calculating totals:', error);
+      toast({
+        title: t('error'),
+        description: t('error_calculating_invoice'),
+        variant: "destructive"
+      });
+    }
   };
   
   // حالة ماسح الباركود
@@ -201,8 +233,11 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
     // وإلا، استخدم المنطق المحلي للمكون
     console.log('Using local product scan handling');
     
+    // التأكد من استخدام بيانات المنتج الصحيحة
+    const availableProducts = productsQuery.data || [];
+    
     // البحث عن المنتج بالباركود
-    const foundProduct = allProducts.find((p: any) => p.barcode === scannedProd.barcode);
+    const foundProduct = availableProducts.find((p: any) => p.barcode === scannedProd.barcode);
     console.log('Product found in database:', foundProduct);
     
     if (foundProduct) {
@@ -220,7 +255,7 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
       }
       
       // إضافة المنتج مباشرة عند المسح (مع التحقق من المخزون)
-      const newProduct = {
+      const newProduct: Product = {
         id: foundProduct.id,
         name: foundProduct.name,
         barcode: foundProduct.barcode,
@@ -241,6 +276,15 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
         title: t('success'),
         description: t('product_added_to_invoice'),
       });
+    } else if (scannedProd) {
+      // تم العثور على منتج بالماسح لكن ليس في قاعدة البيانات
+      console.log('Product found by scanner but not in database');
+      
+      toast({
+        title: t('warning'),
+        description: t('product_found_but_not_in_inventory'),
+        variant: "destructive"
+      });
     } else {
       console.log('Product not found in database');
       
@@ -249,7 +293,6 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
         description: t('barcode_not_recognized'),
         variant: "destructive"
       });
-      return;
     }
     
     // إغلاق نافذة ماسح الباركود بعد إضافة المنتج
@@ -257,6 +300,23 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
   };
   
   const addProduct = () => {
+    console.log('Add product button clicked');
+    
+    // إذا كان هناك معالج مخصص من الأب، استخدمه
+    if (onAddProduct) {
+      console.log('Using parent onAddProduct function');
+      onAddProduct();
+      return;
+    }
+    
+    // في غير ذلك, افتح نافذة البحث عن المنتج
+    setIsSearching(true);
+    
+    // فتح ماسح الباركود بدلاً من إضافة منتج فارغ
+    // setShowBarcodeScanner(true);
+    
+    // نلاحظ: لم نعد نضيف منتجات فارغة، بل نطلب من المستخدم اختيار منتج أولاً
+    /*
     const newProduct: Product = {
       id: `prod-${Date.now()}`,
       name: '',
@@ -264,6 +324,7 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
       quantity: 1
     };
     setProducts([...products, newProduct]);
+    */
   };
   
   const updateProduct = (index: number, field: keyof Product, value: any) => {
