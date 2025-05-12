@@ -435,7 +435,7 @@
   "refresh": "تحديث",
   "custom": "نطاق تاريخ مخصص",
   "select_date": "اختر التاريخ",
-  "reports": {
+  "report_periods": {
     "daily": "يومي",
     "weekly": "أسبوعي",
     "monthly": "شهري",
