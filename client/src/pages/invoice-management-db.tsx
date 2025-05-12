@@ -212,6 +212,7 @@ export default function InvoiceManagementDB() {
   const [filterPayment, setFilterPayment] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [invoicesPerPage] = useState(10);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<number | string | null>(null);
   
@@ -243,11 +244,20 @@ export default function InvoiceManagementDB() {
     return matchesSearch && matchesStatus && matchesPayment;
   });
   
+  // ترتيب الفواتير حسب التاريخ (الأحدث إلى الأقدم أو العكس)
+  const sortedInvoices = React.useMemo(() => {
+    return [...filteredInvoices].sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+  }, [filteredInvoices, sortOrder]);
+  
   // ترقيم الصفحات
   const indexOfLastInvoice = currentPage * invoicesPerPage;
   const indexOfFirstInvoice = indexOfLastInvoice - invoicesPerPage;
-  const currentInvoices = filteredInvoices.slice(indexOfFirstInvoice, indexOfLastInvoice);
-  const totalPages = Math.ceil(filteredInvoices.length / invoicesPerPage);
+  const currentInvoices = sortedInvoices.slice(indexOfFirstInvoice, indexOfLastInvoice);
+  const totalPages = Math.ceil(sortedInvoices.length / invoicesPerPage);
   
   const changePage = (pageNumber: number) => {
     setCurrentPage(pageNumber);
