@@ -293,6 +293,7 @@ export default function CustomerList({
                         </TableCell>
                         <TableCell>{customer.phone || '-'}</TableCell>
                         <TableCell>{customer.address || '-'}</TableCell>
+                        <TableCell>{customer.notes || '-'}</TableCell>
                         <TableCell>
                           <Badge 
                             variant="outline" 
