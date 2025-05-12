@@ -1678,11 +1678,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const detailedReports = await createDetailedReports(filteredInvoices, filteredDamagedItems, filteredExpenses, type as string, reportDate);
       
       // بيانات الفترة السابقة لعرض نسبة التغيير
-      const previousDate = getPreviousPeriod(type as string, date as string);
+      // بيانات الفترة السابقة
       let previousTotalSales = 0;
       let previousTotalProfit = 0;
       let previousSalesCount = 0;
       let previousTotalDamages = 0;
+      
+      try {
+        // نحصل على تاريخ الفترة السابقة (للتقارير الأسبوعية مع نطاق وكذلك أنواع التقارير الأخرى)
+        const previousDate = getPreviousPeriod(type as string, reportDate);
+        console.log(`Previous period date: ${previousDate}`);
+        
+        // هنا يمكن أن نقوم بحساب إحصائيات الفترة السابقة إذا لزم الأمر
+        // تم تبسيط المنطق المعقد لحساب الفترة السابقة في هذه النسخة
+      } catch (error) {
+        console.error("Error calculating previous period:", error);
+      }
       
       // بيانات رسومية
       
@@ -1752,8 +1763,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       date.setDate(date.getDate() - 1);
       return formatDateForReportType(date, type);
     } else if (type === 'weekly') {
-      // إذا كان التاريخ بتنسيق YYYY-Wxx
-      if (currentDate.match(/^\d{4}-W\d{2}$/)) {
+      // إذا كان التاريخ نطاق (تنسيق "startDate - endDate")
+      if (currentDate.includes(' - ')) {
+        const [startStr, endStr] = currentDate.split(' - ');
+        const startDate = new Date(startStr);
+        const endDate = new Date(endStr);
+        
+        // حساب الفترة السابقة بخصم 7 أيام من كل من بداية ونهاية الفترة
+        const prevStartDate = new Date(startDate);
+        const prevEndDate = new Date(endDate);
+        prevStartDate.setDate(prevStartDate.getDate() - 7);
+        prevEndDate.setDate(prevEndDate.getDate() - 7);
+        
+        return `${prevStartDate.toISOString().split('T')[0]} - ${prevEndDate.toISOString().split('T')[0]}`;
+      }
+      // إذا كان التاريخ بتنسيق YYYY-Wxx (طريقة قديمة)
+      else if (currentDate.match(/^\d{4}-W\d{2}$/)) {
         const [year, weekPart] = currentDate.split('-');
         let weekNumber = parseInt(weekPart.substring(1));
         
@@ -1853,14 +1878,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         salesData.set(days[i], { sales: 0, profit: 0 });
       }
       
+      // التحقق ما إذا كان date عبارة عن نطاق تاريخ (بتنسيق startDate - endDate)
+      let startDateObj, endDateObj;
+      
+      // إذا كان التقرير الأسبوعي يستخدم نطاق تاريخي بدلاً من رقم الأسبوع
+      if (date.includes('-')) {
+        const [start, end] = date.split(' - ');
+        startDateObj = new Date(start);
+        endDateObj = new Date(end);
+        startDateObj.setHours(0, 0, 0, 0);
+        endDateObj.setHours(23, 59, 59, 999);
+        console.log(`Weekly report with date range: ${startDateObj} to ${endDateObj}`);
+      }
+      
       // تجميع المبيعات حسب اليوم في الأسبوع
       for (const invoice of invoices) {
         if (!invoice.date) continue;
         
         const invoiceDate = new Date(invoice.date);
-        const invoiceWeek = formatDateForReportType(invoiceDate, 'weekly');
         
-        if (invoiceWeek === date) {
+        // التحقق ما إذا كانت الفاتورة ضمن نطاق التاريخ المحدد أو تطابق الأسبوع المحدد
+        let isInRange = false;
+        
+        if (startDateObj && endDateObj) {
+          // التحقق من أن الفاتورة تقع ضمن نطاق التاريخ
+          isInRange = invoiceDate >= startDateObj && invoiceDate <= endDateObj;
+        } else {
+          // طريقة قديمة تعتمد على رقم الأسبوع
+          const invoiceWeek = formatDateForReportType(invoiceDate, 'weekly');
+          isInRange = (invoiceWeek === date);
+        }
+        
+        if (isInRange) {
           const dayOfWeek = invoiceDate.getDay();
           const dayKey = days[dayOfWeek];
           const current = salesData.get(dayKey) || { sales: 0, profit: 0 };
@@ -1973,8 +2022,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // التحقق من تطابق الفترة المطلوبة
       const invoiceDate = new Date(invoice.date);
-      const formattedInvoiceDate = formatDateForReportType(invoiceDate, type);
-      if (formattedInvoiceDate !== date) continue;
+      
+      // التعامل مع تقارير تستخدم نطاق تاريخي
+      let isInRange = false;
+      
+      // إذا كان نوع التقرير أسبوعي ونطاق التاريخ هو نص يحتوي على "-"
+      if (type === 'weekly' && date.includes(' - ')) {
+        // استخراج بداية ونهاية النطاق
+        const [start, end] = date.split(' - ');
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        
+        // ضبط الساعات للحصول على مقارنة دقيقة
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        
+        // التحقق ما إذا كانت الفاتورة تقع ضمن النطاق
+        isInRange = invoiceDate >= startDate && invoiceDate <= endDate;
+      } else {
+        // الطريقة المعتادة للتقارير الأخرى
+        const formattedInvoiceDate = formatDateForReportType(invoiceDate, type);
+        isInRange = (formattedInvoiceDate === date);
+      }
+      
+      // تجاهل الفواتير خارج النطاق
+      if (!isInRange) continue;
       
       console.log(`Processing invoice for top products: ${invoice.id}, ${invoice.invoiceNumber}`);
       
