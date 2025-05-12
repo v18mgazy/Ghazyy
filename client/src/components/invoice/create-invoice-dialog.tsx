@@ -404,8 +404,8 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
     
     if (foundProduct) {
       // التحقق من المخزون
-      const quantity = foundProduct.quantity || 0;
-      const isOutOfStock = quantity <= 0;
+      const availableQuantity = foundProduct.quantity || 0;
+      const isOutOfStock = availableQuantity <= 0;
       
       if (isOutOfStock) {
         toast({
@@ -416,39 +416,39 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
         return;
       }
       
-      // تعيين المنتج المسموح بإضافته (تحديث كلا المتغيرين للتوافق)
-      setScannedProduct(foundProduct);
-      setSelectedProduct(foundProduct);
-      
-      // تحديث الحد الأقصى للكمية المتوفرة
-      setMaxAvailableQuantity(quantity);
-      
-      toast({
-        title: t('product_found'),
-        description: `${foundProduct.name} ${t('found_in_inventory')}`,
-        variant: "default"
-      });
-      
-      // هنا يمكن للمستخدم ضبط الكمية ثم إضافته
-    } else if (scannedProd) {
-      // إذا وجدنا المنتج من ماسح الباركود مباشرة
-      const productData = {
-        id: scannedProd.id,
-        name: scannedProd.name,
-        barcode: scannedProd.barcode,
-        sellingPrice: scannedProd.sellingPrice,
+      // إضافة المنتج مباشرة إلى الفاتورة مع كمية 1
+      const newProduct: Product = {
+        id: foundProduct.id,
+        name: foundProduct.name,
+        barcode: foundProduct.barcode,
+        sellingPrice: foundProduct.sellingPrice,
+        quantity: 1,
+        discount: 0
       };
       
-      // تعيين كلا المتغيرين للتوافق
-      setSelectedProduct(productData);
-      setScannedProduct(productData);
+      // إضافة المنتج إلى قائمة المنتجات
+      const newProducts = [...invoiceProducts, newProduct];
+      setInvoiceProducts(newProducts);
       
+      // إعادة حساب المجاميع
+      updateTotals(newProducts);
+      
+      // إغلاق ماسح الباركود
       setShowBarcodeScanner(false);
       
       toast({
-        title: t('product_found'),
-        description: `${scannedProd.name} ${t('ready_to_add')}`,
+        title: t('success'),
+        description: t('product_added_to_invoice'),
       });
+    } else if (scannedProd) {
+      // إذا وجدنا المنتج من ماسح الباركود مباشرة (حالة نادرة)
+      toast({
+        title: t('warning'),
+        description: t('product_found_but_not_in_inventory'),
+        variant: "destructive"
+      });
+      
+      // ترك المستخدم في نفس الشاشة
     } else {
       // لم يتم العثور على المنتج
       toast({
