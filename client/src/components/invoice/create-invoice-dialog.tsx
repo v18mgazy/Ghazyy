@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { ReceiptText, Search, X, ChevronRight, Users, PlusCircle, Scan, User, ScanLine, ShoppingBasket } from 'lucide-react';
+import { ReceiptText, Search, X, ChevronRight, Users, PlusCircle, Scan, User, ScanLine, ShoppingBasket, CheckCircle, Hash } from 'lucide-react';
 import { useLocale } from '@/hooks/use-locale';
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -810,8 +810,8 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
       return (
         <>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5 text-primary" />
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Search className="h-6 w-6 text-primary" />
               {t('search_products')}
             </DialogTitle>
             <DialogDescription>
@@ -826,56 +826,115 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
                 placeholder={t('search_products')}
                 value={productSearchTerm}
                 onChange={handleProductSearchChange}
-                className="pl-10"
+                className="pl-10 border-primary/20 focus:border-primary"
                 autoFocus
               />
+              {productSearchTerm && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 text-muted-foreground"
+                  onClick={() => {
+                    setProductSearchTerm('');
+                    handleProductSearchChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
             
             {isSearching ? (
               <div className="text-center py-8">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+                <p className="mt-2 text-sm text-muted-foreground">{t('searching')}</p>
               </div>
             ) : productSearchResults.length > 0 ? (
-              <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
-                {productSearchResults.map(product => (
-                  <Card key={product.id} className="overflow-hidden cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleSelectProduct(product)}>
-                    <CardContent className="p-3">
+              <div className="max-h-72 overflow-y-auto rounded-lg border border-primary/20 shadow-sm">
+                {productSearchResults.map((product, index) => {
+                  const quantity = (product as any).quantity || 0;
+                  const isOutOfStock = quantity <= 0;
+                  const isLowStock = quantity > 0 && quantity <= 5;
+                  
+                  return (
+                    <div 
+                      key={product.id} 
+                      className={`p-3 cursor-pointer transition-colors ${
+                        isOutOfStock ? 'opacity-60 hover:bg-red-50 dark:hover:bg-red-950/10' : 'hover:bg-primary/5'
+                      } ${index !== productSearchResults.length - 1 ? "border-b border-primary/10" : ""}`}
+                      onClick={() => isOutOfStock ? toast({
+                        title: t('cannot_add_product'),
+                        description: t('product_out_of_stock'),
+                        variant: "destructive"
+                      }) : handleSelectProduct(product)}
+                    >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="font-medium">{product.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {product.code && <span className="mr-2">{t('code')}: {product.code}</span>}
-                            {product.category && <span className="mr-2">{t('category')}: {product.category}</span>}
-                            {/* إضافة عرض للكمية المتاحة */}
-                            <span className={`font-medium ${(product as any).quantity > 5 ? 'text-green-600 dark:text-green-400' : (product as any).quantity > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
-                              {t('available')}: {(product as any).quantity || 0}
-                            </span>
+                          <div className="font-medium text-primary flex items-center">
+                            {product.name}
+                            {isOutOfStock && (
+                              <span className="ml-2 text-xs bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 px-2 py-0.5 rounded-full">
+                                {t('out_of_stock')}
+                              </span>
+                            )}
+                            {isLowStock && (
+                              <span className="ml-2 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5 rounded-full">
+                                {t('low_stock')}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="text-sm text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                            {product.barcode && (
+                              <span className="inline-flex items-center">
+                                <ScanLine className="h-3 w-3 mr-1 opacity-70" />
+                                {product.barcode}
+                              </span>
+                            )}
+                            {product.code && (
+                              <span className="inline-flex items-center">
+                                <Hash className="h-3 w-3 mr-1 opacity-70" />
+                                {product.code}
+                              </span>
+                            )}
                           </div>
                         </div>
-                        <div className="text-right">
+                        
+                        <div className="text-right flex flex-col items-end">
                           <div className="font-medium text-primary">
                             {formatCurrency(product.sellingPrice)}
                           </div>
-                          {(product as any).quantity <= 0 && (
-                            <div className="text-xs text-red-600 dark:text-red-400 font-medium mt-1">
-                              {t('out_of_stock')}
-                            </div>
-                          )}
+                          <div className={`text-xs mt-1 font-medium ${
+                            quantity > 5 ? 'text-green-600 dark:text-green-400' : 
+                            quantity > 0 ? 'text-amber-600 dark:text-amber-400' : 
+                            'text-red-600 dark:text-red-400'
+                          }`}>
+                            {quantity} {t('items_available')}
+                          </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">{t('no_products_found')}</p>
+              <div className="text-center py-8 border border-dashed border-muted-foreground/30 rounded-lg bg-muted/10">
+                <div className="text-muted-foreground">
+                  {productSearchTerm ? t('no_products_found') : t('start_typing_to_search')}
+                </div>
+                {!productSearchTerm && (
+                  <p className="text-xs text-muted-foreground/70 mt-2">{t('all_products_will_appear')}</p>
+                )}
               </div>
             )}
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowProductSearch(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowProductSearch(false)}
+              className="border-primary/20"
+            >
               {t('back')}
             </Button>
           </DialogFooter>
