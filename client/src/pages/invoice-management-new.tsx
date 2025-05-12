@@ -884,17 +884,15 @@ export default function InvoiceManagement() {
             <span>{t('refresh')}</span>
           </Button>
           
-          {user?.role === 'admin' && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setIsStoreInfoDialogOpen(true)}
-              className="flex items-center gap-1"
-            >
-              <Store className="h-4 w-4" />
-              <span>{t('edit_store_info')}</span>
-            </Button>
-          )}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setIsStoreInfoDialogOpen(true)}
+            className="flex items-center gap-1"
+          >
+            <Store className="h-4 w-4" />
+            <span>{t('edit_store_info')}</span>
+          </Button>
           
           <Button 
             variant="outline" 
