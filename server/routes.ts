@@ -1616,7 +1616,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const invoiceDate = new Date(invoice.date);
         const formattedDate = formatDateForReportType(invoiceDate, type as string);
         
-        if (formattedDate === date) {
+        // للتقارير الأسبوعية أو المخصصة، نحسب جميع الفواتير الموجودة في النطاق المحدد
+        // للتقارير اليومية/الشهرية/السنوية نحسب فقط الفواتير التي تطابق التاريخ المحدد
+        const isInRange = (type === 'weekly' || type === 'custom') ? true : (formattedDate === date);
+        
+        if (isInRange) {
           totalSales += invoice.total;
           salesCount++;
           
@@ -2115,7 +2119,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const invoiceDate = new Date(invoice.date);
       const formattedDate = formatDateForReportType(invoiceDate, type);
       
-      if (formattedDate === date) {
+      // للتقارير الأسبوعية أو المخصصة، نحسب جميع الفواتير المفلترة سابقًا
+      // للتقارير اليومية/الشهرية/السنوية، نتحقق من تطابق التاريخ
+      const isInDateRange = (type === 'weekly' || type === 'custom') ? true : (formattedDate === date);
+      
+      if (isInDateRange) {
         // حساب الأرباح من بيانات المنتجات إذا كانت متوفرة
         let calculatedProfit = 0;
         
@@ -2158,7 +2166,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const itemDate = new Date(item.date);
       const formattedDate = formatDateForReportType(itemDate, type);
       
-      if (formattedDate === date) {
+      // للتقارير الأسبوعية أو المخصصة، نحسب جميع العناصر التالفة المفلترة سابقًا
+      // للتقارير اليومية/الشهرية/السنوية، نتحقق من تطابق التاريخ
+      const isInDateRange = (type === 'weekly' || type === 'custom') ? true : (formattedDate === date);
+      
+      if (isInDateRange) {
         // حساب إجمالي قيمة التوالف
         totalDamagesValue += item.valueLoss || 0;
         
