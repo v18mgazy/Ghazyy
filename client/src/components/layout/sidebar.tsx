@@ -53,7 +53,7 @@ export default function Sidebar({ isOpen, onClose, isAdmin }: SidebarProps) {
       icon: <FileText className="h-5 w-5" />,
       description: t('invoice_management'),
       href: '/invoices',
-      adminOnly: true // تعديل: إخفاؤها عن الكاشير
+      adminOnly: false // تعديل: إظهارها للكاشير أيضاً
     },
     {
       title: t('customers'),
