@@ -440,22 +440,6 @@ export default function ReportsPage() {
             ) : reportData && (reportData.chartData.length > 0 || reportData.detailedReports.length > 0) ? (
               // عرض بيانات التقارير
               <>
-                <ReportSummary 
-                  data={{
-                    totalSales: reportData.summary.totalSales,
-                    totalProfit: reportData.summary.totalProfit,
-                    totalDamages: reportData.summary.totalDamages,
-                    salesCount: reportData.summary.salesCount,
-                  }}
-                  previousData={{
-                    totalSales: reportData.summary.previousTotalSales,
-                    totalProfit: reportData.summary.previousTotalProfit,
-                    totalDamages: reportData.summary.previousTotalDamages,
-                    previousSalesCount: reportData.summary.previousSalesCount,
-                  }}
-                  isLoading={isLoading}
-                />
-                
                 <ReportDetails 
                   periodType={periodType as any}
                   chartData={reportData.chartData}
