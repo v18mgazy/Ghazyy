@@ -1660,20 +1660,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // إنشاء بيانات الرسم البياني
-      const chartData = createChartData(invoices, type as string, date as string);
-      
-      // حساب أفضل المنتجات مبيعًا
-      const topProducts = calculateTopProducts(invoices, products, type as string, date as string);
-      
-      // عرض معلومات عن المصاريف التي تم تحميلها سابقًا
-      console.log(`Found ${expenses.length} expenses for report`);
-
-      // إنشاء تقارير مفصلة مع تضمين المصاريف
+      // تحديد معلمة التاريخ التي سيتم تمريرها إلى وظائف إنشاء المخططات والمنتجات الأكثر مبيعًا
       let reportDate = date as string;
       if (type === 'custom' || type === 'weekly') {
         // للتقارير المخصصة والأسبوعية، نستخدم نطاق التاريخ كعنوان للتقرير
         reportDate = `${startDate as string} - ${endDate as string}`;
       }
+      
+      const chartData = createChartData(invoices, type as string, reportDate);
+      
+      // حساب أفضل المنتجات مبيعًا
+      const topProducts = calculateTopProducts(invoices, products, type as string, reportDate);
+      
+      // عرض معلومات عن المصاريف التي تم تحميلها سابقًا
+      console.log(`Found ${expenses.length} expenses for report`);
+
+      // إنشاء تقارير مفصلة مع تضمين المصاريف
+      // استخدام نفس المتغير reportDate الذي تم تعريفه سابقًا
       
       const detailedReports = await createDetailedReports(filteredInvoices, filteredDamagedItems, filteredExpenses, type as string, reportDate);
       
@@ -1807,7 +1810,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
   
-  function createChartData(invoices: any[], type: string, date: string): any[] {
+  function createChartData(invoices: any[], type: string, date: string | undefined): any[] {
     // إنشاء بيانات رسومية بناءً على الفواتير الفعلية
     const chartData: any[] = [];
     const salesData = new Map<string, { sales: number, profit: number }>();
@@ -1878,11 +1881,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         salesData.set(days[i], { sales: 0, profit: 0 });
       }
       
+      console.log(`Weekly report chart data with date: ${date}`);
+      
       // التحقق ما إذا كان date عبارة عن نطاق تاريخ (بتنسيق startDate - endDate)
       let startDateObj, endDateObj;
       
       // إذا كان التقرير الأسبوعي يستخدم نطاق تاريخي بدلاً من رقم الأسبوع
-      if (date.includes('-')) {
+      if (date && date.includes(' - ')) {
         const [start, end] = date.split(' - ');
         startDateObj = new Date(start);
         endDateObj = new Date(end);
@@ -1990,7 +1995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return chartData;
   }
   
-  function calculateTopProducts(invoices: any[], products: any[], type: string, date: string): any[] {
+  function calculateTopProducts(invoices: any[], products: any[], type: string, date: string | undefined): any[] {
     console.log(`Calculating top products for ${type}: ${date}`);
     
     // حساب أفضل المنتجات مبيعًا بناءً على بيانات الفواتير الفعلية
@@ -2027,7 +2032,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let isInRange = false;
       
       // إذا كان نوع التقرير أسبوعي ونطاق التاريخ هو نص يحتوي على "-"
-      if (type === 'weekly' && date.includes(' - ')) {
+      if (type === 'weekly' && date && date.includes(' - ')) {
         // استخراج بداية ونهاية النطاق
         const [start, end] = date.split(' - ');
         const startDate = new Date(start);
@@ -2094,7 +2099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .slice(0, 5);
   }
   
-  async function createDetailedReports(invoices: any[], damagedItems: any[], expenses: any[], type: string, date: string): Promise<any[]> {
+  async function createDetailedReports(invoices: any[], damagedItems: any[], expenses: any[], type: string, date: string | undefined): Promise<any[]> {
     const detailedReports: any[] = [];
     let totalDamagesValue = 0;
     let totalEmployeeDeductions = 0;
