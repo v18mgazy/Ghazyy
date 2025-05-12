@@ -21,6 +21,15 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Command, 
+  CommandEmpty, 
+  CommandGroup, 
+  CommandInput, 
+  CommandItem, 
+  CommandList 
+} from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 // Custom Components
 import BarcodeScanner from '@/components/barcode-scanner';
@@ -53,6 +62,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
   // حالة البحث عن المنتجات
   const [productSearchTerm, setProductSearchTerm] = useState('');
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [productCommandOpen, setProductCommandOpen] = useState(false);
 
   // حالة معاينة الفاتورة
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
@@ -181,6 +191,9 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       setInvoiceProducts(updatedProducts);
       calculateTotals(updatedProducts);
     }
+    
+    // إغلاق قائمة المنتجات بعد الإضافة
+    setProductCommandOpen(false);
   };
 
   // تحديث كمية المنتج
@@ -344,17 +357,17 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden">
-        <DialogHeader className="p-6 pb-2 bg-gradient-to-r from-primary/10 to-primary/5">
-          <DialogTitle className="flex items-center text-2xl">
-            <ReceiptText className="h-6 w-6 text-primary mr-2" />
+      <DialogContent className="sm:max-w-3xl max-h-[80vh] p-0 overflow-hidden">
+        <DialogHeader className="p-4 pb-1 bg-gradient-to-r from-primary/10 to-primary/5">
+          <DialogTitle className="flex items-center text-xl">
+            <ReceiptText className="h-5 w-5 text-primary mr-2" />
             {t('create_new_invoice')}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="p-1 bg-white">
+        <div className="p-1 bg-white overflow-y-auto" style={{maxHeight: "calc(80vh - 150px)"}}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="customer" disabled={activeTab === 'products' && selectedCustomer}>
                 <User className="mr-2 h-4 w-4" />
                 {t('customer')}
@@ -365,8 +378,8 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="customer" className="py-2">
-              <div className="relative flex-1 mb-4">
+            <TabsContent value="customer" className="py-1">
+              <div className="relative flex-1 mb-3">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
                 <Input
                   placeholder={t('search_customers')}
@@ -376,7 +389,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                 />
               </div>
 
-              <ScrollArea className="h-[400px]">
+              <ScrollArea className="h-[320px]">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-1">
                   {filteredCustomers.map((customer: any) => (
                     <div
@@ -385,10 +398,10 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                         setSelectedCustomer(customer);
                         setActiveTab('products');
                       }}
-                      className="p-4 border rounded-lg cursor-pointer hover:border-primary hover:shadow-md transition-all duration-200"
+                      className="p-3 border rounded-lg cursor-pointer hover:border-primary hover:shadow-md transition-all duration-200"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center text-white font-bold">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center text-white font-bold">
                           {customer.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -401,7 +414,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                   ))}
 
                   {filteredCustomers.length === 0 && (
-                    <div className="col-span-2 text-center py-10">
+                    <div className="col-span-2 text-center py-6">
                       <User className="h-12 w-12 mx-auto text-muted-foreground opacity-20 mb-2" />
                       <h3 className="text-lg font-medium mb-1">{t('no_customers_found')}</h3>
                       <p className="text-sm text-muted-foreground">{t('create_customer_or_change_search')}</p>
@@ -414,53 +427,92 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
             <TabsContent value="products">
               {selectedCustomer && (
                 <>
-                  <div className="mb-4 p-3 rounded-lg bg-primary/5 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center text-white font-bold">
+                  <div className="mb-3 p-2 rounded-lg bg-primary/5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-600 flex items-center justify-center text-white font-bold">
                         {selectedCustomer.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <p className="font-medium text-foreground">{selectedCustomer.name}</p>
-                        <p className="text-sm text-muted-foreground">{selectedCustomer.phone || t('no_phone')}</p>
+                        <p className="text-xs text-muted-foreground">{selectedCustomer.phone || t('no_phone')}</p>
                       </div>
                     </div>
                     <Button 
                       variant="outline" 
                       size="sm" 
                       onClick={() => setActiveTab('customer')}
-                      className="h-8"
+                      className="h-7 text-xs"
                     >
                       {t('change')}
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="md:col-span-2">
-                      <div className="mb-3 flex items-center justify-between">
-                        <div className="relative flex-1">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
-                          <Input
-                            placeholder={t('search_products')}
-                            value={productSearchTerm}
-                            onChange={(e) => setProductSearchTerm(e.target.value)}
-                            className="pl-10 border-primary/20 focus:border-primary py-1 h-9"
-                          />
-                        </div>
-                        <div className="flex gap-2 ml-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => setShowBarcodeScanner(!showBarcodeScanner)}
-                            className="h-9"
-                          >
-                            <Scan className="h-4 w-4 mr-1" />
-                            {t('scan_barcode')}
-                          </Button>
-                        </div>
+                  <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3">
+                    <div className="md:col-span-4">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        {/* قائمة المنتجات مع البحث */}
+                        <Popover open={productCommandOpen} onOpenChange={setProductCommandOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={productCommandOpen}
+                              className="w-full justify-between h-9 text-start font-normal"
+                            >
+                              {t('select_products')}
+                              <ChevronRight className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0" align="start">
+                            <Command>
+                              <CommandInput 
+                                placeholder={t('search_products')} 
+                                className="h-9" 
+                              />
+                              <CommandList>
+                                <CommandEmpty>{t('no_products_found')}</CommandEmpty>
+                                <CommandGroup>
+                                  {products.map((product: any) => (
+                                    <CommandItem
+                                      key={product.id}
+                                      onSelect={() => handleAddProduct(product)}
+                                      className="flex justify-between items-center"
+                                    >
+                                      <div>
+                                        <span className="font-medium">{product.name}</span>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                          <Badge variant="outline" className="h-5">
+                                            {product.barcode || t('no_barcode')}
+                                          </Badge>
+                                          <span>{t('in_stock')}: {product.stock}</span>
+                                        </div>
+                                      </div>
+                                      <span className="text-primary font-semibold">
+                                        {formatCurrency(product.sellingPrice)}
+                                      </span>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+
+                        {/* زر المسح الضوئي للباركود */}
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => setShowBarcodeScanner(!showBarcodeScanner)}
+                          className="h-9 whitespace-nowrap"
+                        >
+                          <Scan className="h-4 w-4 mr-1" />
+                          {t('scan')}
+                        </Button>
                       </div>
 
+                      {/* عرض ماسح الباركود */}
                       {showBarcodeScanner ? (
-                        <Card className="mb-4 border-dashed border-2 border-primary/20">
+                        <Card className="mb-3 border-dashed border-2 border-primary/20">
                           <CardContent className="p-3">
                             <p className="text-center text-sm font-medium mb-2">{t('scan_product_barcode')}</p>
                             <BarcodeScanner onProductScanned={handleBarcodeScanned} />
@@ -475,48 +527,95 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                             </div>
                           </CardContent>
                         </Card>
-                      ) : (
-                        <ScrollArea className="h-[320px] border rounded-md">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-2">
-                            {filteredProducts.map((product: any) => (
-                              <div
-                                key={product.id}
-                                onClick={() => handleAddProduct(product)}
-                                className="product-item p-3 border rounded-md hover:shadow-md transition-all cursor-pointer bg-white hover:bg-primary/5"
-                              >
-                                <div className="flex flex-col h-full">
-                                  <div className="flex-1">
-                                    <p className="font-medium">{product.name}</p>
-                                    <div className="flex items-center mt-1">
-                                      <Badge variant="outline" className="text-xs mr-2">
-                                        {product.barcode || t('no_barcode')}
-                                      </Badge>
+                      ) : null}
+                      
+                      {/* قائمة المنتجات في الفاتورة */}
+                      <div className="mb-2">
+                        <p className="text-sm font-medium mb-1">{t('products_in_invoice')}</p>
+                        
+                        {invoiceProducts.length > 0 ? (
+                          <div className="space-y-1 max-h-[240px] overflow-y-auto pr-1">
+                            {invoiceProducts.map((product, index) => {
+                              const productTotal = product.sellingPrice * product.quantity;
+                              const discountAmount = product.discount ? (productTotal * (product.discount / 100)) : 0;
+                              const finalTotal = productTotal - discountAmount;
+                              
+                              return (
+                                <div key={`${product.id}-${index}`} className="flex items-center p-2 rounded-md border">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{product.name}</p>
+                                    <div className="flex items-center text-xs text-muted-foreground">
+                                      <span>{formatCurrency(product.sellingPrice)} × </span>
+                                      <div className="inline-flex items-center mx-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-5 w-5 rounded-full"
+                                          onClick={() => handleUpdateQuantity(index, Math.max(1, product.quantity - 1))}
+                                        >
+                                          <Minus className="h-3 w-3" />
+                                        </Button>
+                                        <span className="mx-1 min-w-6 text-center">{product.quantity}</span>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-5 w-5 rounded-full"
+                                          onClick={() => handleUpdateQuantity(index, product.quantity + 1)}
+                                        >
+                                          <Plus className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                      
+                                      {product.discount > 0 && (
+                                        <span className="mx-1">
+                                          <span className="text-xs">({product.discount}% {t('off')})</span>
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
-                                  <div className="flex justify-between items-center mt-2 pt-2 border-t">
-                                    <span className="text-sm">
-                                      {t('in_stock')}: <span className={`font-medium ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>{product.stock}</span>
-                                    </span>
-                                    <span className="font-bold text-primary">{formatCurrency(product.sellingPrice)}</span>
+                                  
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex items-center">
+                                      <Label className="sr-only">{t('discount')}</Label>
+                                      <div className="relative w-14">
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          max="100"
+                                          value={product.discount || 0}
+                                          onChange={(e) => handleUpdateDiscount(index, parseInt(e.target.value) || 0)}
+                                          className="pr-6 py-1 h-6 text-xs"
+                                        />
+                                        <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                                      </div>
+                                    </div>
+                                    <div className="text-right font-medium w-16 text-sm">
+                                      {formatCurrency(finalTotal)}
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleRemoveProduct(index)}
+                                      className="h-6 w-6 text-destructive"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
-
-                            {filteredProducts.length === 0 && (
-                              <div className="col-span-3 text-center py-10">
-                                <Package2 className="h-12 w-12 mx-auto text-muted-foreground opacity-20 mb-2" />
-                                <h3 className="text-lg font-medium mb-1">{t('no_products_found')}</h3>
-                                <p className="text-sm text-muted-foreground">{t('try_different_search')}</p>
-                              </div>
-                            )}
+                              );
+                            })}
                           </div>
-                        </ScrollArea>
-                      )}
+                        ) : (
+                          <div className="text-center p-4 border border-dashed rounded-md">
+                            <ShoppingCart className="h-6 w-6 mx-auto text-muted-foreground opacity-50 mb-1" />
+                            <p className="text-sm text-muted-foreground">{t('no_products_in_invoice')}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    <div>
-                      <div className="mb-3">
+                    <div className="md:col-span-2">
+                      <div className="mb-2">
                         <Label htmlFor="paymentMethod" className="text-sm">
                           {t('payment_method')}
                         </Label>
@@ -524,7 +623,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                           value={paymentMethod}
                           onValueChange={setPaymentMethod}
                         >
-                          <SelectTrigger id="paymentMethod" className="mt-1">
+                          <SelectTrigger id="paymentMethod" className="mt-1 h-9">
                             <SelectValue placeholder={t('select_payment_method')} />
                           </SelectTrigger>
                           <SelectContent>
@@ -544,96 +643,12 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                           placeholder={t('invoice_notes')}
                           value={invoiceNotes}
                           onChange={(e) => setInvoiceNotes(e.target.value)}
-                          className="mt-1"
+                          className="mt-1 h-9"
                         />
                       </div>
-                    </div>
-                  </div>
-
-                  <Card className="mt-4 border-primary/10">
-                    <CardContent className="p-4">
-                      <div className="mb-2 font-medium">{t('products_in_invoice')}</div>
                       
-                      {invoiceProducts.length > 0 ? (
-                        <div className="space-y-2 mb-4">
-                          {invoiceProducts.map((product, index) => {
-                            const productTotal = product.sellingPrice * product.quantity;
-                            const discountAmount = product.discount ? (productTotal * (product.discount / 100)) : 0;
-                            const finalTotal = productTotal - discountAmount;
-                            
-                            return (
-                              <div key={`${product.id}-${index}`} className="flex items-center p-3 rounded-md border">
-                                <div className="flex-1">
-                                  <p className="font-medium">{product.name}</p>
-                                  <div className="flex items-center text-sm text-muted-foreground">
-                                    <span>{formatCurrency(product.sellingPrice)} × </span>
-                                    <div className="inline-flex items-center mx-1">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-5 w-5 rounded-full"
-                                        onClick={() => handleUpdateQuantity(index, Math.max(1, product.quantity - 1))}
-                                      >
-                                        <Minus className="h-3 w-3" />
-                                      </Button>
-                                      <span className="mx-1 min-w-7 text-center">{product.quantity}</span>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-5 w-5 rounded-full"
-                                        onClick={() => handleUpdateQuantity(index, product.quantity + 1)}
-                                      >
-                                        <Plus className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                    
-                                    {product.discount > 0 && (
-                                      <span className="mx-1">
-                                        <span className="text-xs">({product.discount}% {t('off')})</span>
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                
-                                <div className="flex items-center gap-3">
-                                  <div className="flex items-center">
-                                    <Label className="sr-only">{t('discount')}</Label>
-                                    <div className="relative w-16">
-                                      <Input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        value={product.discount || 0}
-                                        onChange={(e) => handleUpdateDiscount(index, parseInt(e.target.value) || 0)}
-                                        className="pr-6 py-1 h-7 text-sm"
-                                      />
-                                      <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                                    </div>
-                                  </div>
-                                  <div className="text-right font-medium w-20">
-                                    {formatCurrency(finalTotal)}
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleRemoveProduct(index)}
-                                    className="h-7 w-7 text-destructive"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="text-center p-6 border border-dashed rounded-md">
-                          <ShoppingCart className="h-8 w-8 mx-auto text-muted-foreground opacity-50 mb-2" />
-                          <p className="text-muted-foreground">{t('no_products_in_invoice')}</p>
-                        </div>
-                      )}
-                      
-                      <div className="mt-4 space-y-2">
+                      {/* مجاميع الفاتورة */}
+                      <div className="mt-3 space-y-1 border-t pt-3">
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">{t('subtotal')}:</span>
                           <span>{formatCurrency(subtotal)}</span>
@@ -645,44 +660,46 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                           </div>
                         )}
                         <Separator />
-                        <div className="flex justify-between font-bold text-lg pt-1">
+                        <div className="flex justify-between font-bold text-base pt-1">
                           <span>{t('total')}:</span>
                           <span className="text-primary">{formatCurrency(total)}</span>
                         </div>
                       </div>
-                    </CardContent>
-                    
-                    <CardFooter className="flex justify-between bg-muted/10 p-4 border-t">
-                      <Button variant="outline" onClick={() => onOpenChange(false)}>
-                        {t('cancel')}
-                      </Button>
-                      <Button
-                        onClick={handleSaveInvoice}
-                        disabled={createInvoiceMutation.isPending || invoiceProducts.length === 0}
-                        className="bg-gradient-to-r from-primary to-primary-600"
-                      >
-                        {createInvoiceMutation.isPending ? (
-                          <>
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            {t('saving')}
-                          </>
-                        ) : (
-                          <>
-                            <Calculator className="mr-2 h-4 w-4" />
-                            {t('save_invoice')}
-                          </>
-                        )}
-                      </Button>
-                    </CardFooter>
-                  </Card>
+                    </div>
+                  </div>
                 </>
               )}
             </TabsContent>
           </Tabs>
         </div>
+        
+        {activeTab === 'products' && selectedCustomer && (
+          <div className="flex justify-between bg-muted/10 p-3 border-t">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              {t('cancel')}
+            </Button>
+            <Button
+              onClick={handleSaveInvoice}
+              disabled={createInvoiceMutation.isPending || invoiceProducts.length === 0}
+              className="bg-gradient-to-r from-primary to-primary-600"
+            >
+              {createInvoiceMutation.isPending ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  {t('saving')}
+                </>
+              ) : (
+                <>
+                  <Calculator className="mr-2 h-4 w-4" />
+                  {t('save_invoice')}
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
