@@ -622,14 +622,16 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                       {showBarcodeScanner ? (
                         <Card className="mb-3 border-dashed border-2 border-primary/20">
                           <CardContent className="p-3">
-                            <p className="text-center text-sm font-medium mb-2">{t('scan_product_barcode')}</p>
+                            <p className="text-center font-medium mb-3 text-base">{t('scan_product_barcode')}</p>
                             <BarcodeScanner onProductScanned={handleBarcodeScanned} />
-                            <div className="flex justify-end mt-2">
+                            <div className="flex justify-end mt-3">
                               <Button 
-                                size="sm" 
+                                size="default" 
                                 variant="ghost" 
                                 onClick={() => setShowBarcodeScanner(false)}
+                                className="font-medium"
                               >
+                                <X className="mr-2 h-4 w-4" />
                                 {t('close')}
                               </Button>
                             </div>
@@ -638,8 +640,8 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                       ) : null}
                       
                       {/* قائمة المنتجات في الفاتورة */}
-                      <div className="mb-2">
-                        <p className="text-sm font-medium mb-1">{t('products_in_invoice')}</p>
+                      <div className="mb-3">
+                        <p className="text-base font-medium mb-2">{t('products_in_invoice')}</p>
                         
                         {invoiceProducts.length > 0 ? (
                           <div className="space-y-1 max-h-[240px] overflow-y-auto pr-1">
@@ -649,34 +651,34 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                               const finalTotal = productTotal - discountAmount;
                               
                               return (
-                                <div key={`${product.id}-${index}`} className="flex items-center p-2 rounded-md border">
+                                <div key={`${product.id}-${index}`} className="flex items-center p-3 rounded-md border shadow-sm">
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-medium truncate">{product.name}</p>
-                                    <div className="flex items-center text-xs text-muted-foreground">
+                                    <p className="font-medium truncate text-base">{product.name}</p>
+                                    <div className="flex items-center text-sm text-muted-foreground mt-1">
                                       <span>{formatCurrency(product.sellingPrice)} × </span>
-                                      <div className="inline-flex items-center mx-1">
+                                      <div className="inline-flex items-center mx-2">
                                         <Button
-                                          variant="ghost"
+                                          variant="outline"
                                           size="icon"
-                                          className="h-5 w-5 rounded-full"
+                                          className="h-7 w-7 rounded-full border-muted-foreground/30"
                                           onClick={() => handleUpdateQuantity(index, Math.max(1, product.quantity - 1))}
                                         >
-                                          <Minus className="h-3 w-3" />
+                                          <Minus className="h-4 w-4" />
                                         </Button>
-                                        <span className="mx-1 min-w-6 text-center">{product.quantity}</span>
+                                        <span className="mx-2 min-w-8 text-center font-medium">{product.quantity}</span>
                                         <Button
-                                          variant="ghost"
+                                          variant="outline"
                                           size="icon"
-                                          className="h-5 w-5 rounded-full"
+                                          className="h-7 w-7 rounded-full border-muted-foreground/30"
                                           onClick={() => handleUpdateQuantity(index, product.quantity + 1)}
                                         >
-                                          <Plus className="h-3 w-3" />
+                                          <Plus className="h-4 w-4" />
                                         </Button>
                                       </div>
                                       
                                       {product.discount > 0 && (
                                         <span className="mx-1">
-                                          <span className="text-xs">({product.discount}% {t('off')})</span>
+                                          <span className="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md">({product.discount}% {t('off')})</span>
                                         </span>
                                       )}
                                     </div>
@@ -685,28 +687,28 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                                   <div className="flex items-center gap-2">
                                     <div className="flex items-center">
                                       <Label className="sr-only">{t('discount')}</Label>
-                                      <div className="relative w-14">
+                                      <div className="relative w-16">
                                         <Input
                                           type="number"
                                           min="0"
                                           max="100"
                                           value={product.discount || 0}
                                           onChange={(e) => handleUpdateDiscount(index, parseInt(e.target.value) || 0)}
-                                          className="pr-6 py-1 h-6 text-xs"
+                                          className="pr-7 py-1 h-8 text-sm"
                                         />
-                                        <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                                        <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                       </div>
                                     </div>
-                                    <div className="text-right font-medium w-16 text-sm">
+                                    <div className="text-right font-medium w-20 text-base text-primary">
                                       {formatCurrency(finalTotal)}
                                     </div>
                                     <Button
-                                      variant="ghost"
+                                      variant="outline"
                                       size="icon"
                                       onClick={() => handleRemoveProduct(index)}
-                                      className="h-6 w-6 text-destructive"
+                                      className="h-8 w-8 text-destructive hover:bg-destructive/10 border-destructive/30"
                                     >
-                                      <Trash2 className="h-3 w-3" />
+                                      <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </div>
                                 </div>
