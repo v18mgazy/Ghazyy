@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { CalendarIcon, Download, Printer } from 'lucide-react';
 import { format } from 'date-fns';
+import { arSA, enUS } from 'date-fns/locale';
 import { cn, formatDate } from '@/lib/utils';
 import { useLocale } from '@/hooks/use-locale';
 import ReportSummary from '@/components/reports/report-summary';
@@ -240,7 +241,7 @@ export default function ReportsPage() {
       >
         <TabsList className="mb-6 bg-white dark:bg-neutral-800 p-1 rounded-lg">
           <TabsTrigger value="daily">{t('daily')}</TabsTrigger>
-          <TabsTrigger value="weekly">{t('weekly')}</TabsTrigger>
+          <TabsTrigger value="custom">{t('custom')}</TabsTrigger>
           <TabsTrigger value="monthly">{t('monthly')}</TabsTrigger>
           <TabsTrigger value="yearly">{t('yearly')}</TabsTrigger>
         </TabsList>
@@ -281,7 +282,65 @@ export default function ReportsPage() {
           )}
         </TabsContent>
         
-        <TabsContent value="weekly" className="m-0">
+        <TabsContent value="custom" className="m-0">
+          <div className="flex flex-col lg:flex-row gap-4 mb-6">
+            <div className="w-full lg:w-1/2">
+              <div className="mb-4">
+                <h3 className="text-sm font-medium mb-2">{t('reports.start_date')}</h3>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-right",
+                        !startDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, "PPP", { locale: language === 'ar' ? arSA : enUS }) : <span>{t('select_date')}</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={(date) => date && setStartDate(date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            
+            <div className="w-full lg:w-1/2">
+              <div className="mb-4">
+                <h3 className="text-sm font-medium mb-2">{t('reports.end_date')}</h3>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-right",
+                        !endDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, "PPP", { locale: language === 'ar' ? arSA : enUS }) : <span>{t('select_date')}</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={(date) => date && setEndDate(date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </div>
+          
           {reportData ? (
             <>
               <ReportSummary 
@@ -301,7 +360,7 @@ export default function ReportsPage() {
               />
               
               <ReportDetails 
-                periodType="weekly"
+                periodType="custom"
                 chartData={reportData.chartData}
                 topProducts={reportData.topProducts}
                 detailedReports={reportData.detailedReports}
