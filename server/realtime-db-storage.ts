@@ -859,6 +859,13 @@ export class RealtimeDBStorage implements IStorage {
     try {
       console.log('Report request:', { type, date });
       
+      // إذا تم تمرير عام فقط في حالة التقرير الأسبوعي، نستخدم تاريخ اليوم الحالي
+      if (type === 'weekly' && date.length === 4) {
+        const today = new Date().toISOString().substring(0, 10);
+        console.log(`Converting year-only date ${date} to today's date: ${today} for weekly report`);
+        date = today;
+      }
+      
       // جمع البيانات المطلوبة من مختلف الجداول للتقرير
       
       // البيانات من جدول الفواتير
@@ -873,8 +880,13 @@ export class RealtimeDBStorage implements IStorage {
       const productsRef = ref(database, 'products');
       const productsSnapshot = await get(productsRef);
       
+      // البيانات من جدول المصاريف
+      const expensesRef = ref(database, 'expenses');
+      const expensesSnapshot = await get(expensesRef);
+      
       let invoices: any[] = [];
       let damagedItems: any[] = [];
+      let expenses: any[] = [];
       let products: any[] = {};
       
       if (invoicesSnapshot.exists()) {
@@ -1031,6 +1043,21 @@ export class RealtimeDBStorage implements IStorage {
   private filterByDateType(items: any[], type: string, date: string): any[] {
     console.log(`Filtering ${items.length} items by date type: ${type}, date: ${date}`);
     
+    // إذا كان التاريخ يحتوي على العام فقط وكان النوع أسبوعي، نستخدم تاريخ اليوم
+    if (type === 'weekly' && date.length === 4) {
+      const today = new Date().toISOString().substring(0, 10);
+      console.log(`Converting year-only date (${date}) to today's date: ${today} for weekly filter`);
+      date = today;
+    }
+    
+    // طباعة جميع العناصر للتصحيح
+    if (items.length > 0 && type === 'weekly') {
+      console.log(`DEBUG: All items before filtering:`);
+      items.forEach(item => {
+        console.log(`  Item ID: ${item.id}, Date: ${item.date}, CreatedAt: ${item.createdAt}`);
+      });
+    }
+    
     return items.filter((item) => {
       // نستخدم حقل date إذا كان موجودًا، وإلا نستخدم createdAt
       const itemDateStr = item.date || (item.createdAt ? new Date(item.createdAt).toISOString().substring(0, 10) : null);
@@ -1050,39 +1077,37 @@ export class RealtimeDBStorage implements IStorage {
         console.log(`Daily comparison: ${itemDateStr} === ${date}: ${result}`);
         return result;
       } else if (type === 'weekly') {
-        // نحتاج للتعامل مع التاريخ في نطاق الأسبوع الحالي
-        
-        // إذا كانت الفترة هي عام كامل (مثل '2025') بدلاً من تاريخ محدد، نقوم باستخدام الأسبوع الحالي
-        if (date.length === 4) {
-          console.log(`Found year-only date: ${date}, converting to this week`);
-          const currentDate = new Date();
-          if (currentDate.getFullYear().toString() === date) {
-            // إذا كان التاريخ المطلوب هو العام الحالي، نجلب الأسبوع الحالي
-            const todayStr = currentDate.toISOString().substring(0, 10);
-            return this.filterByDateType(items, 'weekly', todayStr);
-          }
-          return false;
-        }
+        console.log(`Weekly filtering for item ID: ${item.id}`);
         
         try {
-          // الحصول على أول يوم في الأسبوع (الأحد)
+          // الحصول على التاريخ الفعلي لعنصر البيانات
+          const actualItemDate = new Date(itemDateStr);
+          console.log(`Parsed item date: ${actualItemDate}`);
+          
+          // تحديد بداية ونهاية الأسبوع
           const weekStart = new Date(targetDate);
           weekStart.setDate(targetDate.getDate() - targetDate.getDay());
           
-          // الحصول على آخر يوم في الأسبوع (السبت)
           const weekEnd = new Date(weekStart);
           weekEnd.setDate(weekStart.getDate() + 6);
           
-          // تنسيق التواريخ للمقارنة بتنسيق ISO جزئي (YYYY-MM-DD)
+          // تنسيق التواريخ للسجلات
           const weekStartStr = weekStart.toISOString().substring(0, 10);
           const weekEndStr = weekEnd.toISOString().substring(0, 10);
           
-          console.log(`Checking if ${itemDateStr} is between ${weekStartStr} and ${weekEndStr}`);
+          console.log(`Week range: ${weekStartStr} to ${weekEndStr}`);
           
-          // التحقق مما إذا كان التاريخ في نطاق الأسبوع
-          return itemDateStr >= weekStartStr && itemDateStr <= weekEndStr;
+          // مقارنات مفصلة للتصحيح
+          const isAfterStart = actualItemDate >= weekStart;
+          const isBeforeEnd = actualItemDate <= weekEnd;
+          console.log(`isAfterStart: ${isAfterStart}, isBeforeEnd: ${isBeforeEnd}`);
+          
+          const inRange = isAfterStart && isBeforeEnd;
+          console.log(`Item ${item.id} (${itemDateStr}) in weekly range: ${inRange}`);
+          
+          return inRange;
         } catch (error) {
-          console.error(`Error in weekly date filtering:`, error);
+          console.error(`Error in weekly date filtering for item ${item.id}:`, error);
           return false;
         }
       } else if (type === 'monthly') {
