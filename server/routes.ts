@@ -12,6 +12,123 @@ import { type ZodError } from "zod-validation-error";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+  
+  // الحصول على قائمة الفواتير المؤجلة
+  app.get('/api/deferred-payments', async (req, res) => {
+    try {
+      // الحصول على قائمة الفواتير التي طريقة الدفع فيها "later" أو حالة الدفع "pending" أو "partially_paid"
+      const allInvoices = await storage.getAllInvoices();
+      
+      // تفلتر الفواتير المؤجلة التي لم يتم دفعها بالكامل
+      const deferredInvoices = allInvoices.filter(invoice => 
+        (invoice.paymentMethod === 'later' || 
+         invoice.paymentStatus === 'pending' || 
+         invoice.paymentStatus === 'partially_paid') &&
+        !invoice.isDeleted
+      );
+      
+      // تحويل البيانات إلى الشكل المطلوب للواجهة
+      const deferredPayments = deferredInvoices.map(invoice => {
+        // حساب المبلغ المتبقي - في الحالة الحالية نفترض أنه لم يتم دفع أي جزء من المبلغ
+        // في المستقبل يمكن إضافة سجل للمدفوعات الجزئية
+        const remainingAmount = invoice.total; // بالنسبة للمرحلة الأولى
+        
+        return {
+          id: invoice.id.toString(),
+          customerId: invoice.customerId ? invoice.customerId.toString() : '',
+          customerName: invoice.customerName || 'غير معروف',
+          customerPhone: invoice.customerPhone || '',
+          invoiceId: invoice.id.toString(),
+          invoiceNumber: invoice.invoiceNumber,
+          originalAmount: invoice.total,
+          remainingAmount: remainingAmount,
+          lastPaymentDate: null, // سيتم تحديثه لاحقًا عند تنفيذ المدفوعات الجزئية
+          dueDate: null, // سيتم تنفيذه لاحقًا
+          status: invoice.paymentStatus === 'paid' ? 'paid' : 
+                 invoice.paymentStatus === 'partially_paid' ? 'partially_paid' : 'pending'
+        };
+      });
+      
+      res.json(deferredPayments);
+    } catch (error) {
+      console.error('Error fetching deferred payments:', error);
+      res.status(500).json({ error: 'Failed to fetch deferred payments' });
+    }
+  });
+  
+  // تسجيل دفعة لفاتورة مؤجلة
+  app.post('/api/record-payment', async (req, res) => {
+    try {
+      const { invoiceId, amount, paymentMethod, notes } = req.body;
+      
+      if (!invoiceId || amount <= 0) {
+        return res.status(400).json({ error: 'Invalid payment details' });
+      }
+      
+      // الحصول على الفاتورة
+      const invoice = await storage.getInvoice(parseInt(invoiceId));
+      
+      if (!invoice) {
+        return res.status(404).json({ error: 'Invoice not found' });
+      }
+      
+      // في الإصدار الأول، سنفترض أن هذه هي الدفعة الأولى والوحيدة
+      // بناءً على المبلغ المدفوع، نحدد حالة الدفع الجديدة
+      const newStatus = amount >= invoice.total ? 'paid' : 'partially_paid';
+      
+      // تحديث حالة الفاتورة
+      const updatedInvoice = await storage.updateInvoice(parseInt(invoiceId), {
+        paymentStatus: newStatus,
+        // إضافة حقول أخرى حسب الحاجة (مثل السجل الخاص بالدفعات الجزئية)
+      });
+      
+      // إنشاء سجل للدفعة في جدول منفصل (سيتم تنفيذه لاحقًا)
+      // في المستقبل يمكن إضافة جدول خاص بسجلات الدفع
+      
+      // الآن سنكتفي بإنشاء إشعار بالدفعة
+      await storage.createNotification({
+        userId: invoice.userId,
+        title: `تم استلام دفعة`,
+        message: `تم استلام دفعة بمبلغ ${amount} للفاتورة رقم ${invoice.invoiceNumber}`,
+        type: 'payment',
+        isRead: false,
+        createdAt: new Date()
+      });
+      
+      res.status(200).json({ 
+        success: true, 
+        invoice: updatedInvoice,
+        payment: {
+          invoiceId,
+          amount,
+          paymentMethod,
+          notes,
+          date: new Date()
+        }
+      });
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      res.status(500).json({ error: 'Failed to record payment' });
+    }
+  });
+  
+  // تسجيل تذكير دفع (للتتبع فقط)
+  app.post('/api/payment-reminders', async (req, res) => {
+    try {
+      const { customerId, invoiceId, message, channel } = req.body;
+      
+      // في الإصدار الأول، سنكتفي بتسجيل التذكير في السجلات
+      console.log(`Payment reminder sent to customer ${customerId} for invoice ${invoiceId} via ${channel}`);
+      console.log(`Message: ${message}`);
+      
+      // يمكن إضافة منطق لتخزين سجل التذكير في قاعدة البيانات لاحقًا
+      
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Error logging payment reminder:', error);
+      res.status(500).json({ error: 'Failed to log payment reminder' });
+    }
+  });
 
   // Authentication routes
   app.post('/api/auth/login', async (req, res) => {
