@@ -392,7 +392,14 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
-                onClick={() => setShowAddCustomerForm(true)}
+                onClick={() => {
+                  console.log('Show add customer form button clicked');
+                  setShowAddCustomerForm(true);
+                  toast({
+                    title: 'تشخيص',
+                    description: 'تم النقر على زر إضافة عميل جديد'
+                  });
+                }}
                 className="border-primary text-primary hover:bg-primary/10"
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
