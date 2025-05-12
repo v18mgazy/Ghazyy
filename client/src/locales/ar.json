@@ -433,6 +433,17 @@
   "refreshing": "تحديث البيانات",
   "refreshing_data": "جاري تحديث البيانات...",
   "refresh": "تحديث",
+  "custom": "نطاق تاريخ مخصص",
+  "select_date": "اختر التاريخ",
+  "reports": {
+    "daily": "يومي",
+    "weekly": "أسبوعي",
+    "monthly": "شهري",
+    "yearly": "سنوي",
+    "custom": "نطاق مخصص",
+    "start_date": "تاريخ البداية",
+    "end_date": "تاريخ النهاية"
+  },
   "name": "الاسم",
   "address": "العنوان",
   "no_products_in_invoice": "لا توجد منتجات في هذه الفاتورة",

@@ -228,6 +228,17 @@
   "print_error": "Error occurred during printing",
   "refresh": "Refresh",
   "refreshing": "Refreshing",
+  "custom": "Custom Date Range",
+  "select_date": "Select Date",
+  "reports": {
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "custom": "Custom Range",
+    "start_date": "Start Date",
+    "end_date": "End Date"
+  },
   "refreshing_invoices_list": "Refreshing invoices list...",
   "feature_coming_soon": "This feature is coming soon",
   "invoice_edit_prepare_error": "Error preparing invoice for edit",
