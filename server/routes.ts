@@ -1588,7 +1588,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // حساب أفضل المنتجات مبيعًا
       const topProducts = calculateTopProducts(invoices, products, type as string, date as string);
       
-      // إنشاء تقارير مفصلة
+      // جلب بيانات المصاريف
+      const expenses = await storage.getAllExpenses();
+      console.log(`Found ${expenses.length} expenses for report`);
+
+      // إنشاء تقارير مفصلة مع تضمين المصاريف
       const detailedReports = await createDetailedReports(invoices, damagedItems, type as string, date as string);
       
       // بيانات الفترة السابقة لعرض نسبة التغيير
