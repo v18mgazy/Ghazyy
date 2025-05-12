@@ -288,10 +288,10 @@ export default function ReportsPage() {
         className="w-full"
       >
         <TabsList className="mb-6 p-1 rounded-lg w-full sm:w-auto">
-          <TabsTrigger value="daily">{t('daily')}</TabsTrigger>
-          <TabsTrigger value="weekly">{t('weekly')}</TabsTrigger>
-          <TabsTrigger value="monthly">{t('monthly')}</TabsTrigger>
-          <TabsTrigger value="yearly">{t('yearly')}</TabsTrigger>
+          <TabsTrigger value="daily">{t('report_periods.daily')}</TabsTrigger>
+          <TabsTrigger value="weekly">{t('report_periods.weekly')}</TabsTrigger>
+          <TabsTrigger value="monthly">{t('report_periods.monthly')}</TabsTrigger>
+          <TabsTrigger value="yearly">{t('report_periods.yearly')}</TabsTrigger>
         </TabsList>
         
         {/* عناصر اختيار التاريخ حسب نوع التقرير */}
