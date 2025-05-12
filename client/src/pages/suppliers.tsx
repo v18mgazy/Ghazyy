@@ -318,7 +318,7 @@ export default function SuppliersPage() {
       toast({
         title: t("supplier_added"),
         description: t("supplier_added_success"),
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -340,7 +340,11 @@ export default function SuppliersPage() {
       return response.json();
     },
     onSuccess: () => {
+      // تحديث بيانات الموردين
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      // تحديث بيانات ملخص جميع الموردين
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers/summary"] });
+      // إذا كان المورد المحذوف هو المورد المحدد حاليًا، فقم بإعادة ضبط الاختيار
       if (selectedSupplier && selectedSupplier.id === deletingSupplier?.id) {
         setSelectedSupplier(null);
         setActiveTab("suppliers");
@@ -350,7 +354,7 @@ export default function SuppliersPage() {
       toast({
         title: t("success"),
         description: t("supplier_deleted_successfully"),
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -376,13 +380,16 @@ export default function SuppliersPage() {
       return response.json();
     },
     onSuccess: () => {
+      // تحديث قائمة فواتير المورد المحدد
       queryClient.invalidateQueries({ queryKey: ["/api/supplier-invoices", selectedSupplier?.id] });
+      // تحديث ملخص بيانات جميع الموردين
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers/summary"] });
       setIsNewInvoiceOpen(false);
       invoiceForm.reset();
       toast({
         title: t("invoice_added"),
         description: t("invoice_added_success"),
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -415,7 +422,7 @@ export default function SuppliersPage() {
       toast({
         title: t("payment_added"),
         description: t("payment_added_success"),
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
