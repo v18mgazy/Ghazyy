@@ -356,14 +356,15 @@ export default function ReportDetails({
       </Card>
       
       {/* المنتجات الأكثر مبيعًا */}
-      <Card className="print:shadow-none shadow-sm">
-        <CardHeader className="pb-2 border-b">
+      <Card className="print:shadow-none shadow-md overflow-hidden">
+        <div className="absolute inset-0 bg-amber-500/5 opacity-30 pointer-events-none"></div>
+        <CardHeader className="pb-2 border-b relative">
           <CardTitle className="text-lg flex items-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 text-amber-500"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
             {t('top_products')}
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-4">
+        <CardContent className="pt-6 relative">
           {isLoading ? (
             <div className="py-8 flex justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -377,26 +378,46 @@ export default function ReportDetails({
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-amber-50 dark:bg-amber-950/20">
+                <TableHeader className="bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-950/40 dark:to-amber-900/10">
                   <TableRow>
-                    <TableHead className="font-medium text-amber-700 dark:text-amber-400">{t('rank')}</TableHead>
-                    <TableHead className="font-medium text-amber-700 dark:text-amber-400">{t('product_name')}</TableHead>
-                    <TableHead className="font-medium text-right text-amber-700 dark:text-amber-400">{t('quantity_sold')}</TableHead>
-                    <TableHead className="font-medium text-right text-amber-700 dark:text-amber-400">{t('revenue')}</TableHead>
-                    <TableHead className="font-medium text-right text-amber-700 dark:text-amber-400">{t('profit')}</TableHead>
-                    <TableHead className="font-medium text-right text-amber-700 dark:text-amber-400">{t('profit_margin')}</TableHead>
+                    <TableHead className="font-semibold text-amber-700 dark:text-amber-400 py-3">{t('rank')}</TableHead>
+                    <TableHead className="font-semibold text-amber-700 dark:text-amber-400 py-3">{t('product_name')}</TableHead>
+                    <TableHead className="font-semibold text-right text-amber-700 dark:text-amber-400 py-3">{t('quantity_sold')}</TableHead>
+                    <TableHead className="font-semibold text-right text-amber-700 dark:text-amber-400 py-3">{t('revenue')}</TableHead>
+                    <TableHead className="font-semibold text-right text-amber-700 dark:text-amber-400 py-3">{t('profit')}</TableHead>
+                    <TableHead className="font-semibold text-right text-amber-700 dark:text-amber-400 py-3">{t('profit_margin')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {topProducts.map((product, index) => (
-                    <TableRow key={product.id} className={index % 2 === 0 ? 'bg-amber-50/30 dark:bg-amber-950/10' : ''}>
-                      <TableCell className="font-bold text-amber-600 dark:text-amber-500">{index + 1}</TableCell>
+                    <TableRow 
+                      key={product.id} 
+                      className={`${index === 0 ? 'bg-amber-50/80 dark:bg-amber-900/20' : index % 2 === 0 ? 'bg-amber-50/40 dark:bg-amber-950/10' : ''} hover:bg-amber-100/50 dark:hover:bg-amber-800/20 transition-colors`}
+                    >
+                      <TableCell className="font-bold">
+                        {index < 3 ? (
+                          <div className={`flex items-center justify-center w-7 h-7 rounded-full 
+                            ${index === 0 ? 'bg-amber-400 text-white' : 
+                              index === 1 ? 'bg-amber-300 text-amber-900' : 
+                              'bg-amber-200 text-amber-900'}`}>
+                            {index + 1}
+                          </div>
+                        ) : (
+                          <div className="text-amber-600 dark:text-amber-500 text-center">{index + 1}</div>
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell className="text-right">{product.soldQuantity}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(product.revenue)}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800">
+                          {product.soldQuantity}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(product.revenue)}</TableCell>
                       <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400">{formatCurrency(product.profit)}</TableCell>
                       <TableCell className="text-right">
-                        {product.revenue > 0 ? `${((product.profit / product.revenue) * 100).toFixed(1)}%` : '0%'}
+                        <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800">
+                          {product.revenue > 0 ? `${((product.profit / product.revenue) * 100).toFixed(1)}%` : '0%'}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
