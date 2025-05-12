@@ -9,6 +9,7 @@ import SalesPage from "@/pages/index";
 import ManagementPage from "@/pages/management";
 import ReportsPage from "@/pages/reports";
 import CustomersPage from "@/pages/customers";
+import SuppliersPage from "@/pages/suppliers";
 import InvoiceManagementPage from "@/pages/invoice-management-new";
 import NewInvoicePage from "@/pages/invoice/new";
 import AppLayout from "./components/layout/app-layout";
@@ -67,6 +68,9 @@ function ProtectedRoutes() {
       </Route>
       <Route path="/customers">
         {() => <ProtectedRoute component={CustomersPage} adminOnly={true} />}
+      </Route>
+      <Route path="/suppliers">
+        {() => <ProtectedRoute component={SuppliersPage} adminOnly={true} />}
       </Route>
       <Route path="/invoices">
         {() => <ProtectedRoute component={InvoiceManagementPage} adminOnly={false} />}
