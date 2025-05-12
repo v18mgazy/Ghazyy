@@ -16,16 +16,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // الحصول على قائمة الفواتير المؤجلة
   app.get('/api/deferred-payments', async (req, res) => {
     try {
+      console.log('Getting deferred payments');
       // الحصول على قائمة الفواتير التي طريقة الدفع فيها "later" أو حالة الدفع "pending" أو "partially_paid"
       const allInvoices = await storage.getAllInvoices();
+      console.log(`Found ${allInvoices.length} total invoices`);
       
       // تفلتر الفواتير المؤجلة التي لم يتم دفعها بالكامل
       const deferredInvoices = allInvoices.filter(invoice => 
         (invoice.paymentMethod === 'later' || 
+         invoice.paymentMethod === 'deferred' ||
          invoice.paymentStatus === 'pending' || 
          invoice.paymentStatus === 'partially_paid') &&
         !invoice.isDeleted
       );
+      
+      console.log(`Found ${deferredInvoices.length} deferred invoices`);
+      console.log('Deferred invoices:', deferredInvoices.map(inv => 
+        ({ id: inv.id, method: inv.paymentMethod, status: inv.paymentStatus, customer: inv.customerName })));
       
       // تحويل البيانات إلى الشكل المطلوب للواجهة
       const deferredPayments = deferredInvoices.map(invoice => {
@@ -49,7 +56,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
       
-      res.json(deferredPayments);
+      console.log(`Returning ${deferredPayments.length} deferred payments`);
+      // إرجاع الردود مباشرة بدون نموذج صفحة
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify(deferredPayments));
     } catch (error) {
       console.error('Error fetching deferred payments:', error);
       res.status(500).json({ error: 'Failed to fetch deferred payments' });
