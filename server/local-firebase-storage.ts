@@ -7,7 +7,11 @@ import {
   type DamagedItem, type InsertDamagedItem,
   type Employee, type InsertEmployee,
   type PaymentApproval, type InsertPaymentApproval,
-  type ReportData, type InsertReportData
+  type ReportData, type InsertReportData,
+  type Supplier, type InsertSupplier,
+  type SupplierInvoice, type InsertSupplierInvoice,
+  type SupplierPayment, type InsertSupplierPayment,
+  type StoreInfo, type InsertStoreInfo
 } from "@shared/schema";
 import bcrypt from 'bcryptjs';
 import { IStorage } from './storage';
@@ -26,6 +30,10 @@ export class LocalFirebaseStorage implements IStorage {
   private employees = new Map<number, Employee>();
   private paymentApprovals = new Map<number, PaymentApproval>();
   private reportData = new Map<number, ReportData>();
+  private suppliers = new Map<number, Supplier>();
+  private supplierInvoices = new Map<number, SupplierInvoice>();
+  private supplierPayments = new Map<number, SupplierPayment>();
+  private storeInfo: StoreInfo | undefined;
   
   private userIdCounter = 1;
   private productIdCounter = 1;
@@ -36,6 +44,9 @@ export class LocalFirebaseStorage implements IStorage {
   private employeeIdCounter = 1;
   private paymentApprovalIdCounter = 1;
   private reportDataIdCounter = 1;
+  private supplierIdCounter = 1;
+  private supplierInvoiceIdCounter = 1;
+  private supplierPaymentIdCounter = 1;
   
   constructor() {
     // Initialize with some default data
