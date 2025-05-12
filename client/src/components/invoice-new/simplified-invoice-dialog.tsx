@@ -304,7 +304,11 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
     
     const paymentStatus = paymentMethod === 'deferred' ? 'pending' : 'paid';
     
+    // إنشاء رقم فاتورة عشوائي
+    const randomInvoiceNumber = `INV-${Math.floor(Math.random() * 900000) + 100000}`;
+    
     const invoice = {
+      invoiceNumber: randomInvoiceNumber,
       customerId: selectedCustomer.id,
       customerName: selectedCustomer.name,
       customerPhone: selectedCustomer.phone,
@@ -630,6 +634,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                             <SelectItem value="cash">{t('cash')}</SelectItem>
                             <SelectItem value="card">{t('card')}</SelectItem>
                             <SelectItem value="deferred">{t('deferred_payment')}</SelectItem>
+                            <SelectItem value="e-wallet">{t('e_wallet')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
