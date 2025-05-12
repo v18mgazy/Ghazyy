@@ -613,7 +613,10 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
               type="button" 
               size="sm" 
               variant="outline"
-              onClick={() => setShowBarcodeScanner(true)}
+              onClick={() => {
+                console.log("Scan Barcode button clicked in ActiveInvoice");
+                setShowBarcodeScanner(true);
+              }}
             >
               <Scan className="mr-1 h-4 w-4" />
               {t('scan_barcode')}
@@ -621,7 +624,16 @@ export default function ActiveInvoice({ customer, onClose, onAddProduct, onProdu
             <Button 
               type="button" 
               size="sm" 
-              onClick={addProduct}
+              onClick={() => {
+                console.log("Add Product button clicked in ActiveInvoice");
+                if (onAddProduct) {
+                  console.log("Using parent's onAddProduct function");
+                  onAddProduct();
+                } else {
+                  console.log("Using local addProduct function");
+                  addProduct();
+                }
+              }}
             >
               <Plus className="mr-1 h-4 w-4" />
               {t('add_product')}

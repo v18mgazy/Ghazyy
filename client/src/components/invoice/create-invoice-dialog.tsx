@@ -294,6 +294,12 @@ export default function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoic
       console.log('Adding product to invoice:', newProduct);
       
       // إضافة المنتج إلى قائمة المنتجات في الفاتورة
+      const newProducts = [...invoiceProducts, newProduct];
+      setInvoiceProducts(newProducts);
+      
+      // حساب المجموع الفرعي والخصم والمجموع الكلي
+      updateTotals(newProducts);
+      
       // إضافة المنتج إلى الفاتورة النشطة وإعادة تعيين الحالة
       setSelectedProduct(null);
       setProductQuantity(1);
