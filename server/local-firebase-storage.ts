@@ -407,13 +407,28 @@ export class LocalFirebaseStorage implements IStorage {
     const invoice = this.invoices.get(id);
     if (!invoice) return undefined;
     
+    // حذف الفاتورة القديمة
+    this.invoices.delete(id);
+    
+    // إنشاء فاتورة جديدة بنفس المعرف والوقت الأصلي
+    const originalCreatedAt = invoice.createdAt;
+    
     const updatedInvoice: Invoice = {
       ...invoice,
-      ...invoiceData
+      ...invoiceData,
+      createdAt: originalCreatedAt // الحفاظ على تاريخ الإنشاء الأصلي
     };
     
     this.invoices.set(id, updatedInvoice);
+    console.log(`LocalFirebaseStorage: Invoice ${id} deleted and recreated with same ID and timestamp`);
     return updatedInvoice;
+  }
+  
+  async deleteInvoice(id: number): Promise<void> {
+    console.log(`LocalFirebaseStorage: Deleting invoice with ID ${id}`);
+    // حذف الفاتورة مباشرة من قاعدة البيانات
+    this.invoices.delete(id);
+    console.log(`Invoice ${id} completely removed from database`);
   }
   
   // Invoice item management
@@ -612,6 +627,16 @@ export class LocalFirebaseStorage implements IStorage {
     });
   }
   
+  async deleteReportData(id: number): Promise<void> {
+    console.log(`LocalFirebaseStorage: Deleting report data with ID ${id}`);
+    if (this.reportData.has(id)) {
+      this.reportData.delete(id);
+      console.log(`Report data with ID ${id} successfully deleted`);
+    } else {
+      console.warn(`Report data with ID ${id} not found for deletion`);
+    }
+  }
+  
   async createReportData(reportData: InsertReportData): Promise<ReportData> {
     console.log("LocalFirebaseStorage: Creating new report data", reportData);
     const newReportData: ReportData = {
@@ -624,10 +649,7 @@ export class LocalFirebaseStorage implements IStorage {
     return newReportData;
   }
   
-  async deleteReportData(id: number): Promise<void> {
-    console.log(`LocalFirebaseStorage: Deleting report data with ID ${id}`);
-    this.reportData.delete(id);
-  }
+  // Function implemented above - remove duplicate
 
   // وظائف إدارة الموردين
   async getSupplier(id: number): Promise<Supplier | undefined> {

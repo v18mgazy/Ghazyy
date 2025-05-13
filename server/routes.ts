@@ -1150,11 +1150,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           // حساب الربح باستخدام الدالة المحسنة
           const profitData = await calculateProfitImproved(updatedInvoiceData, 'invoice-update');
-          console.log('Recalculated profit after PUT update:', profitData);
+          console.log('Recalculated profit after PUT update:', profitData, 'Invoice:', updatedInvoiceData.id);
           
           // تحديث بيانات التقرير للفاتورة المحدثة
-          const reportDate = new Date(updatedInvoiceData.createdAt || new Date());
+          const reportDate = new Date(updatedInvoiceData.date || updatedInvoiceData.createdAt || new Date());
           const dailyDate = formatDateForReportType(reportDate, 'daily');
+          console.log(`Updating report for date: ${dailyDate} from invoice ${invoiceId}`);
           
           // حاول العثور على تقرير موجود لهذا اليوم
           const existingReports = await storage.getReportData('daily', dailyDate);
@@ -1162,64 +1163,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (existingReports && existingReports.length > 0) {
             console.log('Found existing daily report, will update it');
             
-            // تحديث بيانات التقرير مباشرة للتأكد من ظهور التغييرات
-            const existingReport = existingReports[0];
-            
-            // إعادة حساب بيانات التقرير بدون تابع خارجي لمنع الأخطاء
-            // الحصول على جميع الفواتير ليوم معين
-            const dailyInvoices = await storage.getAllInvoices();
-            const dateFilteredInvoices = dailyInvoices.filter(inv => {
-              const invDate = new Date(inv.createdAt);
-              const formattedInvDate = formatDateForReportType(invDate, 'daily');
-              return formattedInvDate === dailyDate && !inv.isDeleted;
-            });
-            
-            // حساب إجماليات المبيعات والأرباح
-            let totalSales = 0;
-            let totalProfit = 0;
-            let orderCount = dateFilteredInvoices.length;
-            
-            for (const inv of dateFilteredInvoices) {
-              // إضافة إجمالي المبيعات
-              totalSales += parseFloat(String(inv.total)) || 0;
-              
-              // حساب الربح للفاتورة
-              const profitResult = await calculateProfitImproved(inv, 'daily-update');
-              totalProfit += profitResult.profit || 0;
+            // حذف التقرير القديم وإنشاء تقرير جديد محدث
+            for (const report of existingReports) {
+              console.log(`Deleting existing report with ID ${report.id} to recreate it with updated data`);
+              // حذف التقرير القديم
+              await storage.deleteReportData(report.id);
             }
             
-            // تحديث التقرير الموجود - استخدام شكل البيانات المطلوب
-            // نستخدم المعرف فقط لحذف التقرير القديم وإنشاء تقرير جديد محدث
-            await storage.deleteReportData(existingReport.id);
+            // استدعاء دالة تحديث التقارير اليومية
+            await updateDailyReportData(dailyDate);
+            console.log(`Updated daily report for date ${dailyDate} after invoice edit`);
             
-            // إنشاء تقرير جديد محدث
-            await storage.createReportData({
-              type: 'daily',
-              date: new Date(dailyDate), // تحويل التاريخ من نص إلى كائن Date
-              salesCount: orderCount,
-              revenue: totalSales,
-              profit: totalProfit,
-              cost: totalSales - totalProfit,
-              discounts: 0,
-              damages: 0
-            });
+            // تحديث التقارير الأسبوعية والشهرية
+            const weeklyDate = formatDateForReportType(reportDate, 'weekly');
+            const monthlyDate = formatDateForReportType(reportDate, 'monthly');
             
-            console.log(`Updated daily report for ${dailyDate} with new profit data`);
+            // تحديث التقرير الأسبوعي
+            await generateAndSaveReport('weekly', weeklyDate);
+            console.log(`Updated weekly report for date ${weeklyDate} after invoice edit`);
+            
+            // تحديث التقرير الشهري
+            await generateAndSaveReport('monthly', monthlyDate);
+            console.log(`Updated monthly report for date ${monthlyDate} after invoice edit`);
+            // هذا القسم لم يعد مطلوباً لأننا نستخدم updateDailyReportData والتي تقوم بنفس المهمة
+            
+
+            console.log(`Report updated using the updateDailyReportData function`);
           } else {
             console.log('No existing daily report found, creating one now');
             
-            // إنشاء تقرير جديد للتاريخ إذا لم يكن موجودًا - بنفس الطريقة المباشرة
-            // استخدام بيانات الفاتورة الحالية
-            await storage.createReportData({
-              type: 'daily',
-              date: new Date(dailyDate), // تحويل التاريخ من نص إلى كائن Date
-              salesCount: 1,
-              revenue: parseFloat(String(updatedInvoiceData.total)) || 0,
-              profit: profitData.profit || 0,
-              cost: parseFloat(String(updatedInvoiceData.total)) - (profitData.profit || 0),
-              discounts: 0,
-              damages: 0
-            });
+            // إنشاء تقرير جديد باستخدام دالة updateDailyReportData
+            await updateDailyReportData(dailyDate);
           }
         } catch (reportError) {
           console.error('Error recalculating profit after invoice update:', reportError);
@@ -2983,6 +2957,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // الطريقة القديمة لجلب بيانات التقارير (تعتمد على بيانات محفوظة مسبقاً)
   app.get('/api/reports', async (req, res) => {
     try {
       const { type, date, startDate, endDate } = req.query;
