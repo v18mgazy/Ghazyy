@@ -406,6 +406,38 @@ export class LocalFirebaseStorage implements IStorage {
     return newInvoice;
   }
   
+  /**
+   * إنشاء فاتورة جديدة بمعرف محدد للاستخدام في تحديث الفواتير عن طريق إعادة إنشائها
+   * 
+   * @param id معرف الفاتورة المراد إنشاؤها
+   * @param invoiceData بيانات الفاتورة بالكامل
+   * @returns الفاتورة الجديدة
+   */
+  async createInvoiceWithId(id: number, invoiceData: any): Promise<Invoice> {
+    console.log(`LocalFirebaseStorage: Creating invoice with specific ID ${id}`);
+    
+    // تأكد من أن المعرف صحيح
+    if (isNaN(id) || id <= 0) {
+      throw new Error(`Invalid invoice ID: ${id}`);
+    }
+    
+    // حفظ الفاتورة بالمعرف المحدد
+    const newInvoice: Invoice = {
+      id,
+      ...invoiceData,
+      // استخدام التاريخ المقدم أو إنشاء تاريخ جديد
+      createdAt: invoiceData.createdAt || new Date(),
+      date: invoiceData.date || invoiceData.createdAt || new Date()
+    };
+    
+    this.invoices.set(newInvoice.id, newInvoice);
+    
+    // تحديث العداد إذا كان المعرف أكبر من العداد الحالي
+    this.invoiceIdCounter = Math.max(this.invoiceIdCounter, id + 1);
+    
+    return newInvoice;
+  }
+  
   async updateInvoice(id: number, invoiceData: Partial<Invoice>): Promise<Invoice | undefined> {
     console.log(`LocalFirebaseStorage: Updating invoice with ID ${id}`, invoiceData);
     const invoice = this.invoices.get(id);

@@ -422,6 +422,52 @@ export class RealtimeDBStorage implements IStorage {
       throw error;
     }
   }
+  
+  /**
+   * إنشاء فاتورة جديدة بمعرف محدد للاستخدام في تحديث الفواتير عن طريق إعادة إنشائها
+   * 
+   * @param id معرف الفاتورة المراد إنشاؤها
+   * @param invoiceData بيانات الفاتورة بالكامل
+   * @returns الفاتورة الجديدة
+   */
+  async createInvoiceWithId(id: number, invoiceData: any): Promise<Invoice> {
+    try {
+      console.log(`RealtimeDBStorage: Creating invoice with specific ID ${id}`);
+      
+      // تأكد من أن المعرف صحيح
+      if (isNaN(id) || id <= 0) {
+        throw new Error(`Invalid invoice ID: ${id}`);
+      }
+      
+      // تجهيز البيانات
+      const newInvoice: Invoice = {
+        id, // استخدام المعرف المحدد
+        ...invoiceData,
+        // استخدام تواريخ محددة إذا تم تقديمها، وإلا استخدام الوقت الحالي
+        createdAt: invoiceData.createdAt || new Date().toISOString(),
+        date: invoiceData.date || invoiceData.createdAt || new Date().toISOString(),
+        // التأكد من تضمين حقول المنتجات المنفصلة إذا لم تكن موجودة
+        productIds: invoiceData.productIds || '',
+        productNames: invoiceData.productNames || '',
+        productQuantities: invoiceData.productQuantities || '',
+        productPrices: invoiceData.productPrices || '',
+        productPurchasePrices: invoiceData.productPurchasePrices || '',
+        productDiscounts: invoiceData.productDiscounts || '',
+        productTotals: invoiceData.productTotals || '',
+        productProfits: invoiceData.productProfits || ''
+      };
+      
+      console.log(`RealtimeDBStorage: Saving invoice with ID ${id} to database`);
+      
+      // حفظ الفاتورة في قاعدة البيانات مع المعرف المحدد
+      await set(ref(database, `invoices/${id}`), newInvoice);
+      
+      return newInvoice;
+    } catch (error) {
+      console.error(`RealtimeDBStorage: Error creating invoice with ID ${id}:`, error);
+      throw error;
+    }
+  }
 
   async updateInvoice(id: number, invoiceData: Partial<Invoice>): Promise<Invoice | undefined> {
     try {
@@ -2451,6 +2497,144 @@ export class RealtimeDBStorage implements IStorage {
       };
     } catch (error) {
       console.error('Error creating supplier payment:', error);
+      throw error;
+    }
+  }
+  
+  // Report Data Management
+  async getReportData(type: string, date: string): Promise<ReportData[]> {
+    try {
+      console.log(`RealtimeDBStorage: Getting report data for type ${type} and date ${date}`);
+      const reportsRef = ref(database, 'report_data');
+      const snapshot = await get(reportsRef);
+      
+      if (!snapshot.exists()) {
+        return [];
+      }
+      
+      const reports: ReportData[] = [];
+      const searchDate = new Date(date);
+      
+      // تحويل بيانات التقارير وتصفيتها
+      snapshot.forEach((childSnapshot) => {
+        const id = parseInt(childSnapshot.key || '0');
+        const data = childSnapshot.val();
+        const reportDate = new Date(data.date);
+        
+        // التصفية حسب نوع التقرير والتاريخ
+        if (type === 'daily') {
+          if (reportDate.getFullYear() === searchDate.getFullYear() &&
+              reportDate.getMonth() === searchDate.getMonth() &&
+              reportDate.getDate() === searchDate.getDate()) {
+            reports.push({
+              id,
+              date: reportDate,
+              type: data.type,
+              salesCount: data.salesCount,
+              revenue: data.revenue,
+              cost: data.cost,
+              discounts: data.discounts,
+              damages: data.damages,
+              profit: data.profit,
+              dataJson: data.dataJson || null,
+              createdAt: new Date(data.createdAt),
+            });
+          }
+        } else if (type === 'monthly') {
+          if (reportDate.getFullYear() === searchDate.getFullYear() &&
+              reportDate.getMonth() === searchDate.getMonth()) {
+            reports.push({
+              id,
+              date: reportDate,
+              type: data.type,
+              salesCount: data.salesCount,
+              revenue: data.revenue,
+              cost: data.cost,
+              discounts: data.discounts,
+              damages: data.damages,
+              profit: data.profit,
+              dataJson: data.dataJson || null,
+              createdAt: new Date(data.createdAt),
+            });
+          }
+        } else if (type === 'yearly') {
+          if (reportDate.getFullYear() === searchDate.getFullYear()) {
+            reports.push({
+              id,
+              date: reportDate,
+              type: data.type,
+              salesCount: data.salesCount,
+              revenue: data.revenue,
+              cost: data.cost,
+              discounts: data.discounts,
+              damages: data.damages,
+              profit: data.profit,
+              dataJson: data.dataJson || null,
+              createdAt: new Date(data.createdAt),
+            });
+          }
+        }
+      });
+      
+      return reports;
+    } catch (error) {
+      console.error('Error getting report data:', error);
+      return [];
+    }
+  }
+
+  async createReportData(reportData: InsertReportData): Promise<ReportData> {
+    try {
+      const id = this.generateId('report_data');
+      const now = new Date().toISOString();
+      
+      // تحويل التاريخ إلى سلسلة نصية للتخزين في Firebase
+      const newReportData = {
+        ...reportData,
+        id,
+        createdAt: now,
+        date: reportData.date ? reportData.date.toISOString() : now,
+      };
+      
+      const reportRef = ref(database, `report_data/${id}`);
+      await set(reportRef, newReportData);
+      
+      return {
+        ...newReportData,
+        id,
+        date: new Date(newReportData.date),
+        createdAt: new Date(now),
+        dataJson: reportData.dataJson || null,
+      };
+    } catch (error) {
+      console.error('Error creating report data:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * حذف بيانات التقرير بواسطة المعرف
+   * مهم لتحديث التقارير عند تعديل أو حذف الفواتير
+   * 
+   * @param id معرف التقرير المراد حذفه
+   */
+  async deleteReportData(id: number): Promise<void> {
+    try {
+      console.log(`RealtimeDBStorage: Deleting report data with ID ${id}`);
+      const reportRef = ref(database, `report_data/${id}`);
+      
+      // التحقق من وجود التقرير قبل الحذف
+      const snapshot = await get(reportRef);
+      if (!snapshot.exists()) {
+        console.warn(`RealtimeDBStorage: Report data with ID ${id} does not exist`);
+        return;
+      }
+      
+      // حذف التقرير
+      await remove(reportRef);
+      console.log(`RealtimeDBStorage: Successfully deleted report data with ID ${id}`);
+    } catch (error) {
+      console.error(`RealtimeDBStorage: Error deleting report data with ID ${id}:`, error);
       throw error;
     }
   }

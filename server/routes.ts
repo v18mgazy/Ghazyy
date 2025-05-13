@@ -190,14 +190,15 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
       
       // 5. حساب حصة المنتج من خصم الفاتورة (إذا وجد)
       let invoiceDiscountShare = 0;
-      if (invoice.invoiceDiscount && invoice.subtotal) {
+      if (invoice.invoiceDiscount && parseFloat(invoice.invoiceDiscount) > 0 && invoice.subtotal) {
         const productSubtotal = sellingPrice * quantity;
         const invoiceDiscount = parseFloat(invoice.invoiceDiscount) || 0;
         const invoiceSubtotal = parseFloat(invoice.subtotal) || 0;
         
         if (invoiceSubtotal > 0) {
+          // توزيع الخصم على المنتجات بالتناسب مع قيمتها
           invoiceDiscountShare = (productSubtotal / invoiceSubtotal) * invoiceDiscount;
-          console.log(`[${reportType}] حصة المنتج ${product.productName || product.name || 'غير معروف'} من خصم الفاتورة: ${(productSubtotal / invoiceSubtotal).toFixed(2)} * ${invoiceDiscount} = ${invoiceDiscountShare.toFixed(2)}`);
+          console.log(`[${reportType}] حصة المنتج ${product.productName || product.name || 'غير معروف'} من خصم الفاتورة (${invoiceDiscount}): ${(productSubtotal / invoiceSubtotal).toFixed(2)} * ${invoiceDiscount} = ${invoiceDiscountShare.toFixed(2)}`);
         }
       }
       
@@ -231,13 +232,22 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
 
     // حساب إجمالي قيمة الخصم المباشرة (لم نعد نستخدم النسب المئوية)
     // 1. حصر جميع أنواع الخصومات (كلها قيم مباشرة)
-    let invoiceDiscountAmount = invoice.invoiceDiscount ? Number(invoice.invoiceDiscount) : 0;
-    let itemsDiscountAmount = invoice.itemsDiscount ? Number(invoice.itemsDiscount) : 0;
-    let generalDiscountAmount = invoice.discount ? Number(invoice.discount) : 0;
+    // التأكد من أن invoiceDiscount هو قيمة رقمية صحيحة
+    let invoiceDiscountAmount = invoice.invoiceDiscount ? parseFloat(invoice.invoiceDiscount) : 0;
+    if (isNaN(invoiceDiscountAmount)) invoiceDiscountAmount = 0;
+    
+    let itemsDiscountAmount = invoice.itemsDiscount ? parseFloat(invoice.itemsDiscount) : 0;
+    if (isNaN(itemsDiscountAmount)) itemsDiscountAmount = 0;
+    
+    let generalDiscountAmount = invoice.discount ? parseFloat(invoice.discount) : 0;
+    if (isNaN(generalDiscountAmount)) generalDiscountAmount = 0;
     
     // معلومات الفاتورة للتصحيح
-    const subtotal = invoice.subtotal ? Number(invoice.subtotal) : 0;
-    const total = invoice.total ? Number(invoice.total) : 0;
+    const subtotal = invoice.subtotal ? parseFloat(invoice.subtotal) : 0;
+    const total = invoice.total ? parseFloat(invoice.total) : 0;
+    
+    console.log(`[${reportType}] تفاصيل الخصم: invoiceDiscount=${invoiceDiscountAmount}, itemsDiscount=${itemsDiscountAmount}, discount=${generalDiscountAmount}`);
+    console.log(`[${reportType}] إجمالي الفاتورة: subtotal=${subtotal}, total=${total}`);
     
     // 2. حساب قيمة الخصم الفعلية من الإجمالي
     let totalDiscountValue = invoiceDiscountAmount + itemsDiscountAmount + generalDiscountAmount;
@@ -1072,12 +1082,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...updateData,
         id: invoiceId,
         invoiceNumber: originalInvoiceNumber,
-        createdAt: originalCreatedAt
+        createdAt: originalCreatedAt,
+        date: originalInvoice.date || originalCreatedAt,
+        // التأكد من تخزين قيم الخصم بشكل صحيح
+        invoiceDiscount: req.body.invoiceDiscount || 0,
+        discount: 0, // للتوافق مع النظام القديم
+        // تخزين قيم الإجمالي بشكل صحيح
+        subtotal: req.body.subtotal || 0,
+        total: req.body.total || 0
       };
       
-      // إنشاء فاتورة جديدة بنفس المعرف
-      const updatedInvoice = await storage.createInvoice(newInvoiceData);
-      console.log('Created new invoice with same ID:', updatedInvoice);
+      // إنشاء فاتورة جديدة بنفس المعرف باستخدام الوظيفة الجديدة
+      const updatedInvoice = await storage.createInvoiceWithId(invoiceId, newInvoiceData);
+      console.log('Created new invoice with same ID using createInvoiceWithId:', updatedInvoice);
       
       // تحديث منتجات الفاتورة إذا تم تقديمها
       if (req.body.products && Array.isArray(req.body.products) && req.body.products.length > 0) {
