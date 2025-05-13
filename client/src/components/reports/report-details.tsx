@@ -49,6 +49,15 @@ interface DetailedReport {
   quantity?: number;
   category?: string;
   expenseType?: string;
+  
+  // حقول إضافية للخصومات
+  subtotal?: number;
+  discount?: number;
+  discountPercentage?: number;
+  itemsDiscount?: number;
+  invoiceDiscount?: number;
+  invoiceNumber?: string;
+  paymentMethod?: string;
 }
 
 interface ChartDataPoint {

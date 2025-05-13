@@ -2419,10 +2419,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // حساب قيمة الخصم الإجمالية
         const subtotal = parseFloat(inv.subtotal) || 0;
         const total = parseFloat(inv.total) || 0;
+        const itemsDiscount = parseFloat(inv.itemsDiscount) || 0;
+        const invoiceDiscount = parseFloat(inv.invoiceDiscount) || 0;
         const totalDiscount = subtotal - total;
         
-        // حساب نسبة الخصم
-        const discountPercentage = subtotal > 0 ? Math.round((totalDiscount / subtotal) * 100) : 0;
+        // التأكد من نسبة الخصم
+        let discountPercentage = inv.discountPercentage;
+        if (!discountPercentage && subtotal > 0) {
+          discountPercentage = Math.round((totalDiscount / subtotal) * 100);
+        }
+        
+        // تفاصيل الفاتورة للعرض في التقرير
+        const details = `Invoice #${inv.invoiceNumber}, Payment: ${inv.paymentMethod}`;
         
         detailedData.push({
           id: inv.id,
@@ -2433,11 +2441,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           subtotal: subtotal,
           discount: totalDiscount,
           discountPercentage: discountPercentage,
-          itemsDiscount: parseFloat(inv.itemsDiscount) || 0,
-          invoiceDiscount: parseFloat(inv.invoiceDiscount) || 0,
+          itemsDiscount: itemsDiscount,
+          invoiceDiscount: invoiceDiscount,
           profit: profit,
           paymentMethod: inv.paymentMethod,
           paymentStatus: inv.paymentStatus,
+          details: details,
           type: 'sale'
         });
       }
