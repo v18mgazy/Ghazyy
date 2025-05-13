@@ -336,11 +336,37 @@ export default function BarcodeScanner({
                 </div>
               </div>
               
+              {/* عرض حالة الانتظار بين المسح المتتالي */}
+              {isWaiting && (
+                <div className="absolute top-3 left-0 right-0 flex flex-col items-center">
+                  <div className="bg-black/60 rounded-full px-3 py-1 backdrop-blur-sm mb-1">
+                    <p className="text-white text-xs">{t('waiting_for_next_scan')}</p>
+                  </div>
+                  <div className="w-3/4 h-1.5 bg-black/30 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary transition-all duration-100 ease-linear" 
+                      style={{ width: `${waitProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+              
+              {/* عداد المنتجات الممسوحة */}
+              {continueScanning && scannedCount > 0 && !isWaiting && (
+                <div className="absolute top-3 right-3">
+                  <div className="bg-primary text-white text-xs font-medium rounded-full h-6 min-w-6 flex items-center justify-center px-1.5">
+                    {scannedCount}
+                  </div>
+                </div>
+              )}
+              
               <div className="absolute bottom-3 left-0 right-0 text-center text-sm text-white px-2 py-1 font-medium">
                 <p className="text-center text-xs px-4 py-1 rounded-full bg-primary/80 backdrop-blur-sm inline-block">
-                  {continueScanning 
-                    ? t('scan_multiple_products') 
-                    : t('position_barcode_in_frame')}
+                  {isWaiting 
+                    ? t('please_wait') 
+                    : continueScanning 
+                      ? t('scan_multiple_products') 
+                      : t('position_barcode_in_frame')}
                 </p>
               </div>
             </div>
