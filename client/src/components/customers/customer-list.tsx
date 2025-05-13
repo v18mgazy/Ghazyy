@@ -528,6 +528,16 @@ export default function CustomerList({
                             >
                               <MessageSquareShare className="h-4 w-4" />
                             </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-violet-600 hover:text-violet-800 hover:bg-violet-50"
+                              onClick={() => viewDebtHistory(customer)}
+                              title={t('view_debt_history')}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m18 9-2 2-6-6"/></svg>
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
