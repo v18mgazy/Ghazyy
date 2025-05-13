@@ -237,6 +237,61 @@ export default function EditInvoiceDialog({
     return availableQty >= requestedQty;
   };
   
+  // إضافة منتج جديد من قائمة البحث
+  const handleAddProduct = (product: any) => {
+    // التحقق من المخزون
+    if (!checkProductStock(product.id, 1)) {
+      toast({
+        title: t('warning'),
+        description: t('out_of_stock', { product: product.name }),
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // التحقق إذا كان المنتج موجود بالفعل
+    const existingProductIndex = products.findIndex(p => p.id === product.id);
+    
+    if (existingProductIndex >= 0) {
+      // زيادة الكمية إذا كان المنتج موجود بالفعل
+      const newQuantity = products[existingProductIndex].quantity + 1;
+      
+      // التحقق من المخزون مرة أخرى
+      if (!checkProductStock(product.id, newQuantity)) {
+        toast({
+          title: t('warning'),
+          description: t('insufficient_stock', {
+            product: product.name,
+            available: product.quantity || 0
+          }),
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      updateProductQuantity(existingProductIndex, newQuantity);
+    } else {
+      // إضافة منتج جديد
+      setProducts([...products, {
+        id: product.id,
+        name: product.name,
+        barcode: product.barcode || '',
+        price: product.sellingPrice,
+        purchasePrice: product.purchasePrice,
+        quantity: 1,
+        discount: 0
+      }]);
+    }
+    
+    // إغلاق نافذة البحث
+    setIsProductSearchOpen(false);
+    
+    toast({
+      title: t('success'),
+      description: t('product_added_successfully'),
+    });
+  };
+  
   // Handle barcode scan result
   const handleBarcodeResult = async (barcode: string) => {
     try {
