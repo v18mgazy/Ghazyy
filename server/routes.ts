@@ -17,16 +17,16 @@ import { type ZodError } from "zod-validation-error";
 import { calculateProfitFromProductsData, generateReport } from './report-helpers';
 
 /**
- * دالة محسنة لحساب الأرباح من بيانات الفاتورة
+ * دالة محسنة لحساب الأرباح وتأثير الخصومات من بيانات الفاتورة
  * @param invoice - الفاتورة التي نحسب ربحها
  * @param reportType - نوع التقرير الذي يتم حساب الربح له (للتسجيل فقط)
- * @returns إجمالي الربح المحسوب
+ * @returns إجمالي الربح المحسوب وتفاصيل تأثير الخصم
  */
-async function calculateProfitImproved(invoice: any, reportType: string = 'unknown'): Promise<number> {
+async function calculateProfitImproved(invoice: any, reportType: string = 'unknown'): Promise<any> {
   try {
     if (!invoice) {
       console.warn(`[حساب الربح - تحسين] الفاتورة غير موجودة`);
-      return 0;
+      return { profit: 0, profitWithoutDiscount: 0, profitReduction: 0, totalDiscountAmount: 0 };
     }
     
     // تسجيل معلومات الفاتورة للمساعدة في التصحيح
@@ -35,8 +35,8 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
     // التحقق من وجود أي بيانات للمنتجات
     if (!invoice.productData && !invoice.productsData) {
       console.warn(`[حساب الربح - تحسين] [${reportType}] بيانات المنتجات غير موجودة في الفاتورة ${invoice.id || 'غير معروف'}`);
-      // في حالة عدم وجود بيانات للمنتجات، نعيد صفر
-      return 0;
+      // في حالة عدم وجود بيانات للمنتجات، نعيد كائن النتيجة مع قيم صفرية
+      return { profit: 0, profitWithoutDiscount: 0, profitReduction: 0, totalDiscountAmount: 0 };
     }
 
     // تحديد أي حقل نستخدم (productData أو productsData)
@@ -2759,10 +2759,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // وظائف مساعدة لإنشاء بيانات التقارير
   // تم استبدال الدالة القديمة بدالة calculateProfitImproved المعرفة أعلى الملف
   // نستخدم دالة التجسير لتحافظ على التوافقية مع الكود القديم
-  async function calculateProfitFromProductsData(invoice: any, reportType: string = 'unknown'): Promise<number> {
+  async function calculateProfitFromProductsData(invoice: any, reportType: string = 'unknown'): Promise<any> {
     // استدعاء الدالة المحسنة وإرجاع نتيجتها
     console.log(`[تجسير] استدعاء الدالة المحسنة لحساب الربح من النوع ${reportType}`);
-    return await calculateProfitImproved(invoice, reportType);
+    // الحصول على كائن النتيجة الكامل من الدالة المحسنة
+    const result = await calculateProfitImproved(invoice, reportType);
+    
+    // للمحافظة على التوافقية مع الكود القديم، نعيد الربح فقط إذا كانت النتيجة رقم
+    // وإلا نعيد كائن النتيجة الكامل
+    if (typeof result === 'number') {
+      return result;
+    } else if (result && typeof result === 'object' && 'profit' in result) {
+      // لضمان التوافقية، إذا كانت الدالة في مكان ما تتوقع رقم فقط وليس كائن
+      // في حالات الاستخدام القديمة
+      return result.profit;
+    }
+    
+    // في حالة عدم الحصول على نتيجة صحيحة
+    return 0;
   }
 
   function formatDateForReportType(dateInput: Date, type: string): string {
