@@ -20,6 +20,17 @@ import type {
 } from "@shared/schema";
 import { IStorage } from "./storage";
 
+/**
+ * دالة للحصول على التاريخ والوقت المحلي بتنسيق ISO مع تعديل فرق التوقيت
+ * تضيف 3 ساعات للحصول على التوقيت المحلي في مصر (EET/EEST)
+ */
+function getLocalISOString(): string {
+  const now = new Date();
+  // إضافة 3 ساعات للحصول على التوقيت المحلي في مصر
+  now.setHours(now.getHours() + 3);
+  return now.toLocaleString('sv-SE').replace(' ', 'T');
+}
+
 export class RealtimeDBStorage implements IStorage {
   private generateId(collectionPath: string): number {
     // يستخدم الوقت الحالي كطريقة بسيطة لإنشاء معرفات فريدة
