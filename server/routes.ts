@@ -4060,14 +4060,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingReports && existingReports.length > 0) {
         // تحديث التقرير الموجود
         const existingReport = existingReports[0];
-        await storage.updateReportData(existingReport.id, newReportData);
+        
+        // إزالة الحقول غير المتوافقة من كائن البيانات
+        const { updatedAt, ...validReportData } = newReportData;
+        
+        await storage.updateReportData(existingReport.id, {
+          date: new Date(date),
+          type: 'daily',
+          salesCount: validReportData.orders || 0,
+          revenue: validReportData.sales || 0,
+          cost: 0, // لا نملك هذه البيانات هنا
+          discounts: 0, // لا نملك هذه البيانات هنا
+          damages: 0, // لا نملك هذه البيانات هنا
+          profit: validReportData.profit || 0
+        });
+        
         console.log(`[تحديث] تم تحديث التقرير اليومي لتاريخ ${date} بنجاح`);
       } else {
         // إنشاء تقرير جديد
         await storage.createReportData({
-          ...newReportData,
-          createdAt: new Date()
+          date: new Date(date),
+          type: 'daily',
+          salesCount: newReportData.orders || 0,
+          revenue: newReportData.sales || 0,
+          cost: 0,
+          discounts: 0,
+          damages: 0,
+          profit: newReportData.profit || 0
         });
+        
         console.log(`[تحديث] تم إنشاء تقرير يومي جديد لتاريخ ${date}`);
       }
     } catch (error) {
@@ -4085,7 +4106,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[إنشاء] بدء إنشاء تقرير ${type} لتاريخ ${date}`);
       
       // استخدام دالة generateReport من report-helpers.ts
-      const reportParams = { type, date };
+      const reportParams = { 
+        storage, 
+        type, 
+        date 
+      };
       const reportData = await generateReport(reportParams);
       
       if (!reportData) {
@@ -4108,14 +4133,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingReports && existingReports.length > 0) {
         // تحديث التقرير الموجود
         const existingReport = existingReports[0];
-        await storage.updateReportData(existingReport.id, storedReportData);
+        
+        // هيكل البيانات المتوافق مع Partial<ReportData>
+        await storage.updateReportData(existingReport.id, {
+          date: new Date(date),
+          type: type,
+          salesCount: reportData.orderCount || 0,
+          revenue: reportData.totalSales || 0,
+          cost: reportData.totalCost || 0,
+          discounts: reportData.totalDiscounts || 0,
+          damages: reportData.totalDamages || 0,
+          profit: reportData.totalProfit || 0,
+          dataJson: JSON.stringify(reportData)
+        });
+        
         console.log(`[إنشاء] تم تحديث التقرير الموجود من نوع ${type} لتاريخ ${date}`);
       } else {
         // إنشاء تقرير جديد
         await storage.createReportData({
-          ...storedReportData,
-          createdAt: new Date()
+          date: new Date(date),
+          type: type,
+          salesCount: reportData.orderCount || 0,
+          revenue: reportData.totalSales || 0,
+          cost: reportData.totalCost || 0,
+          discounts: reportData.totalDiscounts || 0,
+          damages: reportData.totalDamages || 0,
+          profit: reportData.totalProfit || 0,
+          dataJson: JSON.stringify(reportData)
         });
+        
         console.log(`[إنشاء] تم إنشاء تقرير جديد من نوع ${type} لتاريخ ${date}`);
       }
     } catch (error) {
