@@ -16,7 +16,8 @@ import type {
   StoreInfo, InsertStoreInfo,
   Supplier, InsertSupplier,
   SupplierInvoice, InsertSupplierInvoice,
-  SupplierPayment, InsertSupplierPayment
+  SupplierPayment, InsertSupplierPayment,
+  CustomerDebt, InsertCustomerDebt
 } from "@shared/schema";
 import { IStorage } from "./storage";
 
