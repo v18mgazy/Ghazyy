@@ -1186,7 +1186,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sellingPrice: product.sellingPrice || item.price, // للمرجعية في قاعدة البيانات فقط
             discount: item.discount || 0,
             total: item.total || (item.quantity * item.price * (1 - (item.discount || 0) / 100)),
-            profit: (item.price - (product.purchasePrice || 0)) * item.quantity // للتقارير فقط
+            // حساب الربح مع الأخذ في الاعتبار الخصم المطبق على المنتج
+            profit: ((item.price * (1 - (item.discount || 0) / 100)) - (product.purchasePrice || 0)) * item.quantity // للتقارير فقط
           };
           
           // نرجع الكائن الذي يحتوي على كل البيانات للتخزين في قاعدة البيانات

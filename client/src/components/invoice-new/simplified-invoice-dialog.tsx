@@ -362,16 +362,32 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
     }
     
     // إنشاء البيانات اللازمة للفاتورة
-    const invoiceItems = invoiceProducts.map(product => ({
-      productId: product.id,
-      productName: product.name,
-      barcode: product.barcode,
-      sellingPrice: product.sellingPrice,
-      purchasePrice: product.purchasePrice,
-      quantity: product.quantity,
-      discount: product.discount || 0,
-      totalPrice: product.sellingPrice * product.quantity * (1 - (product.discount || 0) / 100)
-    }));
+    // إضافة تأثير الخصم على مستوى المنتج
+    const invoiceItems = invoiceProducts.map(product => {
+      // حساب خصم المنتج
+      const productDiscount = product.discount || 0;
+      const productPrice = product.sellingPrice;
+      const productQuantity = product.quantity;
+      
+      // حساب إجمالي سعر المنتج مع الخصم
+      const productTotal = productPrice * productQuantity * (1 - (productDiscount / 100));
+      
+      // حساب الربح على المنتج بعد الخصم
+      const purchasePrice = product.purchasePrice || 0;
+      const profit = (productPrice * (1 - (productDiscount / 100)) - purchasePrice) * productQuantity;
+      
+      return {
+        productId: product.id,
+        productName: product.name,
+        barcode: product.barcode,
+        sellingPrice: product.sellingPrice,
+        purchasePrice: product.purchasePrice || 0,
+        quantity: product.quantity,
+        discount: productDiscount,
+        totalPrice: productTotal,
+        profit: profit
+      };
+    });
     
     // تعيين حالة الدفع بناءً على طريقة الدفع المختارة
     const paymentStatus = paymentMethod === 'deferred' || paymentMethod === 'pay_later' ? 'pending' : 'paid';
