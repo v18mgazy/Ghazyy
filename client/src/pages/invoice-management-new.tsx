@@ -70,6 +70,7 @@ export default function InvoiceManagement() {
   const [editedCustomerPhone, setEditedCustomerPhone] = useState('');
   const [editedCustomerAddress, setEditedCustomerAddress] = useState('');
   const [editedProducts, setEditedProducts] = useState<any[]>([]);
+  const [editedInvoiceDiscount, setEditedInvoiceDiscount] = useState<number>(0);
   const [availableProducts, setAvailableProducts] = useState<any[]>([]);
   const [availableCustomers, setAvailableCustomers] = useState<any[]>([]);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
@@ -405,6 +406,9 @@ export default function InvoiceManagement() {
       setEditedProducts([]);
     }
     
+    // تعيين خصم الفاتورة الأساسي (إن وجد)
+    setEditedInvoiceDiscount(invoice.invoiceDiscount || 0);
+    
     setIsEditModalOpen(true);
   };
   
@@ -481,13 +485,24 @@ export default function InvoiceManagement() {
       const invoiceId = invoiceToEdit.dbId;
       const productsData = JSON.stringify(editedProducts);
       
-      // حساب المجموع والتخفيض
+      // حساب المجموع والتخفيضات
       const subtotal = editedProducts.reduce((sum, product) => 
         sum + (product.price * product.quantity), 0);
       
-      const discount = editedProducts.reduce((sum, product) => 
+      // خصومات المنتجات (خصم على مستوى المنتج)
+      const itemsDiscount = editedProducts.reduce((sum, product) => 
         sum + (product.discount || 0), 0);
       
+      // خصم الفاتورة (الخصم العام الإضافي)
+      const invoiceDiscount = editedInvoiceDiscount || 0;
+      
+      // إجمالي الخصم = خصم المنتجات + خصم الفاتورة
+      const discount = itemsDiscount + invoiceDiscount;
+      
+      // حساب النسبة المئوية للخصم من الإجمالي
+      const discountPercentage = subtotal > 0 ? ((discount / subtotal) * 100).toFixed(2) : "0";
+      
+      // المجموع النهائي بعد كل الخصومات
       const total = subtotal - discount;
       
       // إعداد بيانات التحديث
