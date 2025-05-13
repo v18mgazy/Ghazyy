@@ -333,17 +333,77 @@ export default function ReportDetails({
                           </span>
                         </p>
                         
-                        {/* إضافة تفصيل قيم الخصم في التقرير */}
-                        <p className="text-xs flex items-center gap-1 opacity-80 mt-1 text-muted-foreground">
-                          {t('discount_breakdown')}: {' '}
-                          <span className="font-medium text-orange-600 dark:text-orange-400">
-                            {formatCurrency(summaryGroups.sales.reduce((sum, sale) => sum + (
-                              (sale.itemsDiscount || 0) + 
-                              (sale.invoiceDiscount || 0) + 
-                              (sale.discount || 0)
-                            ), 0))}
-                          </span>
+                        {/* إضافة تفصيل قيم الخصم في التقرير مع تمييز كل نوع */}
+                        <p className="text-xs opacity-80 mt-1 text-muted-foreground">
+                          {t('discount_breakdown')}:
                         </p>
+                        <div className="grid grid-cols-1 gap-1 mt-1 text-xs">
+                          {/* خصم المنتجات */}
+                          {(() => {
+                            const totalItemsDiscount = summaryGroups.sales.reduce((sum, sale) => 
+                              sum + (sale.itemsDiscount || 0), 0);
+                            if (totalItemsDiscount > 0) {
+                              return (
+                                <p className="flex items-center gap-1 opacity-80">
+                                  <span className="w-3 h-3 rounded-full bg-blue-400"></span>
+                                  <span>{t('items_discount')}:</span>
+                                  <span className="font-medium text-blue-600 dark:text-blue-400">
+                                    {formatCurrency(totalItemsDiscount)}
+                                  </span>
+                                </p>
+                              );
+                            }
+                            return null;
+                          })()}
+                          
+                          {/* خصم الفاتورة */}
+                          {(() => {
+                            const totalInvoiceDiscount = summaryGroups.sales.reduce((sum, sale) => 
+                              sum + (sale.invoiceDiscount || 0), 0);
+                            if (totalInvoiceDiscount > 0) {
+                              return (
+                                <p className="flex items-center gap-1 opacity-80">
+                                  <span className="w-3 h-3 rounded-full bg-purple-400"></span>
+                                  <span>{t('invoice_discount')}:</span>
+                                  <span className="font-medium text-purple-600 dark:text-purple-400">
+                                    {formatCurrency(totalInvoiceDiscount)}
+                                  </span>
+                                </p>
+                              );
+                            }
+                            return null;
+                          })()}
+                          
+                          {/* الخصم العام */}
+                          {(() => {
+                            const totalGeneralDiscount = summaryGroups.sales.reduce((sum, sale) => 
+                              sum + (sale.discount || 0), 0);
+                            if (totalGeneralDiscount > 0) {
+                              return (
+                                <p className="flex items-center gap-1 opacity-80">
+                                  <span className="w-3 h-3 rounded-full bg-orange-400"></span>
+                                  <span>{t('general_discount')}:</span>
+                                  <span className="font-medium text-orange-600 dark:text-orange-400">
+                                    {formatCurrency(totalGeneralDiscount)}
+                                  </span>
+                                </p>
+                              );
+                            }
+                            return null;
+                          })()}
+                          
+                          {/* إجمالي الخصومات */}
+                          <p className="flex items-center gap-1 opacity-80 border-t border-muted pt-1 mt-1">
+                            <span className="font-medium">{t('total_discounts')}:</span>
+                            <span className="font-bold text-orange-600 dark:text-orange-400">
+                              {formatCurrency(summaryGroups.sales.reduce((sum, sale) => sum + (
+                                (sale.itemsDiscount || 0) + 
+                                (sale.invoiceDiscount || 0) + 
+                                (sale.discount || 0)
+                              ), 0))}
+                            </span>
+                          </p>
+                        </div>
                       </div>
                     );
                   }
