@@ -813,7 +813,8 @@ export class RealtimeDBStorage implements IStorage {
       const firebaseEmployee = {
         id,
         name: employee.name,
-        hireDate: new Date().toISOString(), // تخزين التاريخ كنص بتنسيق ISO
+        // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+        hireDate: new Date().toLocaleString('sv-SE').replace(' ', 'T'), // تخزين التاريخ كنص بتنسيق محلي
         salary: employee.salary,
         deductions: employee.deductions || 0,
         userId: employee.userId || null
@@ -847,10 +848,14 @@ export class RealtimeDBStorage implements IStorage {
       
       if (snapshot.exists()) {
         const currentEmployee = snapshot.val() as Employee;
+        // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+        const now = new Date();
+        const localDateString = now.toLocaleString('sv-SE').replace(' ', 'T');
+        
         const updatedEmployee = {
           ...currentEmployee,
           ...employeeData,
-          updatedAt: new Date().toISOString()
+          updatedAt: localDateString
         };
         
         await update(ref(database, `employees/${id}`), updatedEmployee);
@@ -934,10 +939,14 @@ export class RealtimeDBStorage implements IStorage {
       
       if (snapshot.exists()) {
         const currentApproval = snapshot.val() as PaymentApproval;
+        // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+        const now = new Date();
+        const localDateString = now.toLocaleString('sv-SE').replace(' ', 'T');
+        
         const updatedApproval = {
           ...currentApproval,
           ...approvalData,
-          updatedAt: new Date().toISOString()
+          updatedAt: localDateString
         };
         
         await update(ref(database, `paymentApprovals/${id}`), updatedApproval);
