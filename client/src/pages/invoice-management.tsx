@@ -58,6 +58,8 @@ import {
   ShoppingCart,
   Settings,
   X,
+  ArrowDownUp,
+  ArrowUpDown,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
