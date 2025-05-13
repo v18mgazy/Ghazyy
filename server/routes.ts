@@ -2597,8 +2597,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const chartData = await createChartData(invoices, type as string, reportDate);
       
-      // حساب أفضل المنتجات مبيعًا
-      const topProducts = calculateTopProducts(invoices, products, type as string, reportDate);
+      // حساب أفضل المنتجات مبيعًا - نستخدم await لأن الدالة أصبحت غير متزامنة
+      const topProducts = await calculateTopProducts(invoices, products, type as string, reportDate);
       
       // عرض معلومات عن المصاريف التي تم تحميلها سابقًا
       console.log(`Found ${expenses.length} expenses for report`);
@@ -2943,7 +2943,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return chartData;
   }
   
-  function calculateTopProducts(invoices: any[], products: any[], type: string, date: string | undefined): any[] {
+  async function calculateTopProducts(invoices: any[], products: any[], type: string, date: string | undefined): Promise<any[]> {
     console.log(`Calculating top products for ${type}: ${date}`);
     
     // حساب أفضل المنتجات مبيعًا بناءً على بيانات الفواتير الفعلية
@@ -3018,27 +3018,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   productData.soldQuantity += item.quantity || 0;
                   productData.revenue += item.total || 0;
                   
-                  // حساب الربح بطريقة متناسقة باستخدام سعر الشراء والبيع
-                  const sellingPrice = item.sellingPrice || item.price || 0;
-                  let purchasePrice = Number(item.purchasePrice) || 0;
-                  const quantity = Number(item.quantity) || 1;
+                  // استخدام دالة calculateProfitImproved لحساب الربح بشكل موحد
+                  // نقوم بإنشاء كائن للمنتج بنفس الهيكل الذي تتوقعه دالة حساب الربح
+                  const productItem = {
+                    id: productId,
+                    productId: productId,
+                    name: item.productName || item.name,
+                    productName: item.productName || item.name,
+                    price: item.sellingPrice || item.price || 0,
+                    purchasePrice: item.purchasePrice || 0,
+                    quantity: item.quantity || 1,
+                    barcode: item.barcode
+                  };
                   
-                  // فحص لوجود سعر الشراء - إذا كان غير موجود قم بمحاولة البحث عنه في بيانات المنتج
-                  if (purchasePrice <= 0 && sellingPrice > 0) {
-                    // البحث عن المنتج في قائمة المنتجات
-                    const product = products.find(p => p.id === productId || p.barcode === item.barcode);
-                    if (product && product.purchasePrice && Number(product.purchasePrice) > 0) {
-                      purchasePrice = Number(product.purchasePrice);
-                      console.log(`[أفضل المنتجات] تم العثور على سعر الشراء للمنتج ${item.productName || 'Unknown'} من بيانات المنتج: ${purchasePrice}`);
-                    } else {
-                      // إذا لم نجد سعر الشراء في بيانات المنتج، نضع ملاحظة في السجلات
-                      console.warn(`[أفضل المنتجات] لم يتم العثور على سعر شراء للمنتج ${item.productName || 'Unknown'} (ID: ${productId})`);
-                    }
+                  // إنشاء كائن فاتورة بسيط يحتوي على بيانات المنتج الواحد فقط
+                  const singleItemInvoice = {
+                    id: invoice.id,
+                    invoiceNumber: invoice.invoiceNumber,
+                    productData: JSON.stringify([productItem])
+                  };
+                  
+                  try {
+                    // حساب الربح باستخدام الدالة المحسنة بطريقة await
+                    const profit = await calculateProfitImproved(singleItemInvoice, 'top-products');
+                    console.log(`[أفضل المنتجات - محسّن] حساب ربح المنتج ${item.productName || 'Unknown'}: الربح = ${profit}`);
+                    productData.profit += profit;
+                  } catch (error) {
+                    console.error(`[أفضل المنتجات - محسّن] خطأ في حساب الربح للمنتج ${item.productName || 'Unknown'}: ${error}`);
+                    // نستكمل حتى في حالة الخطأ باستخدام الطريقة البديلة
+                    const sellingPrice = item.sellingPrice || item.price || 0;
+                    const purchasePrice = Number(item.purchasePrice) || 0;
+                    const quantity = Number(item.quantity) || 1;
+                    const fallbackProfit = (sellingPrice - purchasePrice) * quantity;
+                    console.log(`[أفضل المنتجات - محسّن] استخدام الحساب البديل: (${sellingPrice} - ${purchasePrice}) * ${quantity} = ${fallbackProfit}`);
+                    productData.profit += fallbackProfit;
                   }
-                  
-                  const profit = (sellingPrice - purchasePrice) * quantity;
-                  console.log(`[أفضل المنتجات] حساب ربح المنتج ${item.productName || 'Unknown'}: (${sellingPrice} - ${purchasePrice}) * ${quantity} = ${profit}`);
-                  productData.profit += profit;
                   
                   productSalesMap.set(productId, productData);
                 }
