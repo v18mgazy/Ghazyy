@@ -2070,11 +2070,13 @@ export class RealtimeDBStorage implements IStorage {
   async updateStoreInfo(storeData: InsertStoreInfo): Promise<StoreInfo> {
     try {
       const storeInfoRef = ref(database, 'store_info/1'); // نستخدم معرف ثابت '1' لأن المتجر واحد فقط
-      const now = new Date().toISOString();
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const now = new Date();
+      const now_str = now.toLocaleString('sv-SE').replace(' ', 'T');
       
       const storeInfoToSave = {
         ...storeData,
-        updatedAt: now
+        updatedAt: now_str
       };
       
       await set(storeInfoRef, storeInfoToSave);
@@ -2152,12 +2154,14 @@ export class RealtimeDBStorage implements IStorage {
     try {
       console.log("RealtimeDBStorage: Creating supplier", supplier);
       const id = this.generateId('suppliers');
-      const now = new Date().toISOString();
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const now = new Date();
+      const now_str = now.toLocaleString('sv-SE').replace(' ', 'T');
       
       const newSupplier = {
         ...supplier,
-        createdAt: now,
-        updatedAt: now
+        createdAt: now_str,
+        updatedAt: now_str
       };
       
       const supplierRef = ref(database, `suppliers/${id}`);
