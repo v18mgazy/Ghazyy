@@ -63,6 +63,8 @@ export default function EditInvoiceDialog({
   // State
   const [isLoading, setIsLoading] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [customer, setCustomer] = useState({
     id: invoice?.customerId || '',
     name: invoice?.customerName || '',
@@ -70,9 +72,21 @@ export default function EditInvoiceDialog({
     address: invoice?.customerAddress || ''
   });
   const [products, setProducts] = useState<any[]>(invoice?.products || []);
-  const [invoiceDiscount, setInvoiceDiscount] = useState(invoice?.invoiceDiscount || 0);
+  
+  // تأكد من نقل قيمة الخصم من الفاتورة
+  const [invoiceDiscount, setInvoiceDiscount] = useState(
+    // قد تكون القيمة غير معرفة، خصوصاً في الفواتير القديمة
+    invoice?.invoiceDiscount !== undefined ? Number(invoice.invoiceDiscount) : 0
+  );
+  
   const [paymentMethod, setPaymentMethod] = useState(invoice?.paymentMethod || 'cash');
   const [notes, setNotes] = useState(invoice?.notes || '');
+  
+  // طباعة قيم الفاتورة في الكونسول للتحقق منها
+  useEffect(() => {
+    console.log('Invoice data for edit:', invoice);
+    console.log('Invoice discount value:', invoice?.invoiceDiscount);
+  }, [invoice]);
   
   // استعلام لجلب بيانات المنتجات وحالة المخزون
   const { data: allProducts, isLoading: loadingProducts } = useQuery({
@@ -352,6 +366,10 @@ export default function EditInvoiceDialog({
                 <h3 className="font-medium">{t('products')}</h3>
                 
                 <div className="flex space-x-2">
+                  <Button variant="outline" size="sm" onClick={() => setIsProductSearchOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t('add_product')}
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => setIsScannerOpen(true)}>
                     <Scan className="h-4 w-4 mr-2" />
                     {t('scan_barcode')}
@@ -550,6 +568,97 @@ export default function EditInvoiceDialog({
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsScannerOpen(false)}>
               {t('cancel')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Product Search Dialog */}
+      <Dialog open={isProductSearchOpen} onOpenChange={setIsProductSearchOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{t('select_product')}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="mb-4">
+            <Input
+              type="text"
+              placeholder={t('search_products')}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="mb-2"
+            />
+          </div>
+          
+          <div className="flex-1 overflow-auto border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('name')}</TableHead>
+                  <TableHead className="text-center">{t('barcode')}</TableHead>
+                  <TableHead className="text-center">{t('price')}</TableHead>
+                  <TableHead className="text-center">{t('quantity_in_stock')}</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loadingProducts ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                      <span className="mt-2 block text-muted-foreground">{t('loading')}</span>
+                    </TableCell>
+                  </TableRow>
+                ) : allProducts && Array.isArray(allProducts) && allProducts.length > 0 ? (
+                  allProducts
+                    .filter((p: any) => 
+                      searchTerm === '' || 
+                      p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                      (p.barcode && p.barcode.includes(searchTerm))
+                    )
+                    .map((product: any, index: number) => (
+                      <TableRow key={index}>
+                        <TableCell>{product.name}</TableCell>
+                        <TableCell className="text-center">{product.barcode || '-'}</TableCell>
+                        <TableCell className="text-center">{formatCurrency(product.sellingPrice)}</TableCell>
+                        <TableCell className="text-center">
+                          <span className={
+                            product.quantity <= 0 
+                              ? 'text-destructive' 
+                              : product.quantity < 5 
+                                ? 'text-amber-500' 
+                                : 'text-emerald-600'
+                          }>
+                            {product.quantity || 0}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleAddProduct(product)}
+                            disabled={product.quantity <= 0}
+                            className="w-full"
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            {t('add')}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8">
+                      <p className="text-muted-foreground">{t('no_products_found')}</p>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsProductSearchOpen(false)}>
+              {t('close')}
             </Button>
           </DialogFooter>
         </DialogContent>
