@@ -350,7 +350,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       
       if (foundProduct) {
         handleAddProduct(foundProduct);
-        setShowBarcodeScanner(false);
+        // لا نغلق نافذة الماسح الضوئي للسماح بمسح منتجات متعددة متتالية
         toast({
           title: t('success'),
           description: t('product_found_and_added'),

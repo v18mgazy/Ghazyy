@@ -282,7 +282,8 @@ export default function InvoiceManagement() {
   
   // استخدام البارکود لإيجاد المنتج
   const handleBarcodeDetected = (barcode: string) => {
-    setIsBarcodeDialogOpen(false);
+    // لا نغلق نافذة الماسح الضوئي للسماح بمسح متعدد
+    // setIsBarcodeDialogOpen(false);
     
     // البحث عن المنتج باستخدام الباركود
     fetch(`/api/products/barcode/${barcode}`)
