@@ -392,10 +392,14 @@ export class LocalFirebaseStorage implements IStorage {
   
   async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
     console.log("LocalFirebaseStorage: Creating new invoice", invoice);
+    
+    // إذا كان هناك معرف محدد مسبقاً، استخدمه بدلاً من زيادة العداد
+    let invoiceId = invoice.id || this.invoiceIdCounter++;
+    
     const newInvoice: Invoice = {
-      id: this.invoiceIdCounter++,
+      id: invoiceId,
       ...invoice,
-      createdAt: new Date()
+      createdAt: invoice.createdAt || new Date() // استخدام التاريخ المقدم أو إنشاء تاريخ جديد
     };
     
     this.invoices.set(newInvoice.id, newInvoice);

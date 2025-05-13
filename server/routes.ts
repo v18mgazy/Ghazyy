@@ -1053,8 +1053,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Updating invoice with data:', updateData);
       
-      // تحديث الفاتورة
-      const updatedInvoice = await storage.updateInvoice(invoiceId, updateData);
+      // حذف الفاتورة القديمة تماماً
+      const originalInvoice = await storage.getInvoice(invoiceId);
+      if (!originalInvoice) {
+        return res.status(404).json({ error: 'لم يتم العثور على الفاتورة' });
+      }
+      
+      // حفظ تاريخ الإنشاء الأصلي ورقم الفاتورة لإنشاء فاتورة جديدة بنفس التفاصيل
+      const originalCreatedAt = originalInvoice.createdAt;
+      const originalInvoiceNumber = originalInvoice.invoiceNumber;
+      
+      // حذف الفاتورة القديمة من قاعدة البيانات نهائياً
+      await storage.deleteInvoice(invoiceId);
+      console.log(`Completely deleted invoice ${invoiceId} from database`);
+      
+      // إنشاء فاتورة جديدة بنفس المعرف ولكن بالبيانات المحدثة
+      const newInvoiceData = {
+        ...updateData,
+        id: invoiceId,
+        invoiceNumber: originalInvoiceNumber,
+        createdAt: originalCreatedAt
+      };
+      
+      // إنشاء فاتورة جديدة بنفس المعرف
+      const updatedInvoice = await storage.createInvoice(newInvoiceData);
+      console.log('Created new invoice with same ID:', updatedInvoice);
       
       // تحديث منتجات الفاتورة إذا تم تقديمها
       if (req.body.products && Array.isArray(req.body.products) && req.body.products.length > 0) {
