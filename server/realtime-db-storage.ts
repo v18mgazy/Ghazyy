@@ -109,10 +109,14 @@ export class RealtimeDBStorage implements IStorage {
       
       if (snapshot.exists()) {
         const currentUser = snapshot.val() as User;
+        // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+        const now = new Date();
+        const localDateString = now.toLocaleString('sv-SE').replace(' ', 'T');
+        
         const updatedUser = {
           ...currentUser,
           ...userData,
-          updatedAt: new Date().toISOString()
+          updatedAt: localDateString
         };
         
         await update(ref(database, `users/${id}`), updatedUser);
@@ -702,7 +706,12 @@ export class RealtimeDBStorage implements IStorage {
         quantity: item.quantity,
         description: item.description || '',
         valueLoss: item.valueLoss,
-        date: item.date ? item.date.toISOString() : new Date().toISOString()
+        // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+        date: item.date ? 
+              (item.date instanceof Date ? 
+                item.date.toLocaleString('sv-SE').replace(' ', 'T') : 
+                item.date) : 
+              new Date().toLocaleString('sv-SE').replace(' ', 'T')
       };
       
       console.log('Saving damaged item to Firebase:', firebaseItem);
@@ -733,10 +742,14 @@ export class RealtimeDBStorage implements IStorage {
       
       if (snapshot.exists()) {
         const currentItem = snapshot.val() as DamagedItem;
+        // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+        const now = new Date();
+        const localDateString = now.toLocaleString('sv-SE').replace(' ', 'T');
+        
         const updatedItem = {
           ...currentItem,
           ...itemData,
-          updatedAt: new Date().toISOString()
+          updatedAt: localDateString
         };
         
         await update(ref(database, `damagedItems/${id}`), updatedItem);
