@@ -84,6 +84,7 @@ export interface IStorage {
   // Report data management
   getReportData(type: string, date: string): Promise<ReportData[]>;
   createReportData(reportData: InsertReportData): Promise<ReportData>;
+  deleteReportData(id: number): Promise<void>;
   
   // Notification management
   getNotification(id: number): Promise<Notification | undefined>;

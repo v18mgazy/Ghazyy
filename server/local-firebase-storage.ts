@@ -623,6 +623,11 @@ export class LocalFirebaseStorage implements IStorage {
     this.reportData.set(newReportData.id, newReportData);
     return newReportData;
   }
+  
+  async deleteReportData(id: number): Promise<void> {
+    console.log(`LocalFirebaseStorage: Deleting report data with ID ${id}`);
+    this.reportData.delete(id);
+  }
 
   // وظائف إدارة الموردين
   async getSupplier(id: number): Promise<Supplier | undefined> {

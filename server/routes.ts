@@ -1161,9 +1161,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (existingReports && existingReports.length > 0) {
             console.log('Found existing daily report, will update it');
-            // سيتم تحديث التقرير تلقائياً عند حساب التقارير
+            
+            // تحديث بيانات التقرير مباشرة للتأكد من ظهور التغييرات
+            const existingReport = existingReports[0];
+            
+            // إعادة حساب بيانات التقرير بدون تابع خارجي لمنع الأخطاء
+            // الحصول على جميع الفواتير ليوم معين
+            const dailyInvoices = await storage.getAllInvoices();
+            const dateFilteredInvoices = dailyInvoices.filter(inv => {
+              const invDate = new Date(inv.createdAt);
+              const formattedInvDate = formatDateForReportType(invDate, 'daily');
+              return formattedInvDate === dailyDate && !inv.isDeleted;
+            });
+            
+            // حساب إجماليات المبيعات والأرباح
+            let totalSales = 0;
+            let totalProfit = 0;
+            let orderCount = dateFilteredInvoices.length;
+            
+            for (const inv of dateFilteredInvoices) {
+              // إضافة إجمالي المبيعات
+              totalSales += parseFloat(String(inv.total)) || 0;
+              
+              // حساب الربح للفاتورة
+              const profitResult = await calculateProfitImproved(inv, 'daily-update');
+              totalProfit += profitResult.profit || 0;
+            }
+            
+            // تحديث التقرير الموجود - استخدام شكل البيانات المطلوب
+            // نستخدم المعرف فقط لحذف التقرير القديم وإنشاء تقرير جديد محدث
+            await storage.deleteReportData(existingReport.id);
+            
+            // إنشاء تقرير جديد محدث
+            await storage.createReportData({
+              type: 'daily',
+              date: new Date(dailyDate), // تحويل التاريخ من نص إلى كائن Date
+              salesCount: orderCount,
+              revenue: totalSales,
+              profit: totalProfit,
+              cost: totalSales - totalProfit,
+              discounts: 0,
+              damages: 0
+            });
+            
+            console.log(`Updated daily report for ${dailyDate} with new profit data`);
           } else {
-            console.log('No existing daily report found, will create one on next report calculation');
+            console.log('No existing daily report found, creating one now');
+            
+            // إنشاء تقرير جديد للتاريخ إذا لم يكن موجودًا - بنفس الطريقة المباشرة
+            // استخدام بيانات الفاتورة الحالية
+            await storage.createReportData({
+              type: 'daily',
+              date: new Date(dailyDate), // تحويل التاريخ من نص إلى كائن Date
+              salesCount: 1,
+              revenue: parseFloat(String(updatedInvoiceData.total)) || 0,
+              profit: profitData.profit || 0,
+              cost: parseFloat(String(updatedInvoiceData.total)) - (profitData.profit || 0),
+              discounts: 0,
+              damages: 0
+            });
           }
         } catch (reportError) {
           console.error('Error recalculating profit after invoice update:', reportError);
@@ -3940,6 +3996,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/suppliers', supplierRoutes);
   app.use('/api/supplier-invoices', supplierInvoiceRoutes);
   app.use('/api/supplier-payments', supplierPaymentRoutes);
+
+  /**
+   * دالة لتحديث بيانات التقرير اليومي لتاريخ معين
+   * @param date - التاريخ المطلوب تحديثه
+   */
+  async function updateDailyReportData(date: string): Promise<void> {
+    try {
+      console.log(`[تحديث] بدء تحديث بيانات التقرير اليومي لتاريخ ${date}`);
+      
+      // الحصول على جميع الفواتير ليوم معين
+      const invoices = await storage.getAllInvoices();
+      const dateInvoices = invoices.filter(inv => {
+        const invDate = new Date(inv.createdAt);
+        const formattedInvDate = formatDateForReportType(invDate, 'daily');
+        return formattedInvDate === date && !inv.isDeleted;
+      });
+      
+      console.log(`[تحديث] تم العثور على ${dateInvoices.length} فاتورة للتاريخ ${date}`);
+      
+      // حساب إجماليات المبيعات والأرباح
+      let totalSales = 0;
+      let totalProfit = 0;
+      let orderCount = dateInvoices.length;
+      
+      for (const invoice of dateInvoices) {
+        // إضافة إجمالي المبيعات
+        totalSales += parseFloat(String(invoice.total)) || 0;
+        
+        // حساب الربح للفاتورة
+        const profitResult = await calculateProfitImproved(invoice, 'daily-update');
+        totalProfit += profitResult.profit || 0;
+      }
+      
+      // بيانات التقرير الجديدة
+      const newReportData = {
+        type: 'daily',
+        date,
+        sales: totalSales,
+        profit: totalProfit,
+        orders: orderCount,
+        updatedAt: new Date()
+      };
+      
+      // البحث عن تقرير موجود لتحديثه
+      const existingReports = await storage.getReportData('daily', date);
+      
+      if (existingReports && existingReports.length > 0) {
+        // تحديث التقرير الموجود
+        const existingReport = existingReports[0];
+        await storage.updateReportData(existingReport.id, newReportData);
+        console.log(`[تحديث] تم تحديث التقرير اليومي لتاريخ ${date} بنجاح`);
+      } else {
+        // إنشاء تقرير جديد
+        await storage.createReportData({
+          ...newReportData,
+          createdAt: new Date()
+        });
+        console.log(`[تحديث] تم إنشاء تقرير يومي جديد لتاريخ ${date}`);
+      }
+    } catch (error) {
+      console.error(`[تحديث] خطأ في تحديث بيانات التقرير اليومي:`, error);
+    }
+  }
+  
+  /**
+   * دالة لإنشاء وحفظ تقرير جديد لنوع وتاريخ معين
+   * @param type - نوع التقرير (daily, weekly, monthly, yearly)
+   * @param date - تاريخ التقرير
+   */
+  async function generateAndSaveReport(type: string, date: string): Promise<void> {
+    try {
+      console.log(`[إنشاء] بدء إنشاء تقرير ${type} لتاريخ ${date}`);
+      
+      // استخدام دالة generateReport من report-helpers.ts
+      const reportParams = { type, date };
+      const reportData = await generateReport(reportParams);
+      
+      if (!reportData) {
+        throw new Error(`فشل في إنشاء بيانات التقرير`);
+      }
+      
+      // تحويل بيانات التقرير إلى الشكل المطلوب للتخزين
+      const storedReportData = {
+        type,
+        date,
+        sales: reportData.totalSales || 0,
+        profit: reportData.totalProfit || 0,
+        orders: reportData.orderCount || 0,
+        updatedAt: new Date()
+      };
+      
+      // البحث عن تقرير موجود لتحديثه
+      const existingReports = await storage.getReportData(type, date);
+      
+      if (existingReports && existingReports.length > 0) {
+        // تحديث التقرير الموجود
+        const existingReport = existingReports[0];
+        await storage.updateReportData(existingReport.id, storedReportData);
+        console.log(`[إنشاء] تم تحديث التقرير الموجود من نوع ${type} لتاريخ ${date}`);
+      } else {
+        // إنشاء تقرير جديد
+        await storage.createReportData({
+          ...storedReportData,
+          createdAt: new Date()
+        });
+        console.log(`[إنشاء] تم إنشاء تقرير جديد من نوع ${type} لتاريخ ${date}`);
+      }
+    } catch (error) {
+      console.error(`[إنشاء] خطأ في إنشاء وحفظ التقرير:`, error);
+    }
+  }
 
   return httpServer;
 }
