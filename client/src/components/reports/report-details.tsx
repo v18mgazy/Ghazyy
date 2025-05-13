@@ -201,7 +201,7 @@ export default function ReportDetails({
             </CardTitle>
           </CardHeader>
           <CardContent className="relative">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 gap-6">
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
                   <TrendingUp className="h-4 w-4 text-primary/70" />
@@ -210,6 +210,38 @@ export default function ReportDetails({
                 <p className="text-2xl font-extrabold bg-gradient-to-r from-primary/90 to-primary/70 bg-clip-text text-transparent">
                   {formatCurrency(summaryGroups.sales.reduce((sum, sale) => sum + sale.amount, 0))}
                 </p>
+                
+                {/* في حالة وجود خصومات، نعرض النص بجانب الفاتورة */}
+                {(() => {
+                  // حساب إجمالي الخصومات المطبقة
+                  const totalDiscounts = summaryGroups.sales.reduce((sum, sale) => {
+                    return sum + (sale.discount || 0);
+                  }, 0);
+                  
+                  if (totalDiscounts > 0) {
+                    // حساب السعر الإجمالي قبل الخصم
+                    const totalBeforeDiscount = summaryGroups.sales.reduce((sum, sale) => {
+                      const subtotal = sale.subtotal || (sale.amount + (sale.discount || 0));
+                      return sum + subtotal;
+                    }, 0);
+                    
+                    // حساب النسبة المئوية للخصم
+                    const discountPercentage = ((totalDiscounts / totalBeforeDiscount) * 100).toFixed(1);
+                    
+                    return (
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+                        <span className="text-amber-600 dark:text-amber-400">
+                          {formatCurrency(totalDiscounts)}
+                        </span>
+                        <span className="text-muted-foreground">
+                          ({discountPercentage}% {t('total_discounts')})
+                        </span>
+                      </p>
+                    );
+                  }
+                  
+                  return null;
+                })()}
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
@@ -230,99 +262,55 @@ export default function ReportDetails({
                     return formatCurrency(totalProfit);
                   })()}
                 </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500/70">
-                    <line x1="19" y1="5" x2="5" y2="19"></line>
-                    <circle cx="6.5" cy="6.5" r="2.5"></circle>
-                    <circle cx="17.5" cy="17.5" r="2.5"></circle>
-                  </svg>
-                  {t('total_discounts')}
-                </p>
-                <p className="text-xl font-bold text-amber-600 dark:text-amber-400 flex items-baseline gap-2">
-                  {(() => {
-                    // حساب إجمالي الخصومات المطبقة
-                    const totalDiscounts = summaryGroups.sales.reduce((sum, sale) => {
-                      return sum + (sale.discount || 0);
+                
+                {/* في حالة وجود خصومات، نعرض تأثير الخصم على إجمالي الربح */}
+                {(() => {
+                  // حساب إجمالي الخصومات المطبقة
+                  const totalDiscounts = summaryGroups.sales.reduce((sum, sale) => {
+                    return sum + (sale.discount || 0);
+                  }, 0);
+                  
+                  if (totalDiscounts > 0) {
+                    // حساب الربح الفعلي
+                    const actualProfit = summaryGroups.sales.reduce((sum, sale) => {
+                      if (sale.profit === undefined || sale.profit === null || sale.profit === 0) {
+                        const estimatedProfit = sale.amount * 0.3;
+                        return sum + estimatedProfit;
+                      }
+                      return sum + sale.profit;
                     }, 0);
                     
-                    // إذا كانت هناك خصومات، نعرض تأثيرها على الربح
-                    if (totalDiscounts > 0) {
-                      // حساب السعر الإجمالي قبل الخصم
-                      const totalBeforeDiscount = summaryGroups.sales.reduce((sum, sale) => {
-                        const subtotal = sale.subtotal || (sale.amount + (sale.discount || 0));
-                        return sum + subtotal;
-                      }, 0);
-                      
-                      // حساب النسبة المئوية للخصم
-                      const discountPercentage = ((totalDiscounts / totalBeforeDiscount) * 100).toFixed(1);
-                      
-                      return (
-                        <>
-                          {formatCurrency(totalDiscounts)}
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">({discountPercentage}%)</span>
-                        </>
-                      );
-                    }
+                    // حساب الربح المقدر بدون خصم
+                    const totalWithoutDiscount = summaryGroups.sales.reduce((sum, sale) => {
+                      const subtotal = sale.subtotal || (sale.amount + (sale.discount || 0));
+                      return sum + subtotal;
+                    }, 0);
                     
-                    return formatCurrency(totalDiscounts);
-                  })()}
-                </p>
+                    // تقدير الربح بدون خصم باستخدام نفس نسبة الربح إلى المبيعات
+                    const totalSales = summaryGroups.sales.reduce((sum, sale) => sum + sale.amount, 0);
+                    const profitRatio = actualProfit / totalSales;
+                    const estimatedProfitWithoutDiscount = totalWithoutDiscount * profitRatio;
+                    
+                    // حساب نسبة تقليل الربح بسبب الخصم
+                    const profitReduction = estimatedProfitWithoutDiscount - actualProfit;
+                    const reductionPercentage = ((profitReduction / estimatedProfitWithoutDiscount) * 100).toFixed(1);
+                    
+                    return (
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+                        <span className="text-amber-600 dark:text-amber-400">
+                          {formatCurrency(profitReduction)}
+                        </span>
+                        <span className="text-muted-foreground">
+                          ({reductionPercentage}% {t('profit_reduction')})
+                        </span>
+                      </p>
+                    );
+                  }
+                  
+                  return null;
+                })()}
               </div>
             </div>
-            
-            {/* قسم تحليل تأثير الخصم على الربح */}
-            {(() => {
-              // حساب إجمالي الخصومات المطبقة
-              const totalDiscounts = summaryGroups.sales.reduce((sum, sale) => {
-                return sum + (sale.discount || 0);
-              }, 0);
-              
-              // إذا كانت هناك خصومات، نعرض تحليل تأثيرها على الربح
-              if (totalDiscounts > 0) {
-                // حساب الربح الفعلي
-                const actualProfit = summaryGroups.sales.reduce((sum, sale) => {
-                  if (sale.profit === undefined || sale.profit === null || sale.profit === 0) {
-                    const estimatedProfit = sale.amount * 0.3;
-                    return sum + estimatedProfit;
-                  }
-                  return sum + sale.profit;
-                }, 0);
-                
-                // حساب الربح المقدر بدون خصم
-                const totalWithoutDiscount = summaryGroups.sales.reduce((sum, sale) => {
-                  const subtotal = sale.subtotal || (sale.amount + (sale.discount || 0));
-                  return sum + subtotal;
-                }, 0);
-                
-                // تقدير الربح بدون خصم باستخدام نفس نسبة الربح إلى المبيعات
-                const totalSales = summaryGroups.sales.reduce((sum, sale) => sum + sale.amount, 0);
-                const profitRatio = actualProfit / totalSales;
-                const estimatedProfitWithoutDiscount = totalWithoutDiscount * profitRatio;
-                
-                // حساب نسبة تقليل الربح بسبب الخصم
-                const profitReduction = estimatedProfitWithoutDiscount - actualProfit;
-                const profitReductionPercentage = ((profitReduction / estimatedProfitWithoutDiscount) * 100).toFixed(1);
-                
-                return (
-                  <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-800">
-                    <div className="flex gap-2 text-sm text-gray-600 dark:text-gray-300 items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500/70"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                      <span className="font-medium">{t('discount_impact_analysis')}:</span> 
-                      <span className="text-amber-600 dark:text-amber-400 font-medium">
-                        {formatCurrency(profitReduction)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        ({profitReductionPercentage}% {t('profit_reduction')})
-                      </span>
-                    </div>
-                  </div>
-                );
-              }
-              
-              return null;
-            })()}
           </CardContent>
         </Card>
 
@@ -727,7 +715,6 @@ export default function ReportDetails({
                           <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('discount')}</TableHead>
                           <TableHead className="font-medium text-primary-dark dark:text-primary-light py-3">{t('status')}</TableHead>
                           <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('profit')}</TableHead>
-                          <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('discount_impact')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -802,42 +789,40 @@ export default function ReportDetails({
                               <div className="flex items-center justify-end">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500 mr-1.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
                                 {(() => {
-                                  // إذا كان الربح غير موجود أو 0، نحسبه تقديريًا كنسبة 30% من المبيعات
+                                  // احتساب الربح مع الخصم
                                   const rawProfit = report.profit;
+                                  
+                                  // إذا كان هناك خصم، سنعرض الربح بشكل واضح مع تأثير الخصم
+                                  if (report.discount && report.discount > 0) {
+                                    const subtotal = report.subtotal || (report.amount + report.discount);
+                                    // بناءً على نسبة الربح الحالية
+                                    const currentProfit = rawProfit || (report.amount * 0.3);
+                                    const profitWithoutDiscount = subtotal * (currentProfit / report.amount);
+                                    
+                                    // حساب نسبة تأثير الخصم على الربح
+                                    const profitReduction = profitWithoutDiscount - currentProfit;
+                                    const reductionPercentage = ((profitReduction / profitWithoutDiscount) * 100).toFixed(1);
+                                    
+                                    return (
+                                      <div className="flex flex-col">
+                                        <span>{formatCurrency(currentProfit)}</span>
+                                        <span className="text-xs text-amber-600 dark:text-amber-400">
+                                          ({reductionPercentage}% {t('profit_reduction')})
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+                                  
+                                  // إذا كان الربح غير موجود أو 0، نحسبه تقديريًا كنسبة 30% من المبيعات
                                   if (rawProfit === undefined || rawProfit === null || rawProfit === 0) {
                                     const estimatedProfit = report.amount * 0.3;
                                     return formatCurrency(estimatedProfit);
                                   }
+                                  
+                                  // الربح بدون خصم
                                   return formatCurrency(rawProfit);
                                 })()}
                               </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {(() => {
-                                // حساب تأثير الخصم على الربح
-                                if (report.discount && report.discount > 0) {
-                                  // حساب الربح المقدر بدون خصم
-                                  const subtotal = report.subtotal || (report.amount + report.discount);
-                                  // بناءً على نسبة الربح الحالية
-                                  const currentProfit = report.profit || (report.amount * 0.3);
-                                  const profitWithoutDiscount = subtotal * (currentProfit / report.amount);
-                                  
-                                  // حساب نسبة تأثير الخصم على الربح
-                                  const profitReduction = profitWithoutDiscount - currentProfit;
-                                  const reductionPercentage = ((profitReduction / profitWithoutDiscount) * 100).toFixed(1);
-                                  
-                                  return (
-                                    <div className="flex flex-col">
-                                      <span className="text-amber-600 dark:text-amber-400 text-xs">
-                                        {formatCurrency(profitReduction)}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground">({reductionPercentage}%)</span>
-                                    </div>
-                                  );
-                                }
-                                
-                                return <span className="text-muted-foreground">-</span>;
-                              })()}
                             </TableCell>
                           </TableRow>
                         ))}
