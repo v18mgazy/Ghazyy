@@ -181,6 +181,7 @@ export default function InvoiceManagementPage() {
       notes: string | null;
       products: InvoiceProduct[];
     }) => {
+      console.log('Updating invoice with data:', updateData);
       const { invoiceId, ...data } = updateData;
       
       // حساب إجماليات الفاتورة
@@ -230,10 +231,20 @@ export default function InvoiceManagementPage() {
         productProfits
       };
       
-      const res = await apiRequest('PATCH', `/api/invoices/${invoiceId}`, invoiceData);
-      return await res.json();
+      console.log('Sending invoice data to server:', invoiceData);
+      
+      try {
+        const res = await apiRequest('PUT', `/api/invoices/${invoiceId}`, invoiceData);
+        const responseData = await res.json();
+        console.log('Server response:', responseData);
+        return responseData;
+      } catch (error) {
+        console.error('API request error:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Invoice updated successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
       setEditDialogOpen(false);
@@ -383,17 +394,31 @@ export default function InvoiceManagementPage() {
     return customer?.phone || '';
   };
   
-  // فلترة الفواتير بناءً على البحث
+  // ترتيب الفواتير حسب التاريخ
+  const sortInvoices = (invoiceList: Invoice[]) => {
+    if (!Array.isArray(invoiceList)) return [];
+    
+    return [...invoiceList].sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.date || 0).getTime();
+      const dateB = new Date(b.createdAt || b.date || 0).getTime();
+      
+      return sortDirection === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+  };
+  
+  // فلترة الفواتير بناءً على البحث ثم ترتيبها
   const filteredInvoices = invoices
-    ? (Array.isArray(invoices) ? invoices : []).filter((invoice: Invoice) => {
-        const customerName = getCustomerName(invoice.customerId);
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          invoice.invoiceNumber?.toLowerCase().includes(searchLower) ||
-          customerName.toLowerCase().includes(searchLower) ||
-          String(invoice.total).includes(searchTerm)
-        );
-      })
+    ? sortInvoices(
+        (Array.isArray(invoices) ? invoices : []).filter((invoice: Invoice) => {
+          const customerName = getCustomerName(invoice.customerId);
+          const searchLower = searchTerm.toLowerCase();
+          return (
+            invoice.invoiceNumber?.toLowerCase().includes(searchLower) ||
+            customerName.toLowerCase().includes(searchLower) ||
+            String(invoice.total).includes(searchTerm)
+          );
+        })
+      )
     : [];
   
   // طباعة الفاتورة كملف PDF
@@ -493,25 +518,22 @@ export default function InvoiceManagementPage() {
       // إضافة الصورة إلى ملف PDF
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       
-      // تحميل الملف
+      // حفظ الملف كبلوب
       const pdfBlob = pdf.output('blob');
       
-      // إنشاء رابط WhatsApp
-      const formattedPhone = customerPhone.replace(/[^0-9]/g, '');
-      const message = encodeURIComponent(`${t('invoice')} ${selectedInvoice.invoiceNumber} - ${storeInfo?.name || ''}`);
-      const whatsappUrl = `https://wa.me/${formattedPhone}?text=${message}`;
+      // إنشاء رابط لفتح WhatsApp
+      const invoiceNumber = selectedInvoice.invoiceNumber || '';
+      const whatsappMessage = `${t('invoice')} ${invoiceNumber}`;
+      const whatsappUrl = `https://wa.me/${customerPhone}?text=${encodeURIComponent(whatsappMessage)}`;
       
-      // فتح واتساب
+      // فتح WhatsApp
       window.open(whatsappUrl, '_blank');
       
-      // تحميل الملف كملف PDF
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      const a = document.createElement('a');
-      a.href = pdfUrl;
-      a.download = `${t('invoice')}_${selectedInvoice.invoiceNumber}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // تنزيل الملف
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(pdfBlob);
+      link.download = `${t('invoice')}_${invoiceNumber}.pdf`;
+      link.click();
       
       toast({
         title: t('success'),
@@ -545,18 +567,6 @@ export default function InvoiceManagementPage() {
     setSortDirection(prev => prev === 'desc' ? 'asc' : 'desc');
   };
   
-  // ترتيب الفواتير حسب التاريخ
-  const sortInvoices = (invoiceList: Invoice[]) => {
-    if (!Array.isArray(invoiceList)) return [];
-    
-    return [...invoiceList].sort((a, b) => {
-      const dateA = new Date(a.createdAt || a.date || 0).getTime();
-      const dateB = new Date(b.createdAt || b.date || 0).getTime();
-      
-      return sortDirection === 'desc' ? dateB - dateA : dateA - dateB;
-    });
-  };
-  
   // فتح صفحة تعديل الفاتورة
   const handleEditInvoice = (invoice: Invoice) => {
     setInvoiceToEdit(invoice);
@@ -567,491 +577,169 @@ export default function InvoiceManagementPage() {
     
     // تعيين بيانات الفاتورة الأخرى
     setEditedCustomerId(invoice.customerId);
-    setEditedDiscount(Number(invoice.invoiceDiscount || 0));
+    setEditedDiscount(invoice.invoiceDiscount || invoice.discount || 0);
     setEditedPaymentMethod(invoice.paymentMethod || 'cash');
     setEditedNotes(invoice.notes || '');
     
-    // فتح مربع حوار التعديل
+    // فتح مربع الحوار
     setEditDialogOpen(true);
   };
   
-  // حساب إجمالي منتج بعد التعديل
-  const calculateProductTotal = (product: InvoiceProduct): number => {
-    const subtotal = product.price * product.quantity;
-    const discount = product.discount || 0;
-    return subtotal - discount;
-  };
-  
-  // تحديث كمية منتج في القائمة
-  const updateProductQuantity = (productId: number, quantity: number) => {
-    // التحقق من توفر الكمية في المخزون
-    const productsArray = Array.isArray(products) ? products : [];
-    const inventoryProduct = productsArray.find((p: any) => p.id === productId);
-    
-    if (inventoryProduct && invoiceToEdit) {
-      // الاستوك الحالي
-      const currentStock = inventoryProduct.stock || 0;
-      
-      // استخراج منتجات الفاتورة الأصلية
-      const originalProducts = parseProducts(invoiceToEdit);
-      
-      // العثور على المنتج في الفاتورة الأصلية
-      const originalProduct = originalProducts.find(p => p.productId === productId);
-      const originalQuantity = originalProduct ? originalProduct.quantity : 0;
-      
-      // حساب الكمية المتاحة = الاستوك الحالي + الكمية الأصلية في الفاتورة
-      const totalAvailable = currentStock + originalQuantity;
-      
-      // إذا كانت الكمية المطلوبة أكبر من المتوفر
-      if (quantity > totalAvailable) {
-        toast({
-          title: t('error'),
-          description: t('not_enough_stock', { available: totalAvailable }),
-          variant: 'destructive',
-        });
-        
-        // تعيين الكمية إلى الحد الأقصى المتوفر
-        quantity = totalAvailable;
-      }
-    }
-    
-    setEditedProducts(prevProducts => 
-      prevProducts.map(product => {
-        if (product.productId === productId) {
-          const updatedProduct = { 
-            ...product, 
-            quantity,
-            total: calculateProductTotal({ ...product, quantity })
-          };
-          return updatedProduct;
-        }
-        return product;
-      })
-    );
-  };
-  
-  // تحديث سعر منتج في القائمة
-  const updateProductPrice = (productId: number, price: number) => {
-    setEditedProducts(prevProducts => 
-      prevProducts.map(product => {
-        if (product.productId === productId) {
-          const updatedProduct = { 
-            ...product, 
-            price,
-            total: calculateProductTotal({ ...product, price })
-          };
-          return updatedProduct;
-        }
-        return product;
-      })
-    );
-  };
-  
-  // تحديث خصم منتج في القائمة
-  const updateProductDiscount = (productId: number, discount: number) => {
-    setEditedProducts(prevProducts => 
-      prevProducts.map(product => {
-        if (product.productId === productId) {
-          const updatedProduct = { 
-            ...product, 
-            discount,
-            total: calculateProductTotal({ ...product, discount })
-          };
-          return updatedProduct;
-        }
-        return product;
-      })
-    );
-  };
-  
-  // إزالة منتج من القائمة
-  const removeProduct = (productId: number) => {
-    setEditedProducts(prevProducts => 
-      prevProducts.filter(product => product.productId !== productId)
-    );
-  };
-  
-  // حفظ التعديلات
-  const handleSaveInvoice = () => {
+  // حفظ تعديلات الفاتورة
+  const saveInvoiceChanges = () => {
     if (!invoiceToEdit) return;
     
-    // التحقق من وجود منتجات
-    if (editedProducts.length === 0) {
-      toast({
-        title: t('error'),
-        description: t('invoice_must_have_products'),
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    // التحقق من صحة البيانات
-    const invalidProducts = editedProducts.filter(p => p.quantity <= 0 || p.price <= 0);
-    if (invalidProducts.length > 0) {
-      toast({
-        title: t('error'),
-        description: t('invalid_product_data'),
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    // التحقق من توفر المخزون قبل الحفظ - تجميع المنتجات حسب ال ID
-    const productsArray = Array.isArray(products) ? products : [];
-    
-    // استخراج منتجات الفاتورة الأصلية من invoiceToEdit
-    const originalProducts = parseProducts(invoiceToEdit);
-    
-    // تجميع المنتجات حسب المعرف مع جمع الكميات
-    const groupedProducts = new Map<number, { 
-      productId: number, 
-      productName: string, 
-      quantity: number 
-    }>();
-    
-    // تجميع المنتجات المعدلة
-    editedProducts.forEach(product => {
-      if (groupedProducts.has(product.productId)) {
-        // إذا كان المنتج موجودًا، زيادة الكمية
-        const existing = groupedProducts.get(product.productId)!;
-        existing.quantity += product.quantity;
-      } else {
-        // إذا لم يكن موجوداً، إضافة منتج جديد
-        groupedProducts.set(product.productId, {
-          productId: product.productId,
-          productName: product.productName,
-          quantity: product.quantity
-        });
-      }
-    });
-    
-    // تجميع المنتجات الأصلية
-    const originalGrouped = new Map<number, number>();
-    originalProducts.forEach(product => {
-      if (originalGrouped.has(product.productId)) {
-        // إذا كان المنتج موجودًا، زيادة الكمية
-        originalGrouped.set(
-          product.productId, 
-          originalGrouped.get(product.productId)! + product.quantity
-        );
-      } else {
-        // إذا لم يكن موجوداً، إضافة كمية جديدة
-        originalGrouped.set(product.productId, product.quantity);
-      }
-    });
-    
-    // حساب الكميات المطلوبة بعد التعديل (مع مراعاة الكميات الأصلية)
-    const inventoryCheck = Array.from(groupedProducts.values()).map(editedProduct => {
-      // البحث عن نفس المنتج في الفاتورة الأصلية
-      const originalQuantity = originalGrouped.get(editedProduct.productId) || 0;
-      
-      // البحث عن المنتج في المخزون
-      const inventoryProduct = productsArray.find((p: any) => p.id === editedProduct.productId);
-      const availableStock = inventoryProduct ? (inventoryProduct.stock || 0) : 0;
-      
-      // حساب الكمية الإضافية المطلوبة (إذا كانت الكمية الجديدة أكبر من الأصلية)
-      const additionalQuantity = Math.max(0, editedProduct.quantity - originalQuantity);
-      
-      return {
-        productId: editedProduct.productId,
-        productName: editedProduct.productName,
-        requiredQuantity: additionalQuantity,
-        availableStock,
-        isValid: additionalQuantity <= availableStock
-      };
-    });
-    
-    // التحقق من توفر جميع المنتجات
-    const invalidStockProducts = inventoryCheck.filter(p => !p.isValid);
-    
-    if (invalidStockProducts.length > 0) {
-      // عرض رسالة خطأ مع المنتجات التي لا تتوفر بالكميات المطلوبة
-      const productErrors = invalidStockProducts.map(p => 
-        `${p.productName}: ${t('required')} ${p.requiredQuantity}, ${t('available')} ${p.availableStock}`
-      ).join('\n');
-      
-      toast({
-        title: t('error'),
-        description: t('not_enough_stock_for_products') + '\n' + productErrors,
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    // تنفيذ تحديث الفاتورة
     updateInvoiceMutation.mutate({
       invoiceId: invoiceToEdit.id,
       customerId: editedCustomerId,
       discount: editedDiscount,
       paymentMethod: editedPaymentMethod,
       notes: editedNotes,
-      products: editedProducts,
+      products: editedProducts
     });
   };
   
-  // عرض تصميم الفاتورة للطباعة
-  const renderInvoicePreview = () => {
-    if (!selectedInvoice) return null;
-    
-    // تحليل بيانات المنتجات
-    const products = parseProducts(selectedInvoice);
-    
-    // حساب الإجماليات
-    const subtotal = Number(selectedInvoice.subtotal || 0);
-    const discount = Number(selectedInvoice.discount || 0) +
-                     Number(selectedInvoice.invoiceDiscount || 0) + 
-                     Number(selectedInvoice.itemsDiscount || 0);
-    const total = Number(selectedInvoice.total || 0);
-    
-    return (
-      <div id="invoice-preview" className="bg-white p-6 rounded-md shadow-sm">
-        {/* رأس الفاتورة - معلومات المتجر */}
-        <div className="text-center mb-4">
-          <h2 className="text-xl font-bold">{storeInfo ? (storeInfo as any).name || t('store') : t('store')}</h2>
-          <p className="text-sm text-gray-600">{storeInfo ? (storeInfo as any).address || '' : ''}</p>
-          <p className="text-sm text-gray-600">{storeInfo ? (storeInfo as any).phone || '' : ''}</p>
-        </div>
-        
-        {/* معلومات الفاتورة */}
-        <div className="flex justify-between mb-4">
-          <div>
-            <p className="text-sm">
-              <span className="font-semibold">{t('invoice_number')}: </span>
-              {selectedInvoice.invoiceNumber}
-            </p>
-            <p className="text-sm">
-              <span className="font-semibold">{t('customer')}: </span>
-              {getCustomerName(selectedInvoice.customerId)}
-            </p>
-          </div>
-          <div className="text-left">
-            <p className="text-sm">
-              <span className="font-semibold">{t('date')}: </span>
-              {formatDate(selectedInvoice.date || selectedInvoice.createdAt || new Date())}
-            </p>
-            <p className="text-sm">
-              <span className="font-semibold">{t('payment_method')}: </span>
-              {selectedInvoice.paymentMethod === 'cash' 
-                ? t('cash') 
-                : selectedInvoice.paymentMethod === 'card' 
-                  ? t('card') 
-                  : t('deferred')}
-            </p>
-          </div>
-        </div>
-        
-        <Separator className="my-2" />
-        
-        {/* جدول المنتجات */}
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="border p-2 text-sm text-right">{t('product')}</th>
-                <th className="border p-2 text-sm text-center">{t('quantity')}</th>
-                <th className="border p-2 text-sm text-center">{t('price')}</th>
-                <th className="border p-2 text-sm text-center">{t('discount')}</th>
-                <th className="border p-2 text-sm text-center">{t('total')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((product, index) => (
-                <tr key={index}>
-                  <td className="border p-2 text-sm text-right">{product.productName}</td>
-                  <td className="border p-2 text-sm text-center">{product.quantity}</td>
-                  <td className="border p-2 text-sm text-center">{product.price.toFixed(2)}</td>
-                  <td className="border p-2 text-sm text-center">
-                    {(product.discount || 0) > 0 ? product.discount?.toFixed(2) : '-'}
-                  </td>
-                  <td className="border p-2 text-sm text-center">{product.total.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* ملخص الفاتورة */}
-        <div className="mt-4 flex justify-end">
-          <div className="w-48">
-            <div className="flex justify-between py-1">
-              <span className="text-sm font-semibold">{t('subtotal')}:</span>
-              <span className="text-sm">{subtotal.toFixed(2)}</span>
-            </div>
-            
-            {discount > 0 && (
-              <div className="flex justify-between py-1">
-                <span className="text-sm font-semibold">{t('discount')}:</span>
-                <span className="text-sm text-red-600">-{discount.toFixed(2)}</span>
-              </div>
-            )}
-            
-            <Separator className="my-2" />
-            
-            <div className="flex justify-between py-1">
-              <span className="text-base font-bold">{t('total')}:</span>
-              <span className="text-base font-bold">{total.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* تذييل الفاتورة */}
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>{t('thank_you_for_shopping')}</p>
-          <p>{t('invoice_footer')}</p>
-        </div>
-      </div>
-    );
-  };
-  
-  // إذا كان التحميل جارٍ
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="h-12 w-12 rounded-full bg-primary/20 mb-4"></div>
-          <div className="h-4 w-48 bg-primary/20 rounded"></div>
-          <div className="h-3 w-36 bg-primary/10 rounded mt-3"></div>
-        </div>
-      </div>
-    );
-  }
-  
-  // معالجة حفظ معلومات المتجر
-  const handleSaveStoreInfo = () => {
-    if (!storeName || !storeAddress || !storePhone) {
-      toast({
-        title: t('error'),
-        description: t('please_fill_all_fields'),
-        variant: 'destructive',
-      });
-      return;
-    }
-    
+  // حفظ معلومات المتجر
+  const saveStoreInfo = () => {
     storeInfoMutation.mutate({
       name: storeName,
       address: storeAddress,
-      phone: storePhone,
+      phone: storePhone
     });
   };
-
+  
+  // حساب إجمالي المنتج
+  const calculateProductTotal = (product: InvoiceProduct): number => {
+    return (product.price * product.quantity) - (product.discount || 0);
+  };
+  
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <FileText className="h-6 w-6 text-primary" />
-            {t('invoice_management')}
-          </h1>
-          
-          {/* زر إعدادات المتجر */}
+    <div className="container p-4 mx-auto">
+      <h1 className="mb-6 text-3xl font-bold text-center">
+        {t('invoices_management')}
+      </h1>
+      
+      {/* شريط الأدوات */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+        <div>
           <Button 
-            variant="outline" 
-            size="sm" 
-            className="mt-2 sm:mt-0"
+            variant="outline"
             onClick={() => setStoreInfoDialogOpen(true)}
           >
-            <Settings className="h-4 w-4 mr-2" />
+            <Settings className="mr-2 h-4 w-4" />
             {t('store_settings')}
           </Button>
         </div>
         
-        {/* شريط البحث */}
-        <div className="relative w-full sm:w-auto min-w-[300px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
-          <Input
-            placeholder={t('search_invoices')}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-3"
-          />
-          {searchTerm && (
-            <X
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground cursor-pointer"
-              size={16}
-              onClick={() => setSearchTerm('')}
+        {/* شريط البحث وزر الترتيب */}
+        <div className="flex items-center gap-2">
+          <div className="relative w-full sm:w-auto min-w-[300px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
+            <Input
+              placeholder={t('search_invoices')}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-3"
             />
-          )}
+            {searchTerm && (
+              <X
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground cursor-pointer"
+                size={16}
+                onClick={() => setSearchTerm('')}
+              />
+            )}
+          </div>
+          
+          {/* زر ترتيب الفواتير */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleSortDirection}
+            title={sortDirection === 'desc' ? t('sort_oldest_first') : t('sort_newest_first')}
+            className="h-10 w-10 flex-shrink-0"
+          >
+            {sortDirection === 'desc' ? (
+              <ArrowDownUp className="h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="h-4 w-4" />
+            )}
+          </Button>
         </div>
       </div>
       
       {/* جدول الفواتير */}
       <Card>
         <CardContent className="p-0">
-          {filteredInvoices.length > 0 ? (
-            <div className="overflow-auto">
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : filteredInvoices.length === 0 ? (
+            <div className="flex flex-col justify-center items-center h-64 text-center">
+              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg text-muted-foreground">
+                {searchTerm ? t('no_invoices_found') : t('no_invoices_yet')}
+              </p>
+              {searchTerm && (
+                <Button 
+                  variant="link" 
+                  onClick={() => setSearchTerm('')}
+                  className="mt-2"
+                >
+                  {t('clear_search')}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[120px]">{t('invoice_number')}</TableHead>
-                    <TableHead>{t('date')}</TableHead>
-                    <TableHead>{t('customer')}</TableHead>
+                    <TableHead className="text-center">{t('invoice_number')}</TableHead>
+                    <TableHead className="text-center">{t('date')}</TableHead>
+                    <TableHead className="text-center">{t('customer')}</TableHead>
                     <TableHead className="text-center">{t('payment_method')}</TableHead>
-                    <TableHead className="text-center">{t('products_count')}</TableHead>
-                    <TableHead className="text-right">{t('total')}</TableHead>
+                    <TableHead className="text-center">{t('total')}</TableHead>
                     <TableHead className="text-center">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredInvoices.map((invoice: Invoice) => {
-                    const products = parseProducts(invoice);
+                    const customerName = getCustomerName(invoice.customerId);
+                    const paymentMethod = invoice.paymentMethod || 'cash';
+                    
                     return (
-                      <TableRow key={invoice.id} className="group">
-                        <TableCell className="font-medium">
-                          {invoice.invoiceNumber}
-                        </TableCell>
-                        <TableCell>
-                          {formatDate(invoice.date || invoice.createdAt || new Date())}
-                        </TableCell>
-                        <TableCell>{getCustomerName(invoice.customerId)}</TableCell>
+                      <TableRow key={invoice.id}>
+                        <TableCell className="text-center font-medium">{invoice.invoiceNumber}</TableCell>
+                        <TableCell className="text-center">{formatDate(invoice.createdAt || invoice.date)}</TableCell>
+                        <TableCell className="text-center">{customerName || t('unknown_customer')}</TableCell>
+                        <TableCell className="text-center">{t(paymentMethod)}</TableCell>
+                        <TableCell className="text-center">{invoice.total?.toLocaleString()}</TableCell>
                         <TableCell className="text-center">
-                          {invoice.paymentMethod === 'cash' ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                              {t('cash')}
-                            </span>
-                          ) : invoice.paymentMethod === 'card' ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                              {t('card')}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
-                              {t('deferred')}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {products.length}
-                        </TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {Number(invoice.total).toFixed(2)}
-                        </TableCell>
-                        <TableCell>
                           <div className="flex justify-center gap-2">
-                            <Button
-                              variant="ghost"
+                            <Button 
+                              variant="ghost" 
                               size="icon"
-                              className="h-8 w-8"
                               onClick={() => loadInvoiceDetails(invoice)}
                               title={t('view_details')}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
+                            <Button 
+                              variant="ghost" 
                               size="icon"
-                              className="h-8 w-8"
                               onClick={() => handleEditInvoice(invoice)}
-                              title={t('edit')}
+                              title={t('edit_invoice')}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
+                            <Button 
+                              variant="ghost" 
                               size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                               onClick={() => handleDeleteInvoice(invoice)}
-                              title={t('delete')}
+                              title={t('delete_invoice')}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
                         </TableCell>
@@ -1061,99 +749,141 @@ export default function InvoiceManagementPage() {
                 </TableBody>
               </Table>
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center min-h-[300px] p-4">
-              <div className="bg-muted/20 rounded-full p-4 mb-4">
-                <FileText className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-medium mb-1">{t('no_invoices_found')}</h3>
-              <p className="text-muted-foreground text-sm text-center max-w-md">
-                {searchTerm
-                  ? t('no_invoices_matching_search')
-                  : t('no_invoices_available')}
-              </p>
-            </div>
           )}
         </CardContent>
       </Card>
       
       {/* مربع حوار تفاصيل الفاتورة */}
-      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="sm:max-w-4xl">
+      <Dialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+      >
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              {t('invoice_details')} - {selectedInvoice?.invoiceNumber}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedInvoice && formatDate(selectedInvoice.date || selectedInvoice.createdAt || new Date())}
-            </DialogDescription>
+            <DialogTitle>{t('invoice_details')}</DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4">
-            {/* عرض تفاصيل الفاتورة */}
-            {renderInvoicePreview()}
-            
-            {/* أزرار إجراءات الفاتورة */}
-            <div className="flex flex-wrap justify-end gap-2 mt-4">
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={printInvoice}
-              >
-                <Printer className="h-4 w-4" />
-                {t('print')}
-              </Button>
+          {selectedInvoice && (
+            <div id="invoice-preview" className="bg-white p-6 rounded-lg shadow">
+              {/* بيانات المتجر */}
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold mb-1">{storeInfo && typeof storeInfo === 'object' && 'name' in storeInfo ? (storeInfo as any).name : t('store_name')}</h2>
+                <p className="text-muted-foreground">{storeInfo && typeof storeInfo === 'object' && 'address' in storeInfo ? (storeInfo as any).address : t('store_address')}</p>
+                <p className="text-muted-foreground">{storeInfo && typeof storeInfo === 'object' && 'phone' in storeInfo ? (storeInfo as any).phone : t('store_phone')}</p>
+              </div>
               
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={shareInvoicePDF}
-              >
-                <Share2 className="h-4 w-4" />
-                {t('share')}
-              </Button>
+              {/* معلومات الفاتورة */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <p><strong>{t('invoice_number')}:</strong> {selectedInvoice.invoiceNumber}</p>
+                  <p><strong>{t('date')}:</strong> {formatDate(selectedInvoice.createdAt || selectedInvoice.date)}</p>
+                </div>
+                <div className="text-end">
+                  <p><strong>{t('customer')}:</strong> {getCustomerName(selectedInvoice.customerId) || t('unknown_customer')}</p>
+                  <p><strong>{t('payment_method')}:</strong> {t(selectedInvoice.paymentMethod || 'cash')}</p>
+                </div>
+              </div>
               
-              <Button
-                variant="secondary"
-                className="gap-2"
-                onClick={() => handleEditInvoice(selectedInvoice as Invoice)}
-              >
-                <Pencil className="h-4 w-4" />
-                {t('edit')}
-              </Button>
+              {/* جدول المنتجات */}
+              <div className="border rounded-lg overflow-hidden mb-6">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="px-4 py-2 text-start">{t('product')}</th>
+                      <th className="px-4 py-2 text-center">{t('quantity')}</th>
+                      <th className="px-4 py-2 text-center">{t('price')}</th>
+                      <th className="px-4 py-2 text-center">{t('discount')}</th>
+                      <th className="px-4 py-2 text-end">{t('total')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {parseProducts(selectedInvoice).map((product, index) => (
+                      <tr key={index}>
+                        <td className="px-4 py-2 text-start">{product.productName}</td>
+                        <td className="px-4 py-2 text-center">{product.quantity}</td>
+                        <td className="px-4 py-2 text-center">{product.price.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-center">{(product.discount || 0).toLocaleString()}</td>
+                        <td className="px-4 py-2 text-end">{calculateProductTotal(product).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               
-              <Button
-                variant="destructive"
-                className="gap-2"
-                onClick={() => {
-                  setDetailsDialogOpen(false);
-                  handleDeleteInvoice(selectedInvoice as Invoice);
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-                {t('delete')}
-              </Button>
+              {/* الإجماليات */}
+              <div className="flex flex-col items-end space-y-1 mb-6">
+                <div className="flex justify-between w-64">
+                  <span>{t('subtotal')}:</span>
+                  <span>{(selectedInvoice.subtotal || 0).toLocaleString()}</span>
+                </div>
+                {(selectedInvoice.itemsDiscount || 0) > 0 && (
+                  <div className="flex justify-between w-64 text-muted-foreground">
+                    <span>{t('items_discount')}:</span>
+                    <span>- {(selectedInvoice.itemsDiscount || 0).toLocaleString()}</span>
+                  </div>
+                )}
+                {(selectedInvoice.invoiceDiscount || 0) > 0 && (
+                  <div className="flex justify-between w-64 text-muted-foreground">
+                    <span>{t('invoice_discount')}:</span>
+                    <span>- {(selectedInvoice.invoiceDiscount || 0).toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between w-64 font-bold border-t pt-1 mt-1">
+                  <span>{t('total')}:</span>
+                  <span>{(selectedInvoice.total || 0).toLocaleString()}</span>
+                </div>
+              </div>
+              
+              {/* ملاحظات */}
+              {selectedInvoice.notes && (
+                <div className="mb-6">
+                  <p className="font-semibold">{t('notes')}:</p>
+                  <p className="text-muted-foreground">{selectedInvoice.notes}</p>
+                </div>
+              )}
             </div>
-          </div>
+          )}
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDetailsDialogOpen(false)}
+            >
+              {t('close')}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={printInvoice}
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              {t('print')}
+            </Button>
+            <Button 
+              onClick={shareInvoicePDF}
+            >
+              <Share2 className="mr-2 h-4 w-4" />
+              {t('share')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       
-      {/* مربع حوار تأكيد الحذف */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      {/* مربع حوار حذف الفاتورة */}
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('confirm_delete')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('delete_invoice_confirmation', {
-                invoiceNumber: invoiceToDelete?.invoiceNumber
-              })}
+              {t('confirm_delete_invoice_description')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
+            <AlertDialogAction 
+              onClick={confirmDelete} 
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {t('delete')}
@@ -1162,14 +892,14 @@ export default function InvoiceManagementPage() {
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* مربع حوار معلومات المتجر */}
-      <Dialog open={storeInfoDialogOpen} onOpenChange={setStoreInfoDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+      {/* مربع حوار إعدادات المتجر */}
+      <Dialog
+        open={storeInfoDialogOpen}
+        onOpenChange={setStoreInfoDialogOpen}
+      >
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              {t('store_settings')}
-            </DialogTitle>
+            <DialogTitle>{t('store_settings')}</DialogTitle>
             <DialogDescription>
               {t('store_settings_description')}
             </DialogDescription>
@@ -1177,367 +907,241 @@ export default function InvoiceManagementPage() {
           
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <label htmlFor="storeName" className="text-sm font-medium">
+              <label htmlFor="store-name" className="text-sm font-medium">
                 {t('store_name')}
               </label>
               <Input
-                id="storeName"
+                id="store-name"
                 value={storeName}
                 onChange={(e) => setStoreName(e.target.value)}
                 placeholder={t('enter_store_name')}
-                required
               />
             </div>
             
             <div className="grid gap-2">
-              <label htmlFor="storeAddress" className="text-sm font-medium">
+              <label htmlFor="store-address" className="text-sm font-medium">
                 {t('store_address')}
               </label>
               <Input
-                id="storeAddress"
+                id="store-address"
                 value={storeAddress}
                 onChange={(e) => setStoreAddress(e.target.value)}
                 placeholder={t('enter_store_address')}
-                required
               />
             </div>
             
             <div className="grid gap-2">
-              <label htmlFor="storePhone" className="text-sm font-medium">
+              <label htmlFor="store-phone" className="text-sm font-medium">
                 {t('store_phone')}
               </label>
               <Input
-                id="storePhone"
+                id="store-phone"
                 value={storePhone}
                 onChange={(e) => setStorePhone(e.target.value)}
                 placeholder={t('enter_store_phone')}
-                required
               />
             </div>
           </div>
           
           <DialogFooter>
-            <Button
-              variant="outline"
+            <Button 
+              variant="outline" 
               onClick={() => setStoreInfoDialogOpen(false)}
             >
               {t('cancel')}
             </Button>
-            
-            <Button
-              type="submit"
-              onClick={handleSaveStoreInfo}
-              disabled={storeInfoMutation.isPending}
-            >
-              {storeInfoMutation.isPending ? (
-                <>
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                  {t('saving')}...
-                </>
-              ) : (
-                t('save_changes')
-              )}
+            <Button onClick={saveStoreInfo}>
+              {t('save')}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* مربع حوار تعديل الفاتورة */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-4xl">
+      <Dialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      >
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="h-5 w-5" />
-              {t('edit_invoice')} - {invoiceToEdit?.invoiceNumber}
-            </DialogTitle>
+            <DialogTitle>{t('edit_invoice')}</DialogTitle>
             <DialogDescription>
               {t('edit_invoice_description')}
             </DialogDescription>
           </DialogHeader>
           
           {invoiceToEdit && (
-            <div className="space-y-6 py-4">
-              {/* معلومات العميل */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium">{t('customer_information')}</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label htmlFor="customer" className="text-sm font-medium">
-                      {t('customer')}
-                    </label>
-                    <select
-                      id="customer"
-                      className="w-full p-2 border rounded-md"
-                      value={editedCustomerId || ''}
-                      onChange={(e) => setEditedCustomerId(Number(e.target.value) || null)}
-                    >
-                      <option value="">{t('select_customer')}</option>
-                      {Array.isArray(customers) && customers.map((customer: any) => (
-                        <option key={customer.id} value={customer.id}>
-                          {customer.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <label htmlFor="paymentMethod" className="text-sm font-medium">
-                      {t('payment_method')}
-                    </label>
-                    <select
-                      id="paymentMethod"
-                      className="w-full p-2 border rounded-md"
-                      value={editedPaymentMethod}
-                      onChange={(e) => setEditedPaymentMethod(e.target.value)}
-                    >
-                      <option value="cash">{t('cash')}</option>
-                      <option value="card">{t('card')}</option>
-                      <option value="deferred">{t('deferred')}</option>
-                    </select>
-                  </div>
+            <div className="grid gap-4 py-4">
+              {/* بيانات العميل والفاتورة */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">
+                    {t('invoice_number')}
+                  </label>
+                  <Input
+                    value={invoiceToEdit.invoiceNumber || ''}
+                    readOnly
+                    disabled
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">
+                    {t('customer')}
+                  </label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={editedCustomerId || ''}
+                    onChange={(e) => setEditedCustomerId(e.target.value ? parseInt(e.target.value) : null)}
+                  >
+                    <option value="">{t('select_customer')}</option>
+                    {Array.isArray(customers) && customers.map((customer: Customer) => (
+                      <option key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">
+                    {t('discount')}
+                  </label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editedDiscount}
+                    onChange={(e) => setEditedDiscount(parseFloat(e.target.value) || 0)}
+                    placeholder={t('enter_discount')}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">
+                    {t('payment_method')}
+                  </label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={editedPaymentMethod}
+                    onChange={(e) => setEditedPaymentMethod(e.target.value)}
+                  >
+                    <option value="cash">{t('cash')}</option>
+                    <option value="card">{t('card')}</option>
+                    <option value="deferred">{t('deferred')}</option>
+                  </select>
+                </div>
+                
+                <div className="grid gap-2 md:col-span-2">
+                  <label className="text-sm font-medium">
+                    {t('notes')}
+                  </label>
+                  <Input
+                    value={editedNotes}
+                    onChange={(e) => setEditedNotes(e.target.value)}
+                    placeholder={t('enter_notes')}
+                  />
                 </div>
               </div>
               
               {/* جدول المنتجات */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium">{t('invoice_products')}</h3>
-                <div className="overflow-x-auto border rounded-md">
-                  <table className="w-full">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        <th className="p-2 text-start">{t('product')}</th>
-                        <th className="p-2 text-center">{t('quantity')}</th>
-                        <th className="p-2 text-center">{t('price')}</th>
-                        <th className="p-2 text-center">{t('discount')}</th>
-                        <th className="p-2 text-center">{t('total')}</th>
-                        <th className="p-2 text-center">{t('actions')}</th>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="px-4 py-2 text-start">{t('product')}</th>
+                      <th className="px-4 py-2 text-center">{t('quantity')}</th>
+                      <th className="px-4 py-2 text-center">{t('price')}</th>
+                      <th className="px-4 py-2 text-center">{t('discount')}</th>
+                      <th className="px-4 py-2 text-end">{t('total')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {editedProducts.map((product, index) => (
+                      <tr key={index}>
+                        <td className="px-4 py-2 text-start">{product.productName}</td>
+                        <td className="px-4 py-2 text-center">
+                          <Input
+                            type="number"
+                            min="1"
+                            value={product.quantity}
+                            onChange={(e) => {
+                              const newProducts = [...editedProducts];
+                              newProducts[index].quantity = parseInt(e.target.value) || 1;
+                              newProducts[index].total = calculateProductTotal(newProducts[index]);
+                              setEditedProducts(newProducts);
+                            }}
+                            className="max-w-[80px] mx-auto text-center"
+                          />
+                        </td>
+                        <td className="px-4 py-2 text-center">{product.price.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-center">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={product.discount || 0}
+                            onChange={(e) => {
+                              const newProducts = [...editedProducts];
+                              newProducts[index].discount = parseFloat(e.target.value) || 0;
+                              newProducts[index].total = calculateProductTotal(newProducts[index]);
+                              setEditedProducts(newProducts);
+                            }}
+                            className="max-w-[80px] mx-auto text-center"
+                          />
+                        </td>
+                        <td className="px-4 py-2 text-end">{calculateProductTotal(product).toLocaleString()}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {editedProducts.map((product) => (
-                        <tr key={product.productId} className="border-t">
-                          <td className="p-2">{product.productName}</td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              min="1"
-                              className="w-20 text-center mx-auto"
-                              value={product.quantity}
-                              onChange={(e) => updateProductQuantity(product.productId, Number(e.target.value))}
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              className="w-24 text-center mx-auto"
-                              value={product.price}
-                              onChange={(e) => updateProductPrice(product.productId, Number(e.target.value))}
-                            />
-                          </td>
-                          <td className="p-2">
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              className="w-24 text-center mx-auto"
-                              value={product.discount || 0}
-                              onChange={(e) => updateProductDiscount(product.productId, Number(e.target.value))}
-                            />
-                          </td>
-                          <td className="p-2 text-center font-medium">
-                            {product.total.toFixed(2)}
-                          </td>
-                          <td className="p-2 text-center">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive"
-                              onClick={() => removeProduct(product.productId)}
-                              title={t('remove')}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                
-                {/* إضافة منتج جديد */}
-                <div className="space-y-1 pt-2">
-                  <h4 className="text-sm font-medium">{t('add_product')}</h4>
-                  <div className="flex flex-wrap gap-2">
-                    <select
-                      className="p-2 border rounded-md flex-1"
-                      onChange={(e) => {
-                        const productId = Number(e.target.value);
-                        if (!productId) return;
-                        
-                        // العثور على المنتج من قائمة المنتجات
-                        const productsArray = Array.isArray(products) ? products : [];
-                        const product = productsArray.find((p: any) => p.id === productId);
-                        if (!product) return;
-                        
-                        // التحقق من وجود المنتج في القائمة
-                        const existingProduct = editedProducts.find(p => p.productId === productId);
-                        
-                        // التحقق من توفر الكمية في المخزون
-                        const stock = product.stock || 0;
-                        
-                        // استخراج منتجات الفاتورة الأصلية
-                        const originalProducts = invoiceToEdit ? parseProducts(invoiceToEdit) : [];
-                        
-                        // العثور على نفس المنتج في الفاتورة الأصلية
-                        const originalProduct = originalProducts.find(p => p.productId === productId);
-                        const originalQuantity = originalProduct ? originalProduct.quantity : 0;
-                        
-                        // حساب الكمية المتاحة للإضافة = الاستوك الحالي + الكمية الأصلية في الفاتورة - الكمية المستخدمة بالفعل في الفاتورة المعدلة
-                        const currentUsedQuantity = existingProduct ? existingProduct.quantity : 0;
-                        const availableToAdd = stock + originalQuantity - currentUsedQuantity;
-                        
-                        if (availableToAdd <= 0) {
-                          toast({
-                            title: t('error'),
-                            description: t('product_out_of_stock'),
-                            variant: 'destructive',
-                          });
-                          return;
-                        }
-                        
-                        // إذا كان المنتج موجود بالفعل في القائمة، نزيد الكمية بدلاً من إضافة سطر جديد
-                        if (existingProduct) {
-                          // زيادة الكمية بواحد فقط
-                          updateProductQuantity(productId, existingProduct.quantity + 1);
-                          return;
-                        }
-                        
-                        // إضافة المنتج إلى القائمة
-                        setEditedProducts([
-                          ...editedProducts,
-                          {
-                            productId: product.id,
-                            productName: product.name,
-                            barcode: product.barcode,
-                            quantity: 1,
-                            price: product.sellingPrice,
-                            purchasePrice: product.purchasePrice,
-                            discount: 0,
-                            total: product.sellingPrice
-                          }
-                        ]);
-                        
-                        // إعادة القائمة المنسدلة إلى الوضع الافتراضي
-                        e.target.value = '';
-                      }}
-                    >
-                      <option value="">{t('select_product')}</option>
-                      {Array.isArray(products) && products.map((product: any) => (
-                        <option key={product.id} value={product.id}>
-                          {product.name} - {t('stock')}: {product.stock} - {t('price')}: {product.sellingPrice}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
               
-              {/* ملخص الفاتورة */}
-              <div className="pt-4 border-t space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between gap-4">
-                  {/* ملاحظات الفاتورة */}
-                  <div className="space-y-1 flex-1">
-                    <label htmlFor="notes" className="text-sm font-medium">
-                      {t('notes')}
-                    </label>
-                    <Input
-                      id="notes"
-                      placeholder={t('enter_notes')}
-                      value={editedNotes || ''}
-                      onChange={(e) => setEditedNotes(e.target.value)}
-                    />
-                  </div>
-                  
-                  {/* خصم الفاتورة */}
-                  <div className="space-y-1 w-full sm:w-48">
-                    <label htmlFor="discount" className="text-sm font-medium">
-                      {t('invoice_discount')}
-                    </label>
-                    <Input
-                      id="discount"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={editedDiscount}
-                      onChange={(e) => setEditedDiscount(Number(e.target.value))}
-                    />
-                  </div>
+              {/* الإجماليات */}
+              <div className="flex flex-col items-end space-y-1">
+                <div className="flex justify-between w-64">
+                  <span>{t('subtotal')}:</span>
+                  <span>
+                    {editedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0).toLocaleString()}
+                  </span>
                 </div>
                 
-                {/* إجماليات الفاتورة */}
-                <div className="space-y-2 w-full sm:w-72 ml-auto">
-                  <div className="flex justify-between">
-                    <span className="text-sm">{t('subtotal')}:</span>
-                    <span className="font-medium">
-                      {editedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0).toFixed(2)}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between">
-                    <span className="text-sm">{t('products_discount')}:</span>
-                    <span className="font-medium text-red-500">
-                      -{editedProducts.reduce((sum, product) => sum + (product.discount || 0), 0).toFixed(2)}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between">
-                    <span className="text-sm">{t('invoice_discount')}:</span>
-                    <span className="font-medium text-red-500">
-                      -{editedDiscount.toFixed(2)}
-                    </span>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="flex justify-between">
-                    <span className="font-medium">{t('total')}:</span>
-                    <span className="font-bold">
-                      {(
-                        editedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0) -
-                        editedProducts.reduce((sum, product) => sum + (product.discount || 0), 0) -
-                        editedDiscount
-                      ).toFixed(2)}
-                    </span>
-                  </div>
+                <div className="flex justify-between w-64 text-muted-foreground">
+                  <span>{t('items_discount')}:</span>
+                  <span>
+                    - {editedProducts.reduce((sum, product) => sum + (product.discount || 0), 0).toLocaleString()}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between w-64 text-muted-foreground">
+                  <span>{t('invoice_discount')}:</span>
+                  <span>- {editedDiscount.toLocaleString()}</span>
+                </div>
+                
+                <div className="flex justify-between w-64 font-bold border-t pt-1 mt-1">
+                  <span>{t('total')}:</span>
+                  <span>
+                    {(
+                      editedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0) - 
+                      editedProducts.reduce((sum, product) => sum + (product.discount || 0), 0) - 
+                      editedDiscount
+                    ).toLocaleString()}
+                  </span>
                 </div>
               </div>
             </div>
           )}
           
           <DialogFooter>
-            <Button
-              variant="outline"
+            <Button 
+              variant="outline" 
               onClick={() => setEditDialogOpen(false)}
             >
               {t('cancel')}
             </Button>
-            
-            <Button
-              type="submit"
-              onClick={handleSaveInvoice}
-              disabled={updateInvoiceMutation.isPending}
+            <Button 
+              onClick={saveInvoiceChanges}
+              disabled={!invoiceToEdit || editedProducts.length === 0}
             >
-              {updateInvoiceMutation.isPending ? (
-                <>
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                  {t('saving')}...
-                </>
-              ) : (
-                t('save_changes')
-              )}
+              {t('save_changes')}
             </Button>
           </DialogFooter>
         </DialogContent>

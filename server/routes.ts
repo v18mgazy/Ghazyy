@@ -31,48 +31,101 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
     
     // تسجيل معلومات الفاتورة للمساعدة في التصحيح
     console.log(`[حساب الربح - تحسين] [${reportType}] بدء حساب الربح للفاتورة ID: ${invoice.id || 'غير معروف'}, رقم: ${invoice.invoiceNumber || 'غير معروف'}`);
+    console.log(`[حساب الربح - تحسين] [${reportType}] بيانات الفاتورة: `, JSON.stringify(invoice, null, 2).slice(0, 200) + '...');
     
     // التحقق من وجود أي بيانات للمنتجات
-    if (!invoice.productData && !invoice.productsData) {
+    if (!invoice.productData && !invoice.productsData && !invoice.productIds) {
       console.warn(`[حساب الربح - تحسين] [${reportType}] بيانات المنتجات غير موجودة في الفاتورة ${invoice.id || 'غير معروف'}`);
+      console.warn(`[حساب الربح - تحسين] الحقول المتاحة: ${Object.keys(invoice).join(', ')}`);
       // في حالة عدم وجود بيانات للمنتجات، نعيد كائن النتيجة مع قيم صفرية
       return { profit: 0, profitWithoutDiscount: 0, profitReduction: 0, totalDiscountAmount: 0 };
     }
 
-    // تحديد أي حقل نستخدم (productData أو productsData)
-    let sourceField = invoice.productData ? 'productData' : 'productsData';
+    // تحديد مصدر بيانات المنتجات:
+    // 1. productsData (التنسيق الجديد - JSON)
+    // 2. productIds, productPrices, etc. (التنسيق الجديد - حقول منفصلة)
+    // 3. productData (التنسيق القديم)
     
-    // محاولة تحليل بيانات المنتج إذا كانت سلسلة نصية
-    let productData;
-    if (typeof invoice[sourceField] === 'string') {
-      try {
-        productData = JSON.parse(invoice[sourceField]);
-      } catch (e) {
-        console.error(`[${reportType}] خطأ في تحليل بيانات المنتج (${sourceField}): ${e instanceof Error ? e.message : String(e)}`);
-        
-        // في حالة الفشل في التحليل، نسجل ملاحظة ونعيد صفر
-        console.warn(`[حساب الربح] [${reportType}] فشل في تحليل بيانات المنتجات للفاتورة ${invoice.id || 'غير معروف'}`);
-        return 0;
+    let productData = [];
+    
+    // محاولة استخراج البيانات من productsData
+    if (invoice.productsData) {
+      console.log(`[حساب الربح - تحسين] [${reportType}] استخدام حقل productsData للفاتورة ${invoice.id}`);
+      if (typeof invoice.productsData === 'string') {
+        try {
+          productData = JSON.parse(invoice.productsData);
+          console.log(`[حساب الربح - تحسين] [${reportType}] تم تحليل بيانات المنتج بنجاح، وجدنا ${productData.length} منتج`);
+        } catch (e) {
+          console.error(`[${reportType}] خطأ في تحليل بيانات المنتج (productsData): ${e instanceof Error ? e.message : String(e)}`);
+          // نحاول الوصول إلى البيانات من الحقول المنفصلة
+          console.log(`[حساب الربح - تحسين] [${reportType}] محاولة استخدام الحقول المنفصلة للفاتورة ${invoice.id}`);
+        }
+      } else {
+        productData = invoice.productsData;
+        console.log(`[حساب الربح - تحسين] [${reportType}] productsData ليس نصاً، ولكن كائن من النوع: ${typeof invoice.productsData}`);
       }
-    } else {
-      productData = invoice[sourceField];
+    } 
+    
+    // إذا لم نجد بيانات المنتج في productsData، نحاول استخدام الحقول المنفصلة
+    if (productData.length === 0 && invoice.productIds && Array.isArray(invoice.productIds)) {
+      console.log(`[حساب الربح - تحسين] [${reportType}] استخدام الحقول المنفصلة للفاتورة ${invoice.id}`);
+      // استخراج البيانات من الحقول المنفصلة
+      const productIds = invoice.productIds || [];
+      const productNames = invoice.productNames || [];
+      const productQuantities = invoice.productQuantities || [];
+      const productPrices = invoice.productPrices || [];
+      const productPurchasePrices = invoice.productPurchasePrices || [];
+      const productDiscounts = invoice.productDiscounts || [];
+      
+      // تجميع بيانات المنتجات من الحقول المنفصلة
+      for (let i = 0; i < productIds.length; i++) {
+        productData.push({
+          productId: productIds[i],
+          productName: productNames[i] || 'غير معروف',
+          quantity: productQuantities[i] || 0,
+          price: productPrices[i] || 0,
+          purchasePrice: productPurchasePrices[i] || 0,
+          discount: productDiscounts[i] || 0
+        });
+      }
+      console.log(`[حساب الربح - تحسين] [${reportType}] تم تجميع ${productData.length} منتج من الحقول المنفصلة`);
+    }
+    
+    // إذا لم نجد بيانات المنتج حتى الآن، نحاول استخدام productData (التنسيق القديم)
+    if (productData.length === 0 && invoice.productData) {
+      console.log(`[حساب الربح - تحسين] [${reportType}] محاولة استخدام حقل productData (التنسيق القديم) للفاتورة ${invoice.id}`);
+      if (typeof invoice.productData === 'string') {
+        try {
+          productData = JSON.parse(invoice.productData);
+        } catch (e) {
+          console.error(`[${reportType}] خطأ في تحليل بيانات المنتج (productData): ${e instanceof Error ? e.message : String(e)}`);
+          return { profit: 0, profitWithoutDiscount: 0, profitReduction: 0, totalDiscountAmount: 0 };
+        }
+      } else {
+        productData = invoice.productData;
+      }
     }
 
     // التحقق من أن البيانات على شكل مصفوفة
     if (!Array.isArray(productData)) {
       console.warn(`[${reportType}] بيانات المنتج ليست مصفوفة: ${typeof productData}`);
-      // نعيد صفر في حالة كانت البيانات غير صحيحة
-      return 0;
+      // نعيد كائن النتيجة مع قيم صفرية
+      return { profit: 0, profitWithoutDiscount: 0, profitReduction: 0, totalDiscountAmount: 0 };
     }
 
     // في حالة المصفوفة فارغة
     if (productData.length === 0) {
       console.warn(`[${reportType}] مصفوفة بيانات المنتج فارغة للفاتورة ${invoice.id || 'غير معروف'}`);
       // في حالة عدم وجود منتجات، لا يمكن حساب الربح
-      return 0;
+      return { profit: 0, profitWithoutDiscount: 0, profitReduction: 0, totalDiscountAmount: 0 };
     }
-
+    
+    console.log(`[حساب الربح - تحسين] [${reportType}] بدء حساب الربح مع ${productData.length} منتج`);
+    
     let totalProfit = 0;
+    let profitWithoutAnyDiscount = 0;
+    let invoiceDiscountTotal = 0;
+    
     for (const product of productData) {
       // استخراج بيانات المنتج مع مراعاة اختلاف أسماء الحقول المحتملة
       let purchasePrice = parseFloat(product.purchasePrice) || 0;
@@ -80,6 +133,10 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
       const quantity = parseInt(product.quantity) || 0;
       const productId = product.productId || product.id;
       const barcode = product.barcode;
+      
+      // للتصحيح
+      console.log(`[حساب الربح - تحسين] بيانات المنتج [${productId}]: `, 
+        `سعر الشراء=${purchasePrice}, سعر البيع=${sellingPrice}, الكمية=${quantity}`);
       
       // إذا كان سعر البيع صفر أو كمية صفر، نتخطى هذا المنتج
       if (sellingPrice <= 0 || quantity <= 0) {
@@ -174,9 +231,9 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
 
     // حساب إجمالي قيمة الخصم المباشرة (لم نعد نستخدم النسب المئوية)
     // 1. حصر جميع أنواع الخصومات (كلها قيم مباشرة)
-    const invoiceDiscountAmount = invoice.invoiceDiscount ? Number(invoice.invoiceDiscount) : 0;
-    const itemsDiscountAmount = invoice.itemsDiscount ? Number(invoice.itemsDiscount) : 0;
-    const generalDiscountAmount = invoice.discount ? Number(invoice.discount) : 0;
+    let invoiceDiscountAmount = invoice.invoiceDiscount ? Number(invoice.invoiceDiscount) : 0;
+    let itemsDiscountAmount = invoice.itemsDiscount ? Number(invoice.itemsDiscount) : 0;
+    let generalDiscountAmount = invoice.discount ? Number(invoice.discount) : 0;
     
     // معلومات الفاتورة للتصحيح
     const subtotal = invoice.subtotal ? Number(invoice.subtotal) : 0;
@@ -202,7 +259,8 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
     }
     
     // 4. تحضير معلومات إضافية للتقارير
-    const totalDiscountAmount = invoiceDiscountAmount + itemsDiscountAmount + generalDiscountAmount;
+    // حساب إجمالي الخصم من المكونات المحسوبة مسبقًا
+    const calculatedTotalDiscountAmount = invoiceDiscountAmount + itemsDiscountAmount + generalDiscountAmount;
     // حساب الربح قبل تطبيق الخصم
     // نحسب الربح قبل الخصم من المنتجات مباشرة
     let profitWithoutDiscount = 0;
@@ -242,7 +300,7 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
     
     console.log(`[حساب الربح - تحسين] [${reportType}] معلومات الخصم والربح:`);
     console.log(`  - الربح قبل الخصم: ${profitWithoutDiscount}`);
-    console.log(`  - الخصم الكلي: ${totalDiscountAmount}`);
+    console.log(`  - الخصم الكلي: ${calculatedTotalDiscountAmount}`);
     console.log(`  - تأثير الخصم على الربح: ${profitReduction}`);
     console.log(`  - الربح النهائي: ${totalProfit}`);
     
@@ -251,7 +309,7 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
       profit: totalProfit > 0 ? totalProfit : 0,
       profitWithoutDiscount,
       profitReduction,
-      totalDiscountAmount,
+      totalDiscountAmount: calculatedTotalDiscountAmount,
       discountDetails: {
         invoiceDiscountAmount,
         itemsDiscountAmount,
@@ -910,7 +968,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // تعديل الفاتورة
+  // تعديل الفاتورة - دعم كل من PUT و PATCH
   app.put('/api/invoices/:id', async (req, res) => {
     try {
       const { id } = req.params;
@@ -934,15 +992,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // استخراج معرف العميل إذا تم تغييره
       let customerId = req.body.customerId;
-      if (customerId !== undefined && typeof customerId === 'string') {
-        customerId = parseInt(customerId);
+      
+      // معالجة قيمة customerId
+      if (customerId !== undefined) {
+        // إذا كان نصًا، نحاول تحويله لرقم
+        if (typeof customerId === 'string') {
+          customerId = parseInt(customerId);
+        }
+        
+        // التحقق من صحة معرف العميل
+        if (isNaN(customerId) && customerId !== null) {
+          console.error('Invalid customer ID:', req.body.customerId);
+          return res.status(400).json({ message: 'Invalid customer ID format' });
+        }
       }
       
-      // التحقق من صحة معرف العميل إذا تم تقديمه
-      if (customerId !== undefined && isNaN(customerId)) {
-        console.error('Invalid customer ID:', req.body.customerId);
-        return res.status(400).json({ message: 'Invalid customer ID format' });
-      }
+      console.log('Processed customer ID:', customerId);
       
       // تخزين معلومات العميل في الفاتورة إذا تم تقديمها
       let customerInfo = {};
@@ -961,11 +1026,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...customerInfo,
         ...(req.body.subtotal !== undefined && { subtotal: req.body.subtotal }),
         ...(req.body.discount !== undefined && { discount: req.body.discount }),
+        ...(req.body.itemsDiscount !== undefined && { itemsDiscount: req.body.itemsDiscount }),
+        ...(req.body.invoiceDiscount !== undefined && { invoiceDiscount: req.body.invoiceDiscount }),
         ...(req.body.total !== undefined && { total: req.body.total }),
         ...(req.body.paymentMethod && { paymentMethod: req.body.paymentMethod }),
         ...(req.body.paymentStatus && { paymentStatus: req.body.paymentStatus }),
-        ...(req.body.notes && { notes: req.body.notes }),
+        ...(req.body.notes !== undefined && { notes: req.body.notes }),
         ...(req.body.productsData && { productsData: req.body.productsData }),
+        // إضافة الحقول المنفصلة للمنتجات
+        ...(req.body.productIds && { productIds: req.body.productIds }),
+        ...(req.body.productNames && { productNames: req.body.productNames }),
+        ...(req.body.productQuantities && { productQuantities: req.body.productQuantities }),
+        ...(req.body.productPrices && { productPrices: req.body.productPrices }),
+        ...(req.body.productPurchasePrices && { productPurchasePrices: req.body.productPurchasePrices }),
+        ...(req.body.productDiscounts && { productDiscounts: req.body.productDiscounts }),
+        ...(req.body.productTotals && { productTotals: req.body.productTotals }),
+        ...(req.body.productProfits && { productProfits: req.body.productProfits }),
         updatedAt: new Date().toISOString()
       };
       
@@ -1065,10 +1141,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Updated invoice products data with ${filteredProducts.length} items`);
       }
       
+      console.log('Invoice updated successfully:', updatedInvoice);
+      
+      // إعادة حساب الأرباح بعد التحديث
+      const updatedInvoiceData = await storage.getInvoice(invoiceId);
+      if (updatedInvoiceData) {
+        // إضافة تسجيل بيانات التقرير للفاتورة المحدثة
+        try {
+          // حساب الربح باستخدام الدالة المحسنة
+          const profitData = await calculateProfitImproved(updatedInvoiceData, 'invoice-update');
+          console.log('Recalculated profit after PUT update:', profitData);
+          
+          // تحديث بيانات التقرير للفاتورة المحدثة
+          const reportDate = new Date(updatedInvoiceData.createdAt || new Date());
+          const dailyDate = formatDateForReportType(reportDate, 'daily');
+          
+          // حاول العثور على تقرير موجود لهذا اليوم
+          const existingReports = await storage.getReportData('daily', dailyDate);
+          
+          if (existingReports && existingReports.length > 0) {
+            console.log('Found existing daily report, will update it');
+            // سيتم تحديث التقرير تلقائياً عند حساب التقارير
+          } else {
+            console.log('No existing daily report found, will create one on next report calculation');
+          }
+        } catch (reportError) {
+          console.error('Error recalculating profit after invoice update:', reportError);
+        }
+      }
+      
       res.json(updatedInvoice || { id: invoiceId, ...updateData });
     } catch (error) {
       console.error('Error updating invoice:', error);
       res.status(500).json({ message: 'Failed to update invoice', error: error.message });
+    }
+  });
+  
+  // دعم طريقة PATCH لتحديث الفاتورة أيضا
+  app.patch('/api/invoices/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`PATCH request to update invoice with ID: ${id}`);
+      
+      const invoiceId = parseInt(id);
+      if (isNaN(invoiceId)) {
+        return res.status(400).json({ message: 'Invalid invoice ID format' });
+      }
+      
+      const existingInvoice = await storage.getInvoice(invoiceId);
+      if (!existingInvoice) {
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+      
+      console.log('Existing invoice:', existingInvoice);
+      console.log('Update data:', req.body);
+      
+      // استخدم نفس المنطق الموجود في PUT
+      const updateData = {
+        ...(req.body.invoiceNumber && { invoiceNumber: req.body.invoiceNumber }),
+        ...(req.body.customerId !== undefined && { customerId: req.body.customerId }),
+        ...(req.body.customerName && { customerName: req.body.customerName }),
+        ...(req.body.customerPhone && { customerPhone: req.body.customerPhone }),
+        ...(req.body.customerAddress && { customerAddress: req.body.customerAddress }),
+        ...(req.body.subtotal !== undefined && { subtotal: req.body.subtotal }),
+        ...(req.body.discount !== undefined && { discount: req.body.discount }),
+        ...(req.body.itemsDiscount !== undefined && { itemsDiscount: req.body.itemsDiscount }),
+        ...(req.body.invoiceDiscount !== undefined && { invoiceDiscount: req.body.invoiceDiscount }),
+        ...(req.body.discountPercentage !== undefined && { discountPercentage: req.body.discountPercentage }),
+        ...(req.body.total !== undefined && { total: req.body.total }),
+        ...(req.body.paymentMethod && { paymentMethod: req.body.paymentMethod }),
+        ...(req.body.paymentStatus && { paymentStatus: req.body.paymentStatus }),
+        ...(req.body.notes !== undefined && { notes: req.body.notes }),
+        ...(req.body.productsData && { productsData: req.body.productsData }),
+        ...(req.body.productIds && { productIds: req.body.productIds }),
+        ...(req.body.productNames && { productNames: req.body.productNames }),
+        ...(req.body.productQuantities && { productQuantities: req.body.productQuantities }),
+        ...(req.body.productPrices && { productPrices: req.body.productPrices }),
+        ...(req.body.productPurchasePrices && { productPurchasePrices: req.body.productPurchasePrices }),
+        ...(req.body.productDiscounts && { productDiscounts: req.body.productDiscounts }),
+        ...(req.body.productTotals && { productTotals: req.body.productTotals }),
+        ...(req.body.productProfits && { productProfits: req.body.productProfits }),
+        updatedAt: new Date().toISOString()
+      };
+      
+      console.log('Updating invoice with data:', updateData);
+      
+      const updatedInvoice = await storage.updateInvoice(invoiceId, updateData);
+
+      // تحديث منتجات الفاتورة إذا تم تقديمها
+      if (req.body.products && Array.isArray(req.body.products) && req.body.products.length > 0) {
+        console.log(`Processing ${req.body.products.length} products for invoice update`);
+        
+        // هنا نقوم بمعالجة المنتجات كما في الـ PUT
+        // تخزين المنتجات المعدلة في الفاتورة
+        const filteredProducts = req.body.products.filter(p => p && p.productId);
+        
+        if (filteredProducts.length > 0) {
+          const productsData = JSON.stringify(filteredProducts);
+          await storage.updateInvoice(invoiceId, { productsData });
+          console.log(`Updated invoice products data with ${filteredProducts.length} items`);
+        }
+      }
+      
+      console.log('Invoice updated successfully:', updatedInvoice);
+      
+      // إعادة حساب الأرباح بعد التحديث
+      const updatedInvoiceData = await storage.getInvoice(invoiceId);
+      if (updatedInvoiceData) {
+        // إضافة تسجيل بيانات التقرير للفاتورة المحدثة
+        try {
+          // حساب الربح باستخدام الدالة المحسنة
+          const profitData = await calculateProfitImproved(updatedInvoiceData, 'invoice-update');
+          console.log('Recalculated profit after PATCH update:', profitData);
+          
+          // تحديث بيانات التقرير للفاتورة المحدثة
+          const reportDate = new Date(updatedInvoiceData.createdAt || new Date());
+          const dailyDate = formatDateForReportType(reportDate, 'daily');
+          
+          // حاول العثور على تقرير موجود لهذا اليوم
+          const existingReports = await storage.getReportData('daily', dailyDate);
+          
+          if (existingReports && existingReports.length > 0) {
+            console.log('Found existing daily report, will update it');
+            // سيتم تحديث التقرير تلقائياً عند حساب التقارير
+          } else {
+            console.log('No existing daily report found, will create one on next report calculation');
+          }
+        } catch (reportError) {
+          console.error('Error recalculating profit after invoice update:', reportError);
+        }
+      }
+      
+      res.json(updatedInvoice || { id: invoiceId, ...updateData });
+    } catch (error) {
+      console.error('Error updating invoice via PATCH:', error);
+      res.status(500).json({ message: 'Failed to update invoice', error: error instanceof Error ? error.message : String(error) });
     }
   });
   
