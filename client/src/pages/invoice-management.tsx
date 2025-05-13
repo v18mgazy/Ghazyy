@@ -213,9 +213,9 @@ export default function InvoiceManagementPage() {
       const invoiceData = {
         customerId: data.customerId,
         subtotal,
-        discount: 0, // نحتفظ بصفر للتوافق مع النظام القديم
+        discount: invoiceDiscount, // تحديث حقل الخصم أيضًا للمحافظة على التوافق مع كل أجزاء النظام
         itemsDiscount,
-        invoiceDiscount,
+        invoiceDiscount, // استخدام قيمة الخصم المعدلة
         total,
         paymentMethod: data.paymentMethod,
         notes: data.notes,
