@@ -327,7 +327,7 @@ export class RealtimeDBStorage implements IStorage {
         // البحث عن العملاء الذين تتطابق أسماؤهم أو أرقام هواتفهم مع معايير البحث
         return customers.filter(customer => 
           customer.name.toLowerCase().includes(normalizedQuery) || 
-          customer.phone.includes(query)
+          customer.phone?.includes(query)
         );
       }
       
@@ -335,6 +335,127 @@ export class RealtimeDBStorage implements IStorage {
     } catch (error) {
       console.error('Error searching customers:', error);
       return [];
+    }
+  }
+  
+  /**
+   * الحصول على سجل مديونية محدد
+   * @param id معرف سجل المديونية
+   */
+  async getCustomerDebt(id: number): Promise<CustomerDebt | undefined> {
+    try {
+      console.log(`RealtimeDBStorage: Getting customer debt with ID ${id}`);
+      const debtRef = ref(database, `customer_debts/${id}`);
+      const snapshot = await get(debtRef);
+      
+      if (!snapshot.exists()) return undefined;
+      
+      const debtData = snapshot.val();
+      return {
+        id,
+        customerId: debtData.customerId,
+        amount: debtData.amount,
+        reason: debtData.reason,
+        date: new Date(debtData.date),
+        invoiceId: debtData.invoiceId || null,
+        createdBy: debtData.createdBy,
+        createdAt: debtData.createdAt
+      };
+    } catch (error) {
+      console.error('Error getting customer debt:', error);
+      return undefined;
+    }
+  }
+  
+  /**
+   * الحصول على جميع سجلات مديونية عميل محدد
+   * @param customerId معرف العميل
+   */
+  async getCustomerDebts(customerId: number): Promise<CustomerDebt[]> {
+    try {
+      console.log(`RealtimeDBStorage: Getting debts for customer ID ${customerId}`);
+      const debtsRef = ref(database, 'customer_debts');
+      const snapshot = await get(debtsRef);
+      
+      if (!snapshot.exists()) return [];
+      
+      const debts: CustomerDebt[] = [];
+      const customerDebts = snapshot.val();
+      
+      for (const [key, value] of Object.entries(customerDebts)) {
+        const debtData = value as any;
+        if (debtData.customerId === customerId) {
+          debts.push({
+            id: parseInt(key),
+            customerId: debtData.customerId,
+            amount: debtData.amount,
+            reason: debtData.reason,
+            date: new Date(debtData.date),
+            invoiceId: debtData.invoiceId || null,
+            createdBy: debtData.createdBy,
+            createdAt: debtData.createdAt
+          });
+        }
+      }
+      
+      // ترتيب السجلات بحسب التاريخ (الأحدث أولاً)
+      return debts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    } catch (error) {
+      console.error('Error getting customer debts:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * إنشاء سجل مديونية جديد
+   * @param debtData بيانات المديونية
+   */
+  async createCustomerDebt(debtData: InsertCustomerDebt): Promise<CustomerDebt> {
+    try {
+      console.log(`RealtimeDBStorage: Creating customer debt`, debtData);
+      
+      // الحصول على معرف جديد
+      const debtsRef = ref(database, 'customer_debts');
+      const snapshot = await get(debtsRef);
+      
+      let newId = 1;
+      if (snapshot.exists()) {
+        const debts = snapshot.val();
+        const ids = Object.keys(debts).map(key => parseInt(key));
+        newId = Math.max(...ids, 0) + 1;
+      }
+      
+      // تحضير بيانات السجل
+      const now = new Date().toISOString();
+      const debt: CustomerDebt = {
+        ...debtData,
+        id: newId,
+        createdAt: now
+      };
+      
+      // حفظ السجل
+      const newDebtRef = ref(database, `customer_debts/${newId}`);
+      await set(newDebtRef, {
+        customerId: debt.customerId,
+        amount: debt.amount,
+        reason: debt.reason,
+        date: debt.date.toISOString(),
+        invoiceId: debt.invoiceId || null,
+        createdBy: debt.createdBy,
+        createdAt: now
+      });
+      
+      // تحديث إجمالي مديونية العميل
+      const customer = await this.getCustomer(debtData.customerId);
+      if (customer) {
+        const totalDebt = (customer.totalDebt || 0) + debtData.amount;
+        await this.updateCustomer(customer.id, { totalDebt });
+      }
+      
+      return debt;
+    } catch (error) {
+      console.error('Error creating customer debt:', error);
+      throw error;
     }
   }
 
