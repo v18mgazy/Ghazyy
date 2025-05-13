@@ -176,7 +176,7 @@ export default function InvoiceManagementPage() {
     mutationFn: async (updateData: {
       invoiceId: number;
       customerId: number | null;
-      discount: number;
+      invoiceDiscount: number; // تغيير الاسم من discount إلى invoiceDiscount
       paymentMethod: string;
       notes: string | null;
       products: InvoiceProduct[];
@@ -187,7 +187,7 @@ export default function InvoiceManagementPage() {
       // حساب إجماليات الفاتورة
       const subtotal = data.products.reduce((sum, product) => sum + (product.price * product.quantity), 0);
       const itemsDiscount = data.products.reduce((sum, product) => sum + (product.discount || 0), 0);
-      const invoiceDiscount = data.discount;
+      const invoiceDiscount = data.invoiceDiscount; // تم تغيير الاسم هنا أيضًا
       const total = subtotal - itemsDiscount - invoiceDiscount;
       
       // تحويل منتجات الفاتورة إلى JSON
@@ -592,7 +592,7 @@ export default function InvoiceManagementPage() {
     updateInvoiceMutation.mutate({
       invoiceId: invoiceToEdit.id,
       customerId: editedCustomerId,
-      discount: editedDiscount,
+      invoiceDiscount: editedDiscount, // تم تغيير الاسم من discount إلى invoiceDiscount
       paymentMethod: editedPaymentMethod,
       notes: editedNotes,
       products: editedProducts
