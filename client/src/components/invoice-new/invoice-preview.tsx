@@ -168,7 +168,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
   
   // مشاركة الفاتورة عبر واتساب
   const handleShare = async () => {
-    if (!invoice.customerPhone) {
+    if (!invoiceData.customerPhone) {
       toast({
         title: t('error'),
         description: t('customer_has_no_phone'),
@@ -186,18 +186,19 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
       ).join('\\n');
       
       const message = `*${storeInfo.name || t('store')}*\\n` +
-        `${t('invoice_number')}: ${invoice.invoiceNumber}\\n` +
-        `${t('date')}: ${formatDate(invoice.date)}\\n` +
-        `${t('customer')}: ${invoice.customerName}\\n\\n` +
+        `${t('invoice_number')}: ${invoiceData.invoiceNumber}\\n` +
+        `${t('date')}: ${formatDate(invoiceData.date)}\\n` +
+        `${t('customer')}: ${invoiceData.customerName}\\n\\n` +
         `*${t('products')}*:\\n${products}\\n\\n` +
-        `${t('subtotal')}: ${formatCurrency(invoice.subtotal)}\\n` +
-        (invoice.discount > 0 ? `${t('discount')}: ${formatCurrency(invoice.discount)}\\n` : '') +
-        `*${t('total')}*: ${formatCurrency(invoice.total)}\\n\\n` +
-        `${t('payment_method')}: ${t(invoice.paymentMethod)}\\n` +
-        `${t('payment_status')}: ${getStatusBadgeProps(invoice.paymentStatus).text}\\n\\n` +
+        `${t('subtotal')}: ${formatCurrency(invoiceData.subtotal)}\\n` +
+        (invoiceData.itemsDiscount > 0 ? `${t('item_discounts')}: ${formatCurrency(invoiceData.itemsDiscount)}\\n` : '') +
+        (invoiceData.invoiceDiscount > 0 ? `${t('invoice_discount')}: ${formatCurrency(invoiceData.invoiceDiscount)}\\n` : '') +
+        `*${t('total')}*: ${formatCurrency(invoiceData.total)}\\n\\n` +
+        `${t('payment_method')}: ${t(invoiceData.paymentMethod)}\\n` +
+        `${t('payment_status')}: ${getStatusBadgeProps(invoiceData.paymentStatus || 'paid').text}\\n\\n` +
         `${t('thank_you_for_your_business')}`;
       
-      const phoneNumber = invoice.customerPhone.replace(/[^0-9]/g, '');
+      const phoneNumber = invoiceData.customerPhone.replace(/[^0-9]/g, '');
       const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
       
       window.open(whatsappUrl, '_blank');
@@ -245,19 +246,19 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-2xl">
-                {t('invoice')} #{invoice.invoiceNumber}
+                {t('invoice')} #{invoiceData.invoiceNumber}
               </CardTitle>
               <CardDescription className="mt-1 flex items-center text-sm">
                 <CalendarDays className="h-4 w-4 mr-1 text-muted-foreground" />
-                {formatDate(invoice.date)}
+                {formatDate(invoiceData.date)}
               </CardDescription>
             </div>
             
             <Badge
-              variant={getStatusBadgeProps(invoice.paymentStatus).variant}
+              variant={getStatusBadgeProps(invoiceData.paymentStatus || 'paid').variant}
               className="px-3 py-1 text-sm"
             >
-              {getStatusBadgeProps(invoice.paymentStatus).text}
+              {getStatusBadgeProps(invoiceData.paymentStatus || 'paid').text}
             </Badge>
           </div>
           
@@ -281,15 +282,15 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
               </div>
               
               <div className="text-right">
-                <h3 className="font-bold text-base">{invoice.customerName}</h3>
-                {invoice.customerAddress && (
+                <h3 className="font-bold text-base">{invoiceData.customerName}</h3>
+                {invoiceData.customerAddress && (
                   <p className="text-sm text-muted-foreground">
-                    {invoice.customerAddress}
+                    {invoiceData.customerAddress}
                   </p>
                 )}
-                {invoice.customerPhone && (
+                {invoiceData.customerPhone && (
                   <p className="text-sm text-muted-foreground">
-                    {invoice.customerPhone}
+                    {invoiceData.customerPhone}
                   </p>
                 )}
               </div>
@@ -304,7 +305,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
               
               <div className="flex items-center text-sm">
                 <CreditCard className="h-4 w-4 mr-1 text-muted-foreground" />
-                {getPaymentMethodName(invoice.paymentMethod)}
+                {getPaymentMethodName(invoiceData.paymentMethod)}
               </div>
             </div>
             
@@ -355,22 +356,22 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
             <div className="mt-6 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">{t('subtotal')}:</span>
-                <span>{formatCurrency(invoice.subtotal)}</span>
+                <span>{formatCurrency(invoiceData.subtotal)}</span>
               </div>
               
-              {invoice.itemsDiscount > 0 && (
+              {invoiceData.itemsDiscount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{t('item_discounts')}:</span>
-                  <span>- {formatCurrency(invoice.itemsDiscount)}</span>
+                  <span>- {formatCurrency(invoiceData.itemsDiscount)}</span>
                 </div>
               )}
               
-              {invoice.invoiceDiscount > 0 && (
+              {invoiceData.invoiceDiscount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">
                     {t('invoice_discount')}:
                   </span>
-                  <span>- {formatCurrency(invoice.invoiceDiscount)}</span>
+                  <span>- {formatCurrency(invoiceData.invoiceDiscount)}</span>
                 </div>
               )}
               
@@ -378,12 +379,12 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
               
               <div className="flex justify-between font-bold pt-1">
                 <span>{t('total')}:</span>
-                <span className="text-primary">{formatCurrency(invoice.total)}</span>
+                <span className="text-primary">{formatCurrency(invoiceData.total)}</span>
               </div>
             </div>
             
             {/* ملاحظات */}
-            {invoice.notes && (
+            {invoiceData.notes && (
               <div className="mt-6 p-3 bg-muted/20 rounded-md">
                 <h4 className="text-sm font-semibold mb-1">{t('notes')}:</h4>
                 <p className="text-sm text-muted-foreground">{invoice.notes}</p>
