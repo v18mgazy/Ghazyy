@@ -2531,12 +2531,13 @@ export class RealtimeDBStorage implements IStorage {
       
       const newPayment = {
         ...payment,
-        createdAt: now
+        createdAt: now_str
       };
       
-      // Convert Date objects to ISO strings for Firebase
+      // تحويل كائنات التاريخ إلى تنسيق التوقيت المحلي بدلاً من التوقيت العالمي
       if (payment.paymentDate) {
-        newPayment.paymentDate = payment.paymentDate.toISOString();
+        const paymentDate = new Date(payment.paymentDate);
+        newPayment.paymentDate = paymentDate.toLocaleString('sv-SE').replace(' ', 'T');
       }
       
       const paymentRef = ref(database, `supplier_payments/${id}`);
