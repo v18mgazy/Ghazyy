@@ -880,26 +880,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // إضافة مديونية جديدة للعميل
   app.post('/api/customer-debts', async (req, res) => {
     try {
-      // التحقق من صحة البيانات
-      const debtData = insertCustomerDebtSchema.parse(req.body);
+      // طباعة البيانات المستلمة للتصحيح
+      console.log('Received debt data:', req.body);
+      
+      // التحقق من صحة البيانات بطريقة يدوية
+      const { customerId, amount, reason, createdBy } = req.body;
+      
+      if (!customerId || amount === undefined || !reason || !createdBy) {
+        return res.status(400).json({ 
+          message: 'Validation error', 
+          errors: 'Missing required fields (customerId, amount, reason, createdBy)' 
+        });
+      }
+      
+      // إعداد بيانات المديونية بشكل صحيح
+      const debtData = {
+        customerId: Number(customerId),
+        amount: Number(amount),
+        reason,
+        date: new Date(),
+        createdBy: Number(createdBy)
+      };
       
       // إنشاء سجل المديونية الجديد
       const debt = await storage.createCustomerDebt(debtData);
       
-      // تحديث إجمالي مديونية العميل
-      const customer = await storage.getCustomer(debtData.customerId);
-      if (customer) {
-        const newTotalDebt = (customer.totalDebt || 0) + debtData.amount;
-        await storage.updateCustomer(debtData.customerId, { 
-          totalDebt: newTotalDebt 
-        });
-      }
+      // تحديث إجمالي مديونية العميل يتم في دالة createCustomerDebt نفسها
       
       res.status(201).json(debt);
     } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: 'Validation error', errors: err.errors });
-      }
       console.error('Error adding customer debt:', err);
       res.status(500).json({ message: 'Failed to add customer debt' });
     }

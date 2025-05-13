@@ -132,7 +132,6 @@ export default function CustomerList({
           customerId: parseInt(selectedCustomer.id),
           amount: debtAmount,
           reason: debtReason,
-          date: new Date(),
           createdBy: 1, // المستخدم الحالي (نفترض أنه المدير)
         }),
       });
@@ -186,7 +185,6 @@ export default function CustomerList({
           customerId: parseInt(selectedCustomer.id),
           amount: -debtAmount, // قيمة سالبة لتمثيل تخفيض المديونية
           reason: debtReason,
-          date: new Date(),
           createdBy: 1, // المستخدم الحالي (نفترض أنه المدير)
         }),
       });
