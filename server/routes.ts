@@ -2145,12 +2145,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // طرق API لبيانات التقارير
   // وظيفة محسنة لحساب الأرباح
-  async function calculateProfitImproved(invoice: any, reportType: string = 'unknown'): Promise<number> {
+  async function calculateProfitImproved(invoice: any, reportType: string = 'unknown'): Promise<any> {
     try {
       // نتحقق من وجود حقل productsData (مع s) أو productData (بدون s)
       if (!invoice || (!invoice.productsData && !invoice.productData)) {
         console.warn(`[حساب الربح] بيانات فاتورة غير صالحة: ${JSON.stringify(invoice)}`);
-        return 0;
+        return { profit: 0, profitWithoutDiscount: 0, profitReduction: 0, totalDiscountAmount: 0 };
       }
 
       // تحديد الحقل المستخدم (إما productsData أو productData)
@@ -2162,8 +2162,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           productData = JSON.parse(invoice[dataField]);
         } catch (e) {
-          console.error(`[${reportType}] خطأ في تحليل بيانات المنتج (${dataField}): ${e.message}`);
-          return 0;
+          console.error(`[${reportType}] خطأ في تحليل بيانات المنتج (${dataField}): ${e instanceof Error ? e.message : String(e)}`);
+          return { profit: 0, profitWithoutDiscount: 0, profitReduction: 0, totalDiscountAmount: 0 };
         }
       } else {
         productData = invoice[dataField];
@@ -2171,9 +2171,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!Array.isArray(productData)) {
         console.warn(`[${reportType}] بيانات المنتج ليست مصفوفة: ${typeof productData}`);
-        return 0;
+        return { profit: 0, profitWithoutDiscount: 0, profitReduction: 0, totalDiscountAmount: 0 };
       }
 
+      console.log(`Calculating profit for invoice ${invoice.id} using improved method`);
+      
       // جلب جميع المنتجات مرة واحدة بدلاً من استعلامات متعددة
       let allProducts = [];
       try {
@@ -2183,6 +2185,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       let totalProfit = 0;
+      let profitWithoutItemDiscount = 0; // الربح قبل تطبيق خصومات المنتجات
+      
       for (const product of productData) {
         console.log(`[${reportType}] بيانات المنتج الأصلية: ${JSON.stringify(product)}`);
         
@@ -2219,6 +2223,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
+        // الربح بدون خصم للمنتج
+        const unitProfitNoDiscount = sellingPrice - purchasePrice;
+        const productProfitNoDiscount = unitProfitNoDiscount * quantity;
+        profitWithoutItemDiscount += productProfitNoDiscount;
+        
         // حساب الربح لهذا المنتج - استخدام سعر الشراء الفعلي فقط
         // الحصول على نسبة الخصم إن وجدت
         const discountPercentage = parseFloat(product.discount) || 0;
@@ -2233,16 +2242,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.warn(`[${reportType}] سعر الشراء غير متوفر للمنتج ${productName}, نستخدم سعر شراء = 0`);
         }
         
-        console.log(`[${reportType}] حساب ربح المنتج: (${sellingPrice} - ${purchasePrice}) * ${quantity} = ${productProfit}`);
+        console.log(`[${reportType}] حساب ربح المنتج: (${discountedSellingPrice} - ${purchasePrice}) * ${quantity} = ${productProfit}`);
         
         // إضافة إلى إجمالي الربح
         totalProfit += productProfit;
       }
 
-      return totalProfit;
+      // حفظ الربح بعد خصومات المنتجات وقبل خصم الفاتورة
+      const profitAfterItemDiscount = totalProfit;
+      
+      // 1. حصر جميع أنواع الخصومات
+      const invoiceDiscountPercentage = invoice.discountPercentage ? Number(invoice.discountPercentage) : 0;
+      const invoiceDiscountAmount = invoice.invoiceDiscount ? Number(invoice.invoiceDiscount) : 0;
+      const itemsDiscountAmount = invoice.itemsDiscount ? Number(invoice.itemsDiscount) : 0;
+      const generalDiscountAmount = invoice.discount ? Number(invoice.discount) : 0;
+      
+      // معلومات الفاتورة للتصحيح
+      const subtotal = invoice.subtotal ? Number(invoice.subtotal) : 0;
+      const total = invoice.total ? Number(invoice.total) : 0;
+      
+      // 2. حساب نسبة الخصم الفعلية من الإجمالي
+      let effectiveDiscountRatio = 0;
+      
+      // إذا كان لدينا قيمة الإجمالي قبل الخصم والإجمالي بعد الخصم، يمكن حساب نسبة الخصم الفعلية
+      if (subtotal > 0 && total > 0 && subtotal > total) {
+        effectiveDiscountRatio = (subtotal - total) / subtotal;
+        console.log(`[حساب الربح - تحسين] [${reportType}] حساب نسبة الخصم الفعلية: (${subtotal} - ${total}) / ${subtotal} = ${effectiveDiscountRatio}`);
+      } 
+      // إذا لم تكن متوفرة، نحسب نسبة الخصم الفعلية من قيم الخصم الفردية
+      else if (invoiceDiscountPercentage > 0) {
+        effectiveDiscountRatio = invoiceDiscountPercentage / 100;
+        console.log(`[حساب الربح - تحسين] [${reportType}] استخدام نسبة الخصم المعطاة: ${invoiceDiscountPercentage}% = ${effectiveDiscountRatio}`);
+      }
+      
+      // 3. تطبيق الخصم الإضافي على الربح
+      const originalProfit = totalProfit;
+      if (effectiveDiscountRatio > 0) {
+        totalProfit = totalProfit * (1 - effectiveDiscountRatio);
+        console.log(`[حساب الربح - تحسين] [${reportType}] تطبيق خصم الفاتورة ${(effectiveDiscountRatio * 100).toFixed(1)}% على الربح: ${originalProfit} → ${totalProfit}`);
+      }
+      
+      // 4. تحضير معلومات إضافية للتقارير
+      const totalDiscountAmount = invoiceDiscountAmount + itemsDiscountAmount + generalDiscountAmount;
+      const profitWithoutDiscount = profitWithoutItemDiscount; // الربح قبل تطبيق أي خصم
+      const profitReduction = profitWithoutDiscount - totalProfit; // مقدار انخفاض الربح بسبب الخصم الكلي
+      
+      console.log(`[حساب الربح - تحسين] [${reportType}] معلومات الخصم والربح:`);
+      console.log(`  - الربح قبل الخصم: ${profitWithoutDiscount}`);
+      console.log(`  - الخصم الكلي: ${totalDiscountAmount}`);
+      console.log(`  - تأثير الخصم على الربح: ${profitReduction}`);
+      console.log(`  - الربح النهائي: ${totalProfit}`);
+      
+      // إنشاء كائن مفصل يحتوي على معلومات الربح والخصم
+      const result = {
+        profit: totalProfit > 0 ? totalProfit : 0,
+        profitWithoutDiscount,
+        profitReduction,
+        totalDiscountAmount,
+        discountDetails: {
+          invoiceDiscountPercentage,
+          invoiceDiscountAmount,
+          itemsDiscountAmount,
+          generalDiscountAmount
+        }
+      };
+      
+      // للتوافق مع الاستخدامات السابقة، نعيد كائن الربح المفصل
+      return result;
     } catch (error) {
-      console.error(`[${reportType}] خطأ في حساب الربح: ${error.message}`);
-      return 0;
+      console.error(`[${reportType}] خطأ في حساب الربح: ${error instanceof Error ? error.message : String(error)}`);
+      return { profit: 0, profitWithoutDiscount: 0, profitReduction: 0, totalDiscountAmount: 0 };
     }
   }
 
@@ -2406,7 +2475,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // استخدام Promise.all مع map بدلاً من reduce للتعامل مع الدوال غير المتزامنة
       const profitPromises = invoices.map(inv => calculateProfitImproved(inv, type));
       const profitArray = await Promise.all(profitPromises);
-      profit = profitArray.reduce((sum, p) => sum + p, 0);
+      // استخدام خاصية profit من الكائن المرجع من الدالة
+      profit = profitArray.reduce((sum, result) => sum + (result.profit || 0), 0);
+      
+      // استخراج معلومات إضافية عن الخصومات
+      const totalDiscountAmount = profitArray.reduce((sum, result) => sum + (result.totalDiscountAmount || 0), 0);
+      const profitWithoutDiscount = profitArray.reduce((sum, result) => sum + (result.profitWithoutDiscount || 0), 0);
+      const profitReduction = profitArray.reduce((sum, result) => sum + (result.profitReduction || 0), 0);
       
       // حساب قيمة العناصر التالفة
       damagedValue = damagedItems.reduce((sum, item) => {
