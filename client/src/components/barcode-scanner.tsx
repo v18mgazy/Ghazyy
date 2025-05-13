@@ -25,8 +25,8 @@ interface BarcodeScannerProps {
 
 export default function BarcodeScanner({ 
   onProductScanned, 
-  continueScanning = false,
-  scanDelay = 2000, // مهلة 2 ثانية افتراضيًا بين المسح المتتالية
+  continueScanning = false, // إلغاء المسح المستمر افتراضيًا
+  scanDelay = 0, // إلغاء المهلة
   checkInventory = true // التحقق من المخزون افتراضيًا
 }: BarcodeScannerProps) {
   const { t } = useTranslation();
@@ -179,56 +179,36 @@ export default function BarcodeScanner({
           return;
         }
         
-        // إذا كنا نستمر في المسح، نضيف المنتج مباشرة
-        if (continueScanning) {
-          onProductScanned(product);
-          
-          // زيادة عدد المنتجات الممسوحة
-          setScannedCount(prev => prev + 1);
-          
-          // إضافة إشعار بنجاح الإضافة
-          toast({
-            title: t('product_added'),
-            description: `${product.name} - ${formatCurrency(product.sellingPrice)}`,
-            variant: 'default',
-            duration: 2000
-          });
-          
-          // عرض رسالة نجاح مؤقتة داخل المكون
-          setSuccessMessage(`${product.name} - ${formatCurrency(product.sellingPrice)}`);
-          setTimeout(() => {
-            setSuccessMessage(null);
-          }, 2500);
-          
-          console.log('Product added to invoice:', product.name);
-          
-          // في وضع المسح المستمر، نبدأ فترة انتظار قبل السماح بالمسح التالي
-          if (scanDelay > 0) {
-            setIsWaiting(true);
-            // سيتم تعيين isWaiting إلى false تلقائيًا بعد انتهاء المهلة عن طريق useEffect
-          }
-        } else {
-          setScannedProduct(product);
-        }
+        // إضافة المنتج مباشرة إلى الفاتورة بدون تأكيد
+        onProductScanned(product);
+        
+        // إغلاق نافذة الماسح
+        stopScanner();
+        
+        // إضافة إشعار بنجاح الإضافة
+        toast({
+          title: t('product_added'),
+          description: `${product.name} - ${formatCurrency(product.sellingPrice)}`,
+          variant: 'default',
+          duration: 2000
+        });
+        
+        // زيادة عدد المنتجات الممسوحة
+        setScannedCount(prev => prev + 1);
+        
+        console.log('Product found:', product.name);
       } catch (err) {
         setError(t('product_not_found'));
         console.error('Error finding product:', err);
-        // إذا كان هناك خطأ وكنا نستمر في المسح، نعيد تشغيل الماسح
-        if (continueScanning) {
-          setTimeout(() => {
-            setError(null);
-          }, 2000); // يظهر خطأ لمدة ثانيتين ثم يختفي للسماح بالمسح مرة أخرى
-        }
+        // عرض الخطأ لمدة ثانيتين ثم إعادة ضبط الماسح
+        setTimeout(() => {
+          setError(null);
+        }, 2000); // يظهر خطأ لمدة ثانيتين ثم يختفي
       }
     }
   };
 
-  const handleAddToInvoice = () => {
-    if (scannedProduct) {
-      onProductScanned(scannedProduct);
-      setScannedProduct(null);
-    }
-  };
+  // إزالة دالة handleAddToInvoice لأننا نضيف المنتج مباشرة
 
   const retryScanner = () => {
     setCameraStatus('idle');
@@ -440,33 +420,7 @@ export default function BarcodeScanner({
           </Alert>
         )}
         
-        {scannedProduct && !continueScanning && (
-          <div className="p-4 bg-muted/30 rounded-lg mt-3 shadow-sm border border-muted">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-medium text-lg">{scannedProduct.name}</h3>
-                <p className="text-muted-foreground text-sm mt-1 flex items-center">
-                  <QrCode className={`h-3.5 w-3.5 ${rtl ? 'ml-1.5' : 'mr-1.5'} text-primary/70`} />
-                  {scannedProduct.barcode}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xl font-bold gradient-text">
-                  {formatCurrency(scannedProduct.sellingPrice)}
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 flex justify-end">
-              <Button 
-                onClick={handleAddToInvoice}
-                className="btn-glow"
-                size="sm"
-              >
-                {t('add_to_invoice')}
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* تم إزالة عرض المنتج الممسوح ضوئيًا لأننا نضيفه تلقائيًا */}
       </CardContent>
       
       {isScanning && (
