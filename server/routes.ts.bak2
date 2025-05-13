@@ -2152,61 +2152,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // وظائف مساعدة لإنشاء بيانات التقارير
   // وظيفة مساعدة لحساب الربح من بيانات المنتجات
-  function calculateProfitFromProductsData(invoice: any, reportType: string = 'unknown'): number {
+  function calculateProfitFromProductsData(invoice: any): number {
     let calculatedProfit = 0;
     
     try {
-      // إجراء نسخة من فاتورة قبل التجريب للتأكد من أن البيانات لن تتأثر
-      const invoiceCopy = JSON.parse(JSON.stringify(invoice));
-      
-      if (invoiceCopy.productsData) {
-        const products = JSON.parse(invoiceCopy.productsData);
+      if (invoice.productsData) {
+        const products = JSON.parse(invoice.productsData);
         if (Array.isArray(products)) {
-          console.log(`Calculating profit for ${reportType} report, invoice ID: ${invoiceCopy.id}, with ${products.length} products`);
-          
           for (const product of products) {
             // استخدام الربح المحسوب مسبقًا أو حسابه من سعر الشراء والبيع
             if (product.profit !== undefined && product.profit !== null) {
-              const productProfit = Number(product.profit);
-              calculatedProfit += productProfit;
-              console.log(`Using pre-calculated profit for product '${product.productName || product.name || 'Unknown'}': ${productProfit}`);
+              calculatedProfit += Number(product.profit);
             } else if (product.purchasePrice !== undefined && (product.sellingPrice || product.price)) {
               const sellingPrice = product.sellingPrice || product.price || 0;
               const purchasePrice = Number(product.purchasePrice) || 0;
               const quantity = Number(product.quantity) || 1;
-              const productProfit = (sellingPrice - purchasePrice) * quantity;
-              calculatedProfit += productProfit;
-              console.log(`Calculated profit for product '${product.productName || product.name || 'Unknown'}': (${sellingPrice} - ${purchasePrice}) * ${quantity} = ${productProfit}`);
+              calculatedProfit += (sellingPrice - purchasePrice) * quantity;
             } else {
               // استخدام هامش ربح تقديري 30% فقط إذا لم تتوفر البيانات
               const sellingPrice = product.sellingPrice || product.price || 0;
               const quantity = Number(product.quantity) || 1;
-              const productProfit = (sellingPrice * quantity) * 0.3;
-              calculatedProfit += productProfit;
-              console.log(`Using estimated profit (30%) for product '${product.productName || product.name || 'Unknown'}': ${sellingPrice} * ${quantity} * 0.3 = ${productProfit}`);
+              calculatedProfit += (sellingPrice * quantity) * 0.3;
             }
           }
-        } else {
-          console.warn(`Products data is not an array for invoice ID: ${invoiceCopy.id}`);
         }
       } else {
         // استخدام هامش ربح تقديري 30% فقط إذا لم تتوفر بيانات المنتجات
-        calculatedProfit = (invoiceCopy.total || 0) * 0.3;
-        console.log(`No products data found for invoice ID: ${invoiceCopy.id}, using estimated profit (30%): ${invoiceCopy.total} * 0.3 = ${calculatedProfit}`);
+        calculatedProfit = (invoice.total || 0) * 0.3;
       }
-      
-      console.log(`Total profit calculated for ${reportType} report, invoice ID: ${invoiceCopy.id}: ${calculatedProfit}`);
     } catch (err) {
-      console.error(`Error calculating profit for ${reportType} report:`, err);
+      console.error('Error calculating profit from products data:', err);
       // في حالة فشل حساب الربح، نستخدم هامش الربح التقديري
       calculatedProfit = (invoice.total || 0) * 0.3;
-      console.log(`Using fallback profit calculation due to error: ${invoice.total} * 0.3 = ${calculatedProfit}`);
-    }
-    
-    // تأكد من أن القيمة المُرجعة ليست NaN
-    if (isNaN(calculatedProfit)) {
-      console.warn(`Calculated profit is NaN, returning 0 instead for invoice ID: ${invoice.id || 'Unknown'}`);
-      return 0;
     }
     
     return calculatedProfit;
@@ -2325,8 +2302,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // إضافة المبيعات
           current.sales += invoice.total || 0;
           
-          // استخدام الوظيفة المُحسّنة لحساب الربح
-          current.profit += calculateProfitFromProductsData(invoice, 'daily');
+          // حساب الأرباح من بيانات المنتجات
+          let calculatedProfit = 0;
+          try {
+            if (invoice.productsData) {
+              const products = JSON.parse(invoice.productsData);
+              if (Array.isArray(products)) {
+                for (const product of products) {
+                  // استخدام الربح المحسوب مسبقًا أو حسابه من سعر الشراء والبيع
+                  if (product.profit !== undefined && product.profit !== null) {
+                    calculatedProfit += Number(product.profit);
+                  } else if (product.purchasePrice !== undefined && (product.sellingPrice || product.price)) {
+                    const sellingPrice = product.sellingPrice || product.price || 0;
+                    const purchasePrice = Number(product.purchasePrice) || 0;
+                    const quantity = Number(product.quantity) || 1;
+                    calculatedProfit += (sellingPrice - purchasePrice) * quantity;
+                  } else {
+                    // استخدام هامش ربح تقديري 30% فقط إذا لم تتوفر البيانات
+                    const sellingPrice = product.sellingPrice || product.price || 0;
+                    const quantity = Number(product.quantity) || 1;
+                    calculatedProfit += (sellingPrice * quantity) * 0.3;
+                  }
+                }
+              }
+            } else {
+              // استخدام هامش ربح تقديري 30% فقط إذا لم تتوفر بيانات المنتجات
+              calculatedProfit = (invoice.total || 0) * 0.3;
+            }
+            
+            current.profit += calculatedProfit;
+          } catch (err) {
+            console.error('Error calculating profit for chart data:', err);
+            // في حالة فشل حساب الربح، نستخدم هامش الربح التقديري
+            current.profit += (invoice.total || 0) * 0.3;
+          }
           
           salesData.set(hourKey, current);
         }
