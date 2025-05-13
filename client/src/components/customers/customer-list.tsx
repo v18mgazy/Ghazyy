@@ -123,14 +123,17 @@ export default function CustomerList({
     }
 
     try {
-      const response = await fetch(`/api/customers/${selectedCustomer.id}/debt`, {
+      const response = await fetch(`/api/customer-debts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          customerId: parseInt(selectedCustomer.id),
           amount: debtAmount,
           reason: debtReason,
+          date: new Date(),
+          createdBy: 1, // المستخدم الحالي (نفترض أنه المدير)
         }),
       });
 
@@ -174,14 +177,17 @@ export default function CustomerList({
     }
 
     try {
-      const response = await fetch(`/api/customers/${selectedCustomer.id}/reduce-debt`, {
+      const response = await fetch(`/api/customer-debts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: debtAmount,
+          customerId: parseInt(selectedCustomer.id),
+          amount: -debtAmount, // قيمة سالبة لتمثيل تخفيض المديونية
           reason: debtReason,
+          date: new Date(),
+          createdBy: 1, // المستخدم الحالي (نفترض أنه المدير)
         }),
       });
 
