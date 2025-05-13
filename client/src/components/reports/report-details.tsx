@@ -639,6 +639,7 @@ export default function ReportDetails({
                           <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('discount')}</TableHead>
                           <TableHead className="font-medium text-primary-dark dark:text-primary-light py-3">{t('status')}</TableHead>
                           <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('profit')}</TableHead>
+                          <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('discount_impact')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -722,6 +723,33 @@ export default function ReportDetails({
                                   return formatCurrency(rawProfit);
                                 })()}
                               </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {(() => {
+                                // حساب تأثير الخصم على الربح
+                                if (report.discount && report.discount > 0) {
+                                  // حساب الربح المقدر بدون خصم
+                                  const subtotal = report.subtotal || (report.amount + report.discount);
+                                  // بناءً على نسبة الربح الحالية
+                                  const currentProfit = report.profit || (report.amount * 0.3);
+                                  const profitWithoutDiscount = subtotal * (currentProfit / report.amount);
+                                  
+                                  // حساب نسبة تأثير الخصم على الربح
+                                  const profitReduction = profitWithoutDiscount - currentProfit;
+                                  const reductionPercentage = ((profitReduction / profitWithoutDiscount) * 100).toFixed(1);
+                                  
+                                  return (
+                                    <div className="flex flex-col">
+                                      <span className="text-amber-600 dark:text-amber-400 text-xs">
+                                        {formatCurrency(profitReduction)}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">({reductionPercentage}%)</span>
+                                    </div>
+                                  );
+                                }
+                                
+                                return <span className="text-muted-foreground">-</span>;
+                              })()}
                             </TableCell>
                           </TableRow>
                         ))}

@@ -3162,6 +3162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // استخدام دالة حساب الربح المحسنة لحساب الربح
         let calculatedProfit = await calculateProfitImproved(invoice, 'detailed');
         
+        // إضافة معلومات الخصم للتقارير المفصلة
         detailedReports.push({
           id: invoice.id,
           date: new Date(invoice.date).toISOString().split('T')[0],
@@ -3170,7 +3171,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           profit: calculatedProfit, // إضافة الربح المحسوب
           details: `Invoice #${invoice.invoiceNumber}, Payment: ${invoice.paymentMethod}`,
           customerName: invoice.customerName || 'عميل غير معروف',
-          paymentStatus: invoice.paymentStatus
+          paymentStatus: invoice.paymentStatus,
+          
+          // إضافة معلومات الخصم للتقارير
+          invoiceNumber: invoice.invoiceNumber,
+          subtotal: invoice.subtotal,
+          discount: invoice.discount,
+          discountPercentage: invoice.discountPercentage,
+          itemsDiscount: invoice.itemsDiscount,
+          invoiceDiscount: invoice.invoiceDiscount,
+          paymentMethod: invoice.paymentMethod
         });
       }
     }
