@@ -1297,6 +1297,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Final invoice data for creation:', invoiceData);
       
+      // تسجيل معلومات الخصم بشكل منفصل قبل إنشاء الفاتورة
+      console.log('Discount information in invoice creation:', {
+        'المبلغ قبل الخصم': invoiceData.subtotal,
+        'خصم المنتجات': invoiceData.itemsDiscount,
+        'نسبة خصم الفاتورة': invoiceData.discountPercentage,
+        'قيمة خصم الفاتورة': invoiceData.invoiceDiscount,
+        'الخصم الإجمالي': (invoiceData.itemsDiscount || 0) + (invoiceData.invoiceDiscount || 0),
+        'المبلغ النهائي بعد الخصم': invoiceData.total,
+        'الخصومات على المنتجات الفردية': productDiscounts
+      });
+      
       // إنشاء الفاتورة
       const invoice = await storage.createInvoice(invoiceData);
       console.log('Created invoice:', invoice);
