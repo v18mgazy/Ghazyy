@@ -58,8 +58,8 @@ export async function calculateProfitFromProductsData(invoice: any, reportType =
             } 
             // وإلا نحسب الخصم بناءً على المعلومات المتوفرة
             else {
-                // أولاً - خصم المنتج نفسه
-                const productDiscountedPrice = sellingPrice * (1 - (discount / 100));
+                // أولاً - خصم المنتج نفسه (مباشر وليس نسبة مئوية)
+                const productDiscountedPrice = sellingPrice - discount;
                 
                 // ثانياً - نطبق خصم الفاتورة إذا وجد
                 // إذا كان لدينا خصم للفاتورة كاملة نحسب تأثيره على هذا المنتج

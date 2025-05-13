@@ -125,14 +125,14 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
       }
       
       // حساب الربح لهذا المنتج
-      // الحصول على نسبة الخصم إن وجدت
-      const discountPercentage = parseFloat(product.discount) || 0;
+      // الحصول على قيمة الخصم المباشرة (وليست نسبة مئوية)
+      const productDiscount = parseFloat(product.discount) || 0;
       
-      // حساب سعر البيع بعد تطبيق الخصم
-      const discountedSellingPrice = sellingPrice * (1 - (discountPercentage / 100));
+      // حساب سعر البيع بعد تطبيق الخصم - استخدام قيمة مباشرة وليس نسبة مئوية
+      const discountedSellingPrice = sellingPrice - productDiscount;
       
-      // حساب الربح مع الأخذ في الاعتبار نسبة الخصم
-      const productProfit = (discountedSellingPrice - purchasePrice) * quantity;
+      // حساب الربح حسب المعادلة الجديدة: الربح = سعر البيع - سعر الشراء - الخصم
+      const productProfit = ((sellingPrice - productDiscount) - purchasePrice) * quantity;
       
       if (purchasePrice <= 0) {
         console.warn(`[حساب الربح - تحسين] [${reportType}] ⚠️ سعر الشراء غير متوفر للمنتج "${product.productName || product.name || 'غير معروف'}", نستخدم سعر شراء = 0. هذا سيؤدي لحساب ربح أعلى من الواقع!`);
@@ -141,11 +141,11 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
       // سجل بيانات إضافية للمساعدة في فهم العملية
       console.log(`[حساب الربح - تحسين] [${reportType}] حساب ربح المنتج "${product.productName || product.name || 'غير معروف'}":`);
       console.log(`  - سعر البيع: ${sellingPrice}`);
-      console.log(`  - نسبة الخصم: ${discountPercentage}%`);
+      console.log(`  - قيمة الخصم المباشرة: ${productDiscount}`);
       console.log(`  - سعر البيع بعد الخصم: ${discountedSellingPrice}`);
       console.log(`  - سعر الشراء: ${purchasePrice}`);
       console.log(`  - الكمية: ${quantity}`);
-      console.log(`  - الربح: (${discountedSellingPrice} - ${purchasePrice}) * ${quantity} = ${productProfit}`);
+      console.log(`  - الربح: ((${sellingPrice} - ${productDiscount}) - ${purchasePrice}) * ${quantity} = ${productProfit}`);
       
       // إضافة إلى إجمالي الربح
       totalProfit += productProfit;
