@@ -1,5 +1,6 @@
 import { database, ref, set, get, remove, update, query, orderByChild, equalTo } from "./firebase-rtdb";
 import * as admin from "./firebase-rtdb"; // استخدم هذا المتغير للوصول إلى Firebase Admin
+import { getLocalISOString } from "./date-utils"; // استيراد دالة الحصول على التاريخ المحلي
 import type {
   User, InsertUser,
   Product, InsertProduct,
@@ -2338,9 +2339,10 @@ export class RealtimeDBStorage implements IStorage {
   async createSupplierInvoice(invoice: InsertSupplierInvoice): Promise<SupplierInvoice> {
     try {
       const id = this.generateId('supplier_invoices');
-      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      // استخدام الدالة المساعدة للحصول على التاريخ والوقت المحلي مع إضافة 3 ساعات
+      const now_str = getLocalISOString();
+      // إنشاء كائن Date عادي لاستخدامه عند الإرجاع
       const now = new Date();
-      const now_str = now.toLocaleString('sv-SE').replace(' ', 'T');
       
       const newInvoice = {
         ...invoice,
@@ -2360,8 +2362,8 @@ export class RealtimeDBStorage implements IStorage {
         paymentStatus: invoice.paymentStatus || 'pending',
         date: new Date(invoice.date),
         dueDate: invoice.dueDate ? new Date(invoice.dueDate) : null,
-        createdAt: new Date(now),
-        updatedAt: new Date(now)
+        createdAt: now,
+        updatedAt: now
       };
     } catch (error) {
       console.error('Error creating supplier invoice:', error);
