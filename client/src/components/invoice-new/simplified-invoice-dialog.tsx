@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   ReceiptText, Search, User, X, ShoppingCart, Check, Scan, ChevronRight,
   Printer, Plus, Minus, DollarSign, Percent, Package2, Calculator, Trash2,
-  RefreshCcw, RotateCcw, ArrowLeft, CheckCircle
+  RefreshCcw, RotateCcw, ArrowLeft, CheckCircle, QrCode
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -721,23 +721,35 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
 
                       {/* عرض ماسح الباركود */}
                       {showBarcodeScanner ? (
-                        <Card className="mb-3 border-dashed border-2 border-primary/20">
-                          <CardContent className="p-3">
-                            <p className="text-center font-medium mb-3 text-base">{t('scan_product_barcode')}</p>
-                            <BarcodeScanner onProductScanned={handleBarcodeScanned} />
-                            <div className="flex justify-end mt-3">
+                        <Dialog open={showBarcodeScanner} onOpenChange={setShowBarcodeScanner}>
+                          <DialogContent className="sm:max-w-[500px]">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center">
+                                <QrCode className="mr-2 h-5 w-5 text-primary" />
+                                {t('scan_product_barcode')}
+                              </DialogTitle>
+                              <DialogDescription>
+                                {t('scan_multiple_products_description')}
+                              </DialogDescription>
+                            </DialogHeader>
+                            
+                            <div className="my-1">
+                              <BarcodeScanner 
+                                onProductScanned={handleBarcodeScanned} 
+                                continueScanning={true} 
+                              />
+                            </div>
+                            
+                            <DialogFooter>
                               <Button 
-                                size="default" 
-                                variant="ghost" 
+                                variant="outline" 
                                 onClick={() => setShowBarcodeScanner(false)}
-                                className="font-medium"
                               >
-                                <X className="mr-2 h-4 w-4" />
                                 {t('close')}
                               </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
                       ) : null}
                       
                       {/* قائمة المنتجات في الفاتورة */}

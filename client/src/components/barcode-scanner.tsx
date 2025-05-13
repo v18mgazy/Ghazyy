@@ -24,12 +24,14 @@ interface BarcodeScannerProps {
 export default function BarcodeScanner({ onProductScanned, continueScanning = false }: BarcodeScannerProps) {
   const { t } = useTranslation();
   const { language } = useLocale();
+  const { toast } = useToast();
   const [isScanning, setIsScanning] = useState(false);
   const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cameraStatus, setCameraStatus] = useState<'idle' | 'requesting' | 'denied' | 'ready'>('idle');
   const scannerRef = useRef<HTMLDivElement>(null);
   const rtl = language === 'ar';
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // تنظيف الماسح عند إلغاء تحميل المكون
@@ -119,6 +121,19 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
         if (continueScanning) {
           onProductScanned(product);
           // إضافة إشعار بنجاح الإضافة
+          toast({
+            title: t('success'),
+            description: t('product_added_to_invoice', { name: product.name }),
+            variant: 'default',
+            duration: 2000
+          });
+          
+          // عرض رسالة نجاح مؤقتة داخل المكون
+          setSuccessMessage(product.name);
+          setTimeout(() => {
+            setSuccessMessage(null);
+          }, 1500);
+          
           console.log('Product added to invoice:', product.name);
         } else {
           setScannedProduct(product);
@@ -182,20 +197,36 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
   };
 
   return (
-    <Card className="card-hover">
-      <CardHeader className="bg-primary/5 border-b border-border">
+    <Card className={`${continueScanning ? "border-primary border-2 shadow-lg" : "card-hover"}`}>
+      <CardHeader className="bg-primary/5 border-b border-border p-3">
         <CardTitle className="flex items-center">
           <QrCode className={`${rtl ? 'ml-2' : 'mr-2'} h-5 w-5 text-primary`} />
           <span className="gradient-heading">{t('scan_barcode')}</span>
+          {continueScanning && (
+            <span className="ml-auto bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-green-200">
+              {t('continuous_mode')}
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="p-4 md:p-6">
+      <CardContent className="p-3">
+        {/* Mensaje de éxito - Visible solo en modo continuo */}
+        {continueScanning && successMessage && (
+          <div className="mb-3 bg-green-50 border border-green-200 rounded-lg p-2.5 flex items-center animate-in fade-in slide-in-from-top-5 duration-300">
+            <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+            <div>
+              <p className="text-green-800 font-medium text-sm">{t('product_added')}</p>
+              <p className="text-green-700 text-xs">{successMessage}</p>
+            </div>
+          </div>
+        )}
+        
         {isScanning ? (
           <div 
             id="barcode-scanner" 
             ref={scannerRef} 
-            className="border-2 border-dashed border-border rounded-lg overflow-hidden relative h-64 bg-black"
+            className="border-2 border-dashed border-border rounded-lg overflow-hidden relative h-52 bg-black"
           >
             <div className="absolute inset-0 z-10 pointer-events-none">
               {/* بديل مؤقت للكاميرا مقيد في Replit */}
@@ -207,62 +238,86 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
                   <ScanLine className="h-5 w-5 text-white animate-pulse" />
                 </div>
               </div>
+              
+              <div className="absolute bottom-3 left-0 right-0 text-center text-sm text-white px-2 py-1 font-medium">
+                <p className="text-center text-xs px-4 py-1 rounded-full bg-primary/80 backdrop-blur-sm inline-block">
+                  {continueScanning 
+                    ? t('scan_multiple_products') 
+                    : t('position_barcode_in_frame')}
+                </p>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="border-2 border-dashed border-border rounded-lg p-6 text-center mb-4 bg-muted/30">
+          <div className="border-2 border-dashed border-border rounded-lg p-4 text-center mb-3 bg-muted/30">
             {cameraStatus === 'denied' ? (
-              <div className="space-y-4">
-                <AlertCircle className="h-12 w-12 mx-auto text-destructive mb-2" />
-                <p className="text-destructive font-medium">
+              <div className="space-y-3">
+                <AlertCircle className="h-8 w-8 mx-auto text-destructive mb-1" />
+                <p className="text-destructive font-medium text-sm">
                   {t('camera_access_denied')}
                 </p>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-muted-foreground text-xs">
                   {t('allow_camera_access')}
                 </p>
               </div>
             ) : cameraStatus === 'requesting' ? (
-              <div className="space-y-4">
-                <RefreshCw className="h-12 w-12 mx-auto text-primary mb-2 animate-spin" />
-                <p className="text-foreground font-medium">
+              <div className="space-y-3">
+                <RefreshCw className="h-8 w-8 mx-auto text-primary mb-1 animate-spin" />
+                <p className="text-foreground font-medium text-sm">
                   {t('requesting_camera')}
                 </p>
               </div>
             ) : (
               <>
-                <div className="bg-primary/10 p-4 rounded-full w-24 h-24 mx-auto mb-4 flex items-center justify-center">
-                  <Camera className="h-10 w-10 text-primary" />
+                <div className="bg-primary/10 p-3 rounded-full w-16 h-16 mx-auto mb-3 flex items-center justify-center">
+                  <Camera className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-medium gradient-heading mb-2">
-                  {t('scan_product_barcode')}
+                <h3 className="text-base font-medium gradient-heading mb-1">
+                  {continueScanning 
+                    ? t('scan_multiple_products_title') 
+                    : t('scan_product_barcode')}
                 </h3>
-                <p className="text-muted-foreground mb-6">
-                  {t('position_barcode_in_frame')}
+                <p className="text-muted-foreground text-xs mb-4">
+                  {continueScanning 
+                    ? t('scan_multiple_products_description') 
+                    : t('position_barcode_in_frame')}
                 </p>
                 <Button
                   className="btn-glow"
                   onClick={startScanner}
+                  size="sm"
                 >
                   <Camera className={`h-4 w-4 ${rtl ? 'ml-2' : 'mr-2'}`} />
                   {t('activate_camera')}
                 </Button>
                 
-                {/* قسم زر الباركود الاختباري تم إزالته بناءً على طلب العميل */}
+                {!continueScanning && (
+                  <div className="mt-3">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleManualEntry}
+                    >
+                      <FileBarChart2 className={`h-4 w-4 ${rtl ? 'ml-2' : 'mr-2'}`} />
+                      {t('use_test_barcode')}
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </div>
         )}
         
         {error && (
-          <Alert variant="destructive" className="mt-4 mb-2">
+          <Alert variant="destructive" className="mt-3 mb-2">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>{t('error')}</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
         
-        {scannedProduct && (
-          <div className="p-5 bg-muted/30 rounded-lg mt-4 shadow-sm border border-muted">
+        {scannedProduct && !continueScanning && (
+          <div className="p-4 bg-muted/30 rounded-lg mt-3 shadow-sm border border-muted">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="font-medium text-lg">{scannedProduct.name}</h3>
@@ -277,10 +332,11 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
                 </p>
               </div>
             </div>
-            <div className="mt-4 flex justify-end">
+            <div className="mt-3 flex justify-end">
               <Button 
                 onClick={handleAddToInvoice}
                 className="btn-glow"
+                size="sm"
               >
                 {t('add_to_invoice')}
               </Button>
@@ -295,6 +351,7 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
             variant="outline"
             onClick={stopScanner}
             className="w-full"
+            size="sm"
           >
             {t('cancel_scanning')}
           </Button>
@@ -307,6 +364,7 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
             variant="secondary"
             onClick={retryScanner}
             className="w-full"
+            size="sm"
           >
             <RefreshCw className={`h-4 w-4 ${rtl ? 'ml-2' : 'mr-2'}`} />
             {t('retry')}
