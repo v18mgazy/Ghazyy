@@ -2,9 +2,8 @@
  * ملف لإصلاح مشكلة التاريخ في قاعدة البيانات
  * يقوم بتحديث جميع التواريخ المخزنة لتتماشى مع التوقيت المحلي
  */
-
 import { database, ref, get, update } from "./firebase-rtdb";
-import { getLocalISOString } from "./date-utils";
+import { getLocalISOString, parseFirebaseDate } from "./date-utils";
 
 /**
  * تحديث التواريخ في المستندات
@@ -12,47 +11,53 @@ import { getLocalISOString } from "./date-utils";
  * @param fieldNames أسماء حقول التاريخ التي سيتم تحديثها
  */
 export async function updateDatesInCollection(path: string, fieldNames: string[]) {
+  console.log(`جاري إصلاح التواريخ في مجموعة: ${path}`);
   try {
-    const collectionRef = ref(database, path);
-    const snapshot = await get(collectionRef);
-    
+    // الحصول على جميع المستندات في المجموعة
+    const snapshot = await get(ref(database, path));
     if (!snapshot.exists()) {
-      console.log(`Collection ${path} does not exist or is empty.`);
+      console.log(`المجموعة ${path} فارغة أو غير موجودة`);
       return;
     }
-    
+
     const data = snapshot.val();
     let updatedCount = 0;
     
-    // معالجة كل مستند في المجموعة
-    for (const docId in data) {
-      const doc = data[docId];
-      const updates: Record<string, any> = {};
+    // معالجة كل مستند
+    for (const id in data) {
+      const doc = data[id];
+      const updates: Record<string, string> = {};
       let needsUpdate = false;
       
-      // معالجة كل حقل تاريخ في المستند
-      for (const fieldName of fieldNames) {
-        if (doc[fieldName]) {
-          // تحقق من أن الحقل هو تاريخ بالفعل
-          const dt = new Date(doc[fieldName]);
-          if (!isNaN(dt.getTime())) {
-            // إضافة 3 ساعات والتحويل إلى تنسيق سلسلة
-            updates[fieldName] = getLocalISOString(dt);
-            needsUpdate = true;
+      // فحص وتحديث كل حقل تاريخ
+      for (const field of fieldNames) {
+        if (doc[field] && typeof doc[field] === 'string') {
+          // التحقق من أن التاريخ يحتوي على حرف Z في النهاية (يشير إلى UTC)
+          // أو أنه لا يحتوي على إزاحة المنطقة الزمنية
+          const dateStr = doc[field];
+          if (dateStr.endsWith('Z') || !dateStr.includes('+') && !dateStr.includes('-', 10)) {
+            const date = parseFirebaseDate(dateStr);
+            if (date) {
+              const localISOString = getLocalISOString(date);
+              if (localISOString !== dateStr) {
+                updates[field] = localISOString;
+                needsUpdate = true;
+              }
+            }
           }
         }
       }
       
-      // تحديث المستند إذا كان هناك تغييرات
+      // تطبيق التحديثات إذا كانت هناك حاجة
       if (needsUpdate) {
-        await update(ref(database, `${path}/${docId}`), updates);
+        await update(ref(database, `${path}/${id}`), updates);
         updatedCount++;
       }
     }
     
-    console.log(`Updated ${updatedCount} documents in ${path}`);
+    console.log(`تم تحديث ${updatedCount} مستند في مجموعة ${path}`);
   } catch (error) {
-    console.error(`Error updating dates in ${path}:`, error);
+    console.error(`خطأ أثناء تحديث التواريخ في مجموعة ${path}:`, error);
   }
 }
 
@@ -60,27 +65,30 @@ export async function updateDatesInCollection(path: string, fieldNames: string[]
  * تحديث جميع التواريخ في قاعدة البيانات
  */
 export async function fixAllDates() {
-  // قائمة المجموعات وحقول التاريخ
-  const collections: [string, string[]][] = [
-    ['users', ['createdAt', 'updatedAt', 'lastLogin']],
-    ['products', ['createdAt', 'updatedAt']],
-    ['customers', ['createdAt', 'updatedAt']],
-    ['invoices', ['createdAt', 'updatedAt', 'date']],
-    ['damaged_items', ['createdAt', 'date']],
-    ['employees', ['createdAt', 'updatedAt', 'joinDate']],
-    ['payment_approvals', ['createdAt', 'updatedAt']],
-    ['notifications', ['createdAt']],
-    ['employee_deductions', ['createdAt', 'date']],
-    ['expenses', ['createdAt', 'date']],
-    ['store_info', ['createdAt', 'updatedAt']],
-    ['suppliers', ['createdAt', 'updatedAt']],
-    ['supplier_invoices', ['createdAt', 'updatedAt', 'date', 'dueDate']],
-    ['supplier_payments', ['createdAt', 'paymentDate']]
+  // المجموعات وحقول التاريخ التي يجب تحديثها
+  const collections = [
+    { path: 'invoices', fields: ['createdAt', 'updatedAt', 'date'] },
+    { path: 'customers', fields: ['createdAt', 'updatedAt'] },
+    { path: 'products', fields: ['createdAt', 'updatedAt'] },
+    { path: 'damaged_items', fields: ['createdAt', 'date'] },
+    { path: 'employees', fields: ['createdAt', 'updatedAt'] },
+    { path: 'users', fields: ['createdAt', 'updatedAt', 'lastLogin'] },
+    { path: 'payments', fields: ['createdAt', 'date'] },
+    { path: 'notifications', fields: ['createdAt'] },
+    { path: 'employee_deductions', fields: ['date'] },
+    { path: 'expenses', fields: ['date'] },
+    { path: 'payment_approvals', fields: ['createdAt', 'updatedAt'] },
+    { path: 'reports', fields: ['createdAt', 'date'] },
+    { path: 'supplier_invoices', fields: ['createdAt', 'updatedAt', 'date', 'dueDate'] },
+    { path: 'supplier_payments', fields: ['createdAt', 'paymentDate'] },
+    { path: 'suppliers', fields: ['createdAt', 'updatedAt'] }
   ];
   
-  for (const [collection, fields] of collections) {
-    await updateDatesInCollection(collection, fields);
+  // تحديث كل مجموعة
+  for (const collection of collections) {
+    await updateDatesInCollection(collection.path, collection.fields);
   }
   
-  console.log('Date fix completed for all collections.');
+  console.log('تم إكمال عملية إصلاح التواريخ في قاعدة البيانات');
+  return { success: true, message: 'تم إصلاح جميع التواريخ بنجاح' };
 }
