@@ -213,10 +213,14 @@ export class RealtimeDBStorage implements IStorage {
   async createProduct(product: InsertProduct): Promise<Product> {
     try {
       const id = this.generateId('products');
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const now = new Date();
+      const localDateString = now.toLocaleString('sv-SE').replace(' ', 'T');
+      
       const newProduct: Product = {
         id,
         ...product,
-        createdAt: new Date().toISOString()
+        createdAt: localDateString
       };
       
       await set(ref(database, `products/${id}`), newProduct);
@@ -234,10 +238,14 @@ export class RealtimeDBStorage implements IStorage {
       
       if (snapshot.exists()) {
         const currentProduct = snapshot.val() as Product;
+        // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+        const now = new Date();
+        const localDateString = now.toLocaleString('sv-SE').replace(' ', 'T');
+        
         const updatedProduct = {
           ...currentProduct,
           ...productData,
-          updatedAt: new Date().toISOString()
+          updatedAt: localDateString
         };
         
         await update(ref(database, `products/${id}`), updatedProduct);
@@ -319,10 +327,14 @@ export class RealtimeDBStorage implements IStorage {
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
     try {
       const id = this.generateId('customers');
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const now = new Date();
+      const localDateString = now.toLocaleString('sv-SE').replace(' ', 'T');
+      
       const newCustomer: Customer = {
         id,
         ...customer,
-        createdAt: new Date().toISOString().replace('Z', '')
+        createdAt: localDateString
       };
       
       await set(ref(database, `customers/${id}`), newCustomer);
@@ -340,10 +352,14 @@ export class RealtimeDBStorage implements IStorage {
       
       if (snapshot.exists()) {
         const currentCustomer = snapshot.val() as Customer;
+        // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+        const now = new Date();
+        const localDateString = now.toLocaleString('sv-SE').replace(' ', 'T');
+        
         const updatedCustomer = {
           ...currentCustomer,
           ...customerData,
-          updatedAt: new Date().toISOString().replace('Z', '')
+          updatedAt: localDateString
         };
         
         await update(ref(database, `customers/${id}`), updatedCustomer);
@@ -397,10 +413,14 @@ export class RealtimeDBStorage implements IStorage {
       // إضافة طباعة لمعرفة الحقول الواردة
       console.log('Creating invoice with these fields:', Object.keys(invoice));
       
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const now = new Date();
+      const localDateString = now.toLocaleString('sv-SE').replace(' ', 'T');
+      
       const newInvoice: Invoice = {
         id,
         ...invoice,
-        createdAt: new Date().toISOString().replace('Z', ''),
+        createdAt: localDateString,
         // التأكد من تضمين حقول المنتجات المنفصلة
         productIds: invoice.productIds || '',
         productNames: invoice.productNames || '',
@@ -444,8 +464,9 @@ export class RealtimeDBStorage implements IStorage {
         id, // استخدام المعرف المحدد
         ...invoiceData,
         // استخدام تواريخ محددة إذا تم تقديمها، وإلا استخدام الوقت الحالي
-        createdAt: invoiceData.createdAt || new Date().toISOString().replace('Z', ''),
-        date: invoiceData.date || invoiceData.createdAt || new Date().toISOString().replace('Z', ''),
+        // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+        createdAt: invoiceData.createdAt || new Date().toLocaleString('sv-SE').replace(' ', 'T'),
+        date: invoiceData.date || invoiceData.createdAt || new Date().toLocaleString('sv-SE').replace(' ', 'T'),
         // التأكد من تضمين حقول المنتجات المنفصلة إذا لم تكن موجودة
         productIds: invoiceData.productIds || '',
         productNames: invoiceData.productNames || '',
