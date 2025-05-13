@@ -6,7 +6,7 @@ import {
   X, Box
 } from 'lucide-react';
 import BarcodeScanner from '@/components/barcode-scanner';
-import EditInvoiceDialog from '@/components/invoice/edit-invoice-dialog';
+import EditInvoiceDialog from '@/components/invoice/edit-invoice-dialog-new';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useAuthContext } from '@/context/auth-context';
 import { useLocale } from '@/hooks/use-locale';
