@@ -2188,10 +2188,12 @@ export class RealtimeDBStorage implements IStorage {
         return undefined;
       }
       
-      const now = new Date().toISOString();
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const now = new Date();
+      const now_str = now.toLocaleString('sv-SE').replace(' ', 'T');
       const updates = {
         ...supplierData,
-        updatedAt: now
+        updatedAt: now_str
       };
       
       await update(supplierRef, updates);
@@ -2335,14 +2337,16 @@ export class RealtimeDBStorage implements IStorage {
   async createSupplierInvoice(invoice: InsertSupplierInvoice): Promise<SupplierInvoice> {
     try {
       const id = this.generateId('supplier_invoices');
-      const now = new Date().toISOString();
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const now = new Date();
+      const now_str = now.toLocaleString('sv-SE').replace(' ', 'T');
       
       const newInvoice = {
         ...invoice,
         paidAmount: invoice.paidAmount || 0,
         paymentStatus: invoice.paymentStatus || 'pending',
-        createdAt: now,
-        updatedAt: now
+        createdAt: now_str,
+        updatedAt: now_str
       };
       
       const invoiceRef = ref(database, `supplier_invoices/${id}`);
@@ -2521,7 +2525,9 @@ export class RealtimeDBStorage implements IStorage {
   async createSupplierPayment(payment: InsertSupplierPayment): Promise<SupplierPayment> {
     try {
       const id = this.generateId('supplier_payments');
-      const now = new Date().toISOString();
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const now = new Date();
+      const now_str = now.toLocaleString('sv-SE').replace(' ', 'T');
       
       const newPayment = {
         ...payment,
