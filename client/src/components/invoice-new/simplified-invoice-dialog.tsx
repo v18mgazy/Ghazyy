@@ -32,6 +32,9 @@ import {
   CommandList 
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 
 // Custom Components
 import BarcodeScanner from '@/components/barcode-scanner';
@@ -61,6 +64,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [invoiceNotes, setInvoiceNotes] = useState('');
 
+
   // حالة البحث عن المنتجات
   const [productSearchTerm, setProductSearchTerm] = useState('');
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
@@ -77,6 +81,8 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
   const [totalDiscount, setTotalDiscount] = useState(0);
   const [invoiceDiscount, setInvoiceDiscount] = useState(0);
   const [total, setTotal] = useState(0);
+  // تاريخ الفاتورة - استخدم التاريخ الحالي كقيمة ابتدائية
+  const [invoiceDate, setInvoiceDate] = useState<Date>(new Date());
   
   // إضافة عميل جديد
   const [newCustomer, setNewCustomer] = useState({
@@ -480,7 +486,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       customerName: selectedCustomer.name,
       customerPhone: selectedCustomer.phone,
       customerAddress: selectedCustomer.address,
-      date: new Date().toISOString(),
+      date: invoiceDate.toISOString(), // استخدام التاريخ المختار من قبل المستخدم
       paymentMethod,
       paymentStatus,
       subtotal,
@@ -573,6 +579,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
             </TabsList>
 
             <TabsContent value="customer" className="py-1">
+              {/* إضافة عنصر اختيار التاريخ */}
               <div className="flex items-center gap-2 mb-3">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
@@ -592,8 +599,34 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                   <span className="font-medium">{t('add_new')}</span>
                 </Button>
               </div>
+              
+              {/* إضافة حقل اختيار التاريخ */}
+              <div className="mb-3">
+                <Label htmlFor="invoice-date" className="text-sm font-medium mb-1 block">
+                  {t('invoice_date')}
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {invoiceDate ? format(invoiceDate, 'PPP') : <span>{t('select_date')}</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={invoiceDate}
+                      onSelect={(date) => date && setInvoiceDate(date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-              <ScrollArea className="h-[340px]">
+              <ScrollArea className="h-[300px]">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-1">
                   {filteredCustomers.map((customer: any) => (
                     <div
