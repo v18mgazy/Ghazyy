@@ -84,10 +84,14 @@ export class RealtimeDBStorage implements IStorage {
   async createUser(user: InsertUser): Promise<User> {
     try {
       const id = this.generateId('users');
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const now = new Date();
+      const localDateString = now.toLocaleString('sv-SE').replace(' ', 'T');
+      
       const newUser: User = {
         id,
         ...user,
-        createdAt: new Date().toISOString()
+        createdAt: localDateString
       };
       
       await set(ref(database, `users/${id}`), newUser);
@@ -625,10 +629,14 @@ export class RealtimeDBStorage implements IStorage {
   async createInvoiceItem(item: InsertInvoiceItem): Promise<InvoiceItem> {
     try {
       const id = this.generateId('invoiceItems');
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const now = new Date();
+      const localDateString = now.toLocaleString('sv-SE').replace(' ', 'T');
+      
       const newItem: InvoiceItem = {
         id,
         ...item,
-        createdAt: new Date().toISOString()
+        createdAt: localDateString
       };
       
       await set(ref(database, `invoiceItems/${id}`), newItem);
@@ -1514,10 +1522,14 @@ export class RealtimeDBStorage implements IStorage {
   async createReportData(reportData: InsertReportData): Promise<ReportData> {
     try {
       const id = this.generateId('reportData');
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const now = new Date();
+      const localDateString = now.toLocaleString('sv-SE').replace(' ', 'T');
+      
       const newReportData: ReportData = {
         id,
         ...reportData,
-        createdAt: new Date().toISOString()
+        createdAt: localDateString
       };
       
       await set(ref(database, `reportData/${id}`), newReportData);
@@ -2616,14 +2628,20 @@ export class RealtimeDBStorage implements IStorage {
   async createReportData(reportData: InsertReportData): Promise<ReportData> {
     try {
       const id = this.generateId('report_data');
-      const now = new Date().toISOString();
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const nowDate = new Date();
+      const localDateString = nowDate.toLocaleString('sv-SE').replace(' ', 'T');
       
-      // تحويل التاريخ إلى سلسلة نصية للتخزين في Firebase
+      // تحويل التاريخ إلى سلسلة نصية للتخزين في Firebase باستخدام التوقيت المحلي
       const newReportData = {
         ...reportData,
         id,
-        createdAt: now,
-        date: reportData.date ? reportData.date.toISOString() : now,
+        createdAt: localDateString,
+        date: reportData.date ? 
+              (reportData.date instanceof Date ? 
+                reportData.date.toLocaleString('sv-SE').replace(' ', 'T') : 
+                reportData.date) : 
+              localDateString,
       };
       
       const reportRef = ref(database, `report_data/${id}`);
@@ -2632,8 +2650,8 @@ export class RealtimeDBStorage implements IStorage {
       return {
         ...newReportData,
         id,
-        date: new Date(newReportData.date),
-        createdAt: new Date(now),
+        date: typeof newReportData.date === 'string' ? new Date(newReportData.date) : newReportData.date,
+        createdAt: new Date(localDateString),
         dataJson: reportData.dataJson || null,
       };
     } catch (error) {
