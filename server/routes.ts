@@ -1654,10 +1654,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentMethod: req.body.paymentMethod,
         paymentStatus: req.body.paymentStatus,
         notes: customerInfo.notes || req.body.notes,
-        // استخدام تاريخ الجهاز المحلي مباشرة دون أي تعديلات على التوقيت
+        // استخدام تاريخ الجهاز المحلي مباشرة والاحتفاظ به كتوقيت محلي
         date: req.body.date || (() => {
           const now = new Date();
-          return now.toISOString();
+          return now.toLocaleString(); // استخدام التنسيق المحلي للتاريخ والوقت
         })(),
         // تخزين بيانات المنتجات بالطريقتين للتوافق مع الإصدارات السابقة
         productsData: JSON.stringify(productsDataArray),
@@ -1672,14 +1672,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         productProfits: productProfits.join(','),
         userId: userId,
         isDeleted: false,
-        // استخدام تاريخ الجهاز المحلي مباشرة دون أي تعديلات على التوقيت
+        // استخدام تاريخ الجهاز المحلي مباشرة والاحتفاظ به كتوقيت محلي
         createdAt: (() => {
           const now = new Date();
-          return now.toISOString();
+          return now.toLocaleString(); // استخدام التنسيق المحلي للتاريخ والوقت
         })(),
         updatedAt: (() => {
           const now = new Date();
-          return now.toISOString();
+          return now.toLocaleString(); // استخدام التنسيق المحلي للتاريخ والوقت
         })()
       };
       
@@ -4094,7 +4094,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // إنشاء تقرير جديد
         await storage.createReportData({
           ...newReportData,
-          createdAt: new Date()
+          createdAt: new Date().toLocaleString() // استخدام التنسيق المحلي للتاريخ والوقت
         });
         console.log(`[تحديث] تم إنشاء تقرير يومي جديد لتاريخ ${date}`);
       }
