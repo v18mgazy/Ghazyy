@@ -203,7 +203,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
     : products;
 
   // حساب المجاميع
-  const calculateTotals = useCallback((products: any[]) => {
+  const calculateTotals = useCallback((products: any[], customInvoiceDiscount?: number) => {
     // حساب المجموع الفرعي (subtotal): إجمالي أسعار المنتجات قبل أي خصم
     const newSubtotal = products.reduce((sum, product) => {
       return sum + (product.sellingPrice * product.quantity);
@@ -220,7 +220,8 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
     // حساب قيمة الخصم على مستوى الفاتورة
     // يتم تطبيق خصم الفاتورة كقيمة مباشرة بدلاً من نسبة مئوية
     const subtotalAfterProductDiscount = newSubtotal - newTotalDiscount;
-    const invoiceDiscountAmount = invoiceDiscount > 0 ? invoiceDiscount : 0;
+    const discountToApply = customInvoiceDiscount !== undefined ? customInvoiceDiscount : invoiceDiscount;
+    const invoiceDiscountAmount = discountToApply > 0 ? discountToApply : 0;
     
     // التأكد من أن الخصم لا يتجاوز إجمالي الفاتورة بعد خصم المنتجات
     const validInvoiceDiscount = Math.min(invoiceDiscountAmount, subtotalAfterProductDiscount);
@@ -885,7 +886,11 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                               min="0"
                               step="0.01"
                               value={invoiceDiscount || 0}
-                              onChange={(e) => setInvoiceDiscount(parseFloat(e.target.value) || 0)}
+                              onChange={(e) => {
+                                const newDiscount = parseFloat(e.target.value) || 0;
+                                setInvoiceDiscount(newDiscount);
+                                calculateTotals(invoiceProducts, newDiscount);
+                              }}
                               className="pr-8 py-1 h-10 text-base"
                             />
                             <DollarSign className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
