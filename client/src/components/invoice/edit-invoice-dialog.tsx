@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocale } from '@/hooks/use-locale';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { formatCurrency } from '@/lib/utils';
 
 // Icons
@@ -73,6 +73,12 @@ export default function EditInvoiceDialog({
   const [invoiceDiscount, setInvoiceDiscount] = useState(invoice?.invoiceDiscount || 0);
   const [paymentMethod, setPaymentMethod] = useState(invoice?.paymentMethod || 'cash');
   const [notes, setNotes] = useState(invoice?.notes || '');
+  
+  // استعلام لجلب بيانات المنتجات وحالة المخزون
+  const { data: allProducts, isLoading: loadingProducts } = useQuery({
+    queryKey: ['/api/products'],
+    staleTime: 30000,
+  });
   
   // Calculate totals
   const subtotal = products.reduce((sum, product) => 
@@ -171,6 +177,24 @@ export default function EditInvoiceDialog({
   
   // Handle product quantity change
   const updateProductQuantity = (index: number, quantity: number) => {
+    // التحقق من توفر الكمية في المخزون قبل التحديث
+    const product = products[index];
+    if (quantity > product.quantity) {
+      // التحقق من المخزون فقط إذا كنا نزيد الكمية
+      if (!checkProductStock(product.id, quantity)) {
+        const availableStock = allProducts?.find((p: any) => p.id === product.id)?.quantity || 0;
+        toast({
+          title: t('warning'),
+          description: t('insufficient_stock', {
+            product: product.name,
+            available: availableStock
+          }),
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+    
     const newProducts = [...products];
     newProducts[index].quantity = quantity;
     setProducts(newProducts);
@@ -188,6 +212,17 @@ export default function EditInvoiceDialog({
     setProducts(products.filter((_, i) => i !== index));
   };
   
+  // التحقق من توفر الكمية في المخزون
+  const checkProductStock = (productId: number, requestedQty: number): boolean => {
+    if (!allProducts || !Array.isArray(allProducts)) return false;
+    
+    const productInStock = allProducts.find((p: any) => p.id === productId);
+    if (!productInStock) return false;
+    
+    const availableQty = productInStock.quantity || 0;
+    return availableQty >= requestedQty;
+  };
+  
   // Handle barcode scan result
   const handleBarcodeResult = async (barcode: string) => {
     try {
@@ -202,9 +237,34 @@ export default function EditInvoiceDialog({
       const existingProductIndex = products.findIndex(p => p.id === product.id);
       
       if (existingProductIndex >= 0) {
-        // Update quantity if product already exists
-        updateProductQuantity(existingProductIndex, products[existingProductIndex].quantity + 1);
+        // التحقق من توفر الكمية المطلوبة في المخزون
+        const newQuantity = products[existingProductIndex].quantity + 1;
+        
+        if (!checkProductStock(product.id, newQuantity)) {
+          toast({
+            title: t('warning'),
+            description: t('insufficient_stock', {
+              product: product.name,
+              available: product.quantity || 0
+            }),
+            variant: 'destructive',
+          });
+          return;
+        }
+        
+        // Update quantity if product already exists and stock is sufficient
+        updateProductQuantity(existingProductIndex, newQuantity);
       } else {
+        // التحقق من توفر المنتج في المخزون
+        if (!checkProductStock(product.id, 1)) {
+          toast({
+            title: t('warning'),
+            description: t('out_of_stock', { product: product.name }),
+            variant: 'destructive',
+          });
+          return;
+        }
+        
         // Add new product
         setProducts([...products, {
           id: product.id,
