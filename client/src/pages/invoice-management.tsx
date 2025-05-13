@@ -56,6 +56,7 @@ import {
   DollarSign,
   Tag,
   ShoppingCart,
+  Settings,
   X,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -121,14 +122,16 @@ export default function InvoiceManagementPage() {
   // استعلام لمعلومات المتجر
   const { data: storeInfo } = useQuery({
     queryKey: ['/api/store-info'],
-    onSuccess: (data) => {
-      if (data) {
-        setStoreName(data.name || '');
-        setStoreAddress(data.address || '');
-        setStorePhone(data.phone || '');
-      }
-    }
   });
+  
+  // تعيين بيانات المتجر عند استلامها
+  useEffect(() => {
+    if (storeInfo) {
+      setStoreName(storeInfo.name || '');
+      setStoreAddress(storeInfo.address || '');
+      setStorePhone(storeInfo.phone || '');
+    }
+  }, [storeInfo]);
   
   // mutation لتحديث معلومات المتجر
   const storeInfoMutation = useMutation({
@@ -215,13 +218,26 @@ export default function InvoiceManagementPage() {
       else if (Array.isArray(invoice.productsData)) {
         return invoice.productsData;
       }
-      // المحاولة الثالثة: تحليل productData كنص JSON
-      else if (typeof invoice.productData === 'string') {
-        return JSON.parse(invoice.productData);
-      }
-      // المحاولة الرابعة: استخدام productData كمصفوفة مباشرة
-      else if (Array.isArray(invoice.productData)) {
-        return invoice.productData;
+      // المحاولة الثالثة: إعادة بناء المصفوفة من الحقول المنفصلة
+      else if (invoice.productIds && invoice.productNames && invoice.productQuantities) {
+        const productIds = String(invoice.productIds).split(',');
+        const productNames = String(invoice.productNames).split(',');
+        const productQuantities = String(invoice.productQuantities).split(',').map(Number);
+        const productPrices = String(invoice.productPrices || '').split(',').map(Number);
+        const productPurchasePrices = String(invoice.productPurchasePrices || '').split(',').map(Number);
+        const productDiscounts = String(invoice.productDiscounts || '').split(',').map(Number);
+        const productTotals = String(invoice.productTotals || '').split(',').map(Number);
+        
+        // إنشاء مصفوفة من المنتجات باستخدام الحقول المنفصلة
+        return productIds.map((id, index) => ({
+          productId: Number(id),
+          productName: productNames[index] || '',
+          quantity: productQuantities[index] || 0,
+          price: productPrices[index] || 0,
+          purchasePrice: productPurchasePrices[index] || 0,
+          discount: productDiscounts[index] || 0,
+          total: productTotals[index] || 0
+        }));
       }
       // الحالة الافتراضية: مصفوفة فارغة
       return [];
@@ -232,34 +248,42 @@ export default function InvoiceManagementPage() {
   };
   
   // تنسيق التاريخ حسب اللغة
-  const formatDate = (dateStr: string | Date) => {
+  const formatDate = (dateStr: string | Date | null | undefined) => {
+    if (!dateStr) return '';
+    
     try {
       const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return String(dateStr);
+      
       return format(date, 'PPpp', {
         locale: language === 'ar' ? ar : enUS,
       });
     } catch (err) {
-      return dateStr;
+      return String(dateStr);
     }
   };
   
   // العثور على معلومات العميل من رقم التعريف
-  const getCustomerName = (customerId: number): string => {
-    if (!customers) return '';
-    const customer = customers.find((c: Customer) => c.id === customerId);
+  const getCustomerName = (customerId: number | null): string => {
+    if (!customers || !customerId) return '';
+    // تحويل customers إلى مصفوفة إذا لم يكن كذلك
+    const customersArray = Array.isArray(customers) ? customers : [];
+    const customer = customersArray.find((c: Customer) => c.id === customerId);
     return customer ? customer.name : '';
   };
   
   // الحصول على رقم هاتف العميل
-  const getCustomerPhone = (customerId: number): string => {
-    if (!customers) return '';
-    const customer = customers.find((c: Customer) => c.id === customerId);
+  const getCustomerPhone = (customerId: number | null): string => {
+    if (!customers || !customerId) return '';
+    // تحويل customers إلى مصفوفة إذا لم يكن كذلك
+    const customersArray = Array.isArray(customers) ? customers : [];
+    const customer = customersArray.find((c: Customer) => c.id === customerId);
     return customer?.phone || '';
   };
   
   // فلترة الفواتير بناءً على البحث
   const filteredInvoices = invoices
-    ? invoices.filter((invoice: Invoice) => {
+    ? (Array.isArray(invoices) ? invoices : []).filter((invoice: Invoice) => {
         const customerName = getCustomerName(invoice.customerId);
         const searchLower = searchTerm.toLowerCase();
         return (
@@ -333,7 +357,8 @@ export default function InvoiceManagementPage() {
       if (!invoiceElement) return;
       
       // الحصول على هاتف العميل
-      const customerPhone = getCustomerPhone(selectedInvoice.customerId);
+      const customerId = selectedInvoice.customerId || 0;
+      const customerPhone = getCustomerPhone(customerId);
       if (!customerPhone) {
         toast({
           title: t('error'),
@@ -440,9 +465,9 @@ export default function InvoiceManagementPage() {
       <div id="invoice-preview" className="bg-white p-6 rounded-md shadow-sm">
         {/* رأس الفاتورة - معلومات المتجر */}
         <div className="text-center mb-4">
-          <h2 className="text-xl font-bold">{storeInfo?.name || t('store')}</h2>
-          <p className="text-sm text-gray-600">{storeInfo?.address || ''}</p>
-          <p className="text-sm text-gray-600">{storeInfo?.phone || ''}</p>
+          <h2 className="text-xl font-bold">{storeInfo && typeof storeInfo === 'object' && 'name' in storeInfo ? storeInfo.name : t('store')}</h2>
+          <p className="text-sm text-gray-600">{storeInfo && typeof storeInfo === 'object' && 'address' in storeInfo ? storeInfo.address : ''}</p>
+          <p className="text-sm text-gray-600">{storeInfo && typeof storeInfo === 'object' && 'phone' in storeInfo ? storeInfo.phone : ''}</p>
         </div>
         
         {/* معلومات الفاتورة */}
