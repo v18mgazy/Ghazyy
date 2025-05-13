@@ -181,7 +181,7 @@ export default function InvoiceManagementPage() {
       notes: string | null;
       products: InvoiceProduct[];
     }) => {
-      console.log('Updating invoice with data:', updateData);
+      console.log('Creating completely new invoice to replace invoice ID:', updateData.invoiceId);
       const { invoiceId, ...data } = updateData;
       
       // حساب إجماليات الفاتورة
@@ -234,7 +234,17 @@ export default function InvoiceManagementPage() {
       console.log('Sending invoice data to server:', invoiceData);
       
       try {
-        const res = await apiRequest('PUT', `/api/invoices/${invoiceId}`, invoiceData);
+        // نستخدم DELETE أولاً لحذف الفاتورة القديمة تماماً
+        console.log(`Deleting old invoice with ID ${invoiceId} completely`);
+        await apiRequest('DELETE', `/api/invoices/${invoiceId}`);
+        
+        // ثم نستخدم النقطة النهائية الجديدة لإنشاء فاتورة جديدة بالكامل بنفس المعرف
+        console.log(`Creating brand new invoice with same ID ${invoiceId}`);
+        
+        // إرسال بيانات الفاتورة بدون أي علامات إضافية
+        // لقد أزلنا السطر المتعلق بـ isCompletelyNew لأنها ليست موجودة في نوع البيانات
+        
+        const res = await apiRequest('POST', `/api/invoices/recreate/${invoiceId}`, invoiceData);
         const responseData = await res.json();
         console.log('Server response:', responseData);
         return responseData;
@@ -588,6 +598,17 @@ export default function InvoiceManagementPage() {
   // حفظ تعديلات الفاتورة
   const saveInvoiceChanges = () => {
     if (!invoiceToEdit) return;
+    
+    // إضافة سجلات إضافية للتأكد من البيانات المرسلة
+    console.log('Saving invoice changes with data:', {
+      invoiceId: invoiceToEdit.id,
+      customerId: editedCustomerId,
+      invoiceDiscount: editedDiscount,
+      editedDiscount: editedDiscount, // قيمة للتحقق
+      paymentMethod: editedPaymentMethod,
+      notes: editedNotes,
+      products: editedProducts
+    });
     
     updateInvoiceMutation.mutate({
       invoiceId: invoiceToEdit.id,

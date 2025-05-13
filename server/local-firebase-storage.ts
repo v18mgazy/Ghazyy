@@ -415,6 +415,8 @@ export class LocalFirebaseStorage implements IStorage {
    */
   async createInvoiceWithId(id: number, invoiceData: any): Promise<Invoice> {
     console.log(`LocalFirebaseStorage: Creating invoice with specific ID ${id}`);
+    console.log('Invoice data received:', JSON.stringify(invoiceData, null, 2));
+    console.log('invoiceDiscount value:', invoiceData.invoiceDiscount);
     
     // تأكد من أن المعرف صحيح
     if (isNaN(id) || id <= 0) {
@@ -429,6 +431,8 @@ export class LocalFirebaseStorage implements IStorage {
       createdAt: invoiceData.createdAt || new Date(),
       date: invoiceData.date || invoiceData.createdAt || new Date()
     };
+    
+    console.log('Final invoice to be stored:', JSON.stringify(newInvoice, null, 2));
     
     this.invoices.set(newInvoice.id, newInvoice);
     

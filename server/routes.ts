@@ -983,6 +983,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       console.log(`Request to update invoice with ID: ${id}`);
+      console.log('REQUEST BODY:', JSON.stringify(req.body, null, 2));
+      console.log('invoiceDiscount value:', req.body.invoiceDiscount);
       
       const invoiceId = parseInt(id);
       if (isNaN(invoiceId)) {
@@ -1037,7 +1039,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...(req.body.subtotal !== undefined && { subtotal: req.body.subtotal }),
         ...(req.body.discount !== undefined && { discount: req.body.discount }),
         ...(req.body.itemsDiscount !== undefined && { itemsDiscount: req.body.itemsDiscount }),
-        ...(req.body.invoiceDiscount !== undefined && { invoiceDiscount: req.body.invoiceDiscount }),
+        ...(req.body.invoiceDiscount !== undefined && { invoiceDiscount: parseFloat(req.body.invoiceDiscount) || 0 }),
         ...(req.body.total !== undefined && { total: req.body.total }),
         ...(req.body.paymentMethod && { paymentMethod: req.body.paymentMethod }),
         ...(req.body.paymentStatus && { paymentStatus: req.body.paymentStatus }),
@@ -1054,6 +1056,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...(req.body.productProfits && { productProfits: req.body.productProfits }),
         updatedAt: new Date().toISOString()
       };
+      
+      console.log('Created updateData with invoiceDiscount:', updateData?.invoiceDiscount);
       
       // إذا كان هناك بيانات منتجات مرسلة مباشرة كـ productsData، نستخدمها كما هي
       if (req.body.productsData) {
@@ -1091,6 +1095,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subtotal: req.body.subtotal || 0,
         total: req.body.total || 0
       };
+      
+      console.log('New invoice data prepared for createInvoiceWithId:', JSON.stringify(newInvoiceData, null, 2));
+      console.log('invoiceDiscount from request body:', req.body.invoiceDiscount);
+      console.log('invoiceDiscount in newInvoiceData:', newInvoiceData.invoiceDiscount);
       
       // إنشاء فاتورة جديدة بنفس المعرف باستخدام الوظيفة الجديدة
       const updatedInvoice = await storage.createInvoiceWithId(invoiceId, newInvoiceData);
@@ -1758,6 +1766,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Validation error', errors: err.errors });
       }
       res.status(500).json({ message: 'Failed to create invoice' });
+    }
+  });
+  
+
+
+  // إعادة إنشاء فاتورة كاملة بمعرف محدد (تستخدم عند تحديث الفواتير)
+  app.post('/api/invoices/recreate/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`Request to recreate invoice with ID: ${id}`);
+      console.log('REQUEST BODY:', JSON.stringify(req.body, null, 2));
+      
+      const invoiceId = parseInt(id);
+      if (isNaN(invoiceId)) {
+        console.error('Invalid invoice ID format:', id);
+        return res.status(400).json({ message: 'Invalid invoice ID format' });
+      }
+      
+      // التحقق من البيانات المطلوبة
+      if (!req.body.customerId) {
+        return res.status(400).json({ message: 'Customer ID is required' });
+      }
+      
+      // إعداد بيانات الفاتورة الجديدة
+      const newInvoiceData = {
+        ...req.body,
+        // إنشاء فاتورة جديدة بتاريخ جديد
+        createdAt: new Date(),
+        date: new Date(),
+        updatedAt: new Date(),
+        userId: req.body.userId || 1
+      };
+      
+      console.log('Creating completely new invoice with data:', JSON.stringify(newInvoiceData, null, 2));
+      
+      // إنشاء فاتورة جديدة بالمعرف المحدد
+      const newInvoice = await storage.createInvoiceWithId(invoiceId, newInvoiceData);
+      console.log('Created completely new invoice:', newInvoice);
+      
+      // تحديث التقارير بعد إنشاء الفاتورة الجديدة
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        await generateAndSaveReport('daily', today);
+        console.log(`Updated daily report for ${today}`);
+      } catch (reportError) {
+        console.error('Error updating reports after recreating invoice:', reportError);
+        // لا نريد إيقاف العملية إذا فشل تحديث التقارير
+      }
+      
+      res.status(201).json(newInvoice);
+    } catch (error) {
+      console.error('Error recreating invoice:', error);
+      res.status(500).json({ message: 'Error recreating invoice', error: String(error) });
     }
   });
   
