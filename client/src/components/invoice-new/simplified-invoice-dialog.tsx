@@ -156,8 +156,18 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
     onSuccess: (data) => {
       // تأكد من أن البيانات صحيحة وموجودة
       console.log('Invoice created successfully:', data);
-      setInvoiceData(data);
-      setCreatedInvoice(data);
+      
+      // عرض قيمة الخصم وتفاصيله بشكل صحيح في الفاتورة
+      const invoiceWithDiscountDetails = {
+        ...data,
+        invoiceDiscount: finalInvoiceDiscount, // استخدام قيمة الخصم المعدلة
+        subtotal: subtotal,
+        itemsDiscount: totalDiscount,
+        total: total
+      };
+      
+      setInvoiceData(invoiceWithDiscountDetails);
+      setCreatedInvoice(invoiceWithDiscountDetails);
       setShowInvoicePreview(true);
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       queryClient.invalidateQueries({ queryKey: ['/api/products'] });
