@@ -73,37 +73,38 @@ export default function EditInvoiceDialog({
   });
   const [products, setProducts] = useState<any[]>(invoice?.products || []);
   
-  // تأكد من نقل قيمة الخصم من الفاتورة
-  const [invoiceDiscount, setInvoiceDiscount] = useState(
-    // قد تكون القيمة غير معرفة، خصوصاً في الفواتير القديمة
-    invoice?.invoiceDiscount !== undefined ? Number(invoice.invoiceDiscount) : 0
-  );
-  
-  // طباعة قيمة الخصم في وحدة تحكم المتصفح للتحقق
-  console.log('Initial invoice discount value:', invoiceDiscount);
-  
+  // تهيئة قيمة الخصم من الفاتورة بشكل مبسط
+  const [invoiceDiscount, setInvoiceDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState(invoice?.paymentMethod || 'cash');
   const [notes, setNotes] = useState(invoice?.notes || '');
   
-  // طباعة قيم الفاتورة في الكونسول للتحقق منها
+  // عند تحديث بيانات الفاتورة نقوم بتحديث قيمة الخصم
   useEffect(() => {
     console.log('Invoice data for edit:', invoice);
     console.log('Invoice discount value (direct):', invoice?.invoiceDiscount);
     console.log('Invoice discount type:', typeof invoice?.invoiceDiscount);
     
-    // نتأكد من أن قيمة الخصم دائمًا رقم وليست نصًا
-    let numericDiscount = 0;
+    // تحويل قيمة الخصم إلى رقم بطريقة آمنة
+    let discountValue = 0;
     
-    if (invoice?.invoiceDiscount !== undefined && invoice?.invoiceDiscount !== null) {
-      if (typeof invoice.invoiceDiscount === 'string') {
-        numericDiscount = parseFloat(invoice.invoiceDiscount);
-      } else if (typeof invoice.invoiceDiscount === 'number') {
-        numericDiscount = invoice.invoiceDiscount;
+    try {
+      if (invoice?.invoiceDiscount !== undefined && invoice?.invoiceDiscount !== null) {
+        discountValue = Number(invoice.invoiceDiscount);
+        if (isNaN(discountValue)) {
+          // محاولة تجربة طرق أخرى للتحويل إذا كان الرقم غير صالح
+          discountValue = parseFloat(String(invoice.invoiceDiscount));
+          if (isNaN(discountValue)) {
+            discountValue = 0;
+          }
+        }
       }
+    } catch (error) {
+      console.error('Error converting invoice discount to number:', error);
+      discountValue = 0;
     }
     
-    console.log('Processed numeric discount value:', numericDiscount);
-    setInvoiceDiscount(numericDiscount);
+    console.log('Final invoice discount value:', discountValue);
+    setInvoiceDiscount(discountValue);
   }, [invoice]);
   
   // استعلام لجلب بيانات المنتجات وحالة المخزون
@@ -593,7 +594,10 @@ export default function EditInvoiceDialog({
                         value={invoiceDiscount}
                         onChange={(e) => {
                           console.log('Setting invoice discount to:', e.target.value);
-                          setInvoiceDiscount(Number(e.target.value));
+                          // تحويل القيمة المدخلة إلى رقم بشكل آمن
+                          let newValue = Number(e.target.value);
+                          if (isNaN(newValue)) newValue = 0;
+                          setInvoiceDiscount(newValue);
                         }}
                       />
                     </div>
