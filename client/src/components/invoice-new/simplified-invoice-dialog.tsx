@@ -543,6 +543,10 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
         }))}
         notes={invoiceData.notes || ''}
         paymentMethod={invoiceData.paymentMethod || 'cash'}
+        subtotal={invoiceData.subtotal || 0}
+        itemsDiscount={invoiceData.itemsDiscount || 0}
+        invoiceDiscount={invoiceData.invoiceDiscount || 0}
+        total={invoiceData.total || 0}
       />
     );
   }

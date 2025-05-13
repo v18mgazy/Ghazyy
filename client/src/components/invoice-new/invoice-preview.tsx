@@ -148,7 +148,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
+      pdf.save(`invoice-${invoiceData.invoiceNumber}.pdf`);
       
       toast({
         title: t('success'),
