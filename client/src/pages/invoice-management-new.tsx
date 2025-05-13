@@ -513,6 +513,9 @@ export default function InvoiceManagement() {
         productsData,
         subtotal,
         discount,
+        itemsDiscount,
+        invoiceDiscount,
+        discountPercentage,
         total,
         // تخزين بيانات المنتجات في الحقول المنفصلة أيضا
         productIds: editedProducts.map(p => p.productId).join(','),
@@ -1518,8 +1521,39 @@ export default function InvoiceManagement() {
             
             {/* ملخص المجموع */}
             <div className="flex justify-end">
-              <div className="bg-muted/40 p-4 rounded-lg w-full max-w-[250px]">
-                <div className="flex justify-between items-center text-lg font-semibold">
+              <div className="bg-muted/40 p-4 rounded-lg w-full max-w-[320px]">
+                {/* المجموع قبل الخصم */}
+                <div className="flex justify-between items-center text-sm mb-2">
+                  <span>{t('subtotal')}:</span>
+                  <span>{formatCurrency(editedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0))}</span>
+                </div>
+                
+                {/* خصومات المنتجات */}
+                {editedProducts.some(p => p.discount && p.discount > 0) && (
+                  <div className="flex justify-between items-center text-sm mb-2">
+                    <span>{t('items_discount')}:</span>
+                    <span className="text-rose-500">- {formatCurrency(editedProducts.reduce((sum, p) => sum + (p.discount || 0), 0))}</span>
+                  </div>
+                )}
+                
+                {/* خصم إضافي على الفاتورة */}
+                <div className="flex justify-between items-center gap-2 mb-3">
+                  <Label htmlFor="invoiceDiscount" className="text-sm">{t('invoice_discount')}:</Label>
+                  <div className="flex items-center w-32">
+                    <Input
+                      id="invoiceDiscount"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={editedInvoiceDiscount || 0}
+                      onChange={(e) => setEditedInvoiceDiscount(Number(e.target.value))}
+                      className="h-8 w-full text-right"
+                    />
+                  </div>
+                </div>
+                
+                {/* الإجمالي النهائي */}
+                <div className="flex justify-between items-center text-lg font-semibold border-t pt-2">
                   <span>{t('total')}:</span>
                   <span className="text-primary">{formatCurrency(calculateEditedInvoiceTotal())}</span>
                 </div>
