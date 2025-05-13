@@ -6,6 +6,7 @@ import {
   X, Box
 } from 'lucide-react';
 import BarcodeScanner from '@/components/barcode-scanner';
+import EditInvoiceDialog from '@/components/invoice/edit-invoice-dialog';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useAuthContext } from '@/context/auth-context';
 import { useLocale } from '@/hooks/use-locale';
@@ -136,6 +137,8 @@ export default function InvoiceManagement() {
   const { toast } = useToast();
   const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
   const [scannedProduct, setScannedProduct] = useState<any>(null);
+  const [isEditInvoiceDialogOpen, setIsEditInvoiceDialogOpen] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<any>(null);
   
   // استخدام useQuery لجلب البيانات من الخادم
   const { data: dbInvoices, isLoading: isLoadingInvoices, error: invoicesError } = useQuery({
