@@ -388,16 +388,21 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       const purchasePrice = product.purchasePrice || 0;
       const profit = (productPrice * (1 - (productDiscount / 100)) - purchasePrice) * productQuantity;
       
+      // حساب قيمة المنتج النهائية والربح بدقة
+      const calculatedProductTotal = Number((productPrice * productQuantity * (1 - (productDiscount / 100))).toFixed(2));
+      const calculatedProfit = Number(((productPrice * (1 - (productDiscount / 100)) - purchasePrice) * productQuantity).toFixed(2));
+      
       return {
         productId: product.id,
         productName: product.name,
         barcode: product.barcode,
-        sellingPrice: product.sellingPrice,
-        purchasePrice: product.purchasePrice || 0,
-        quantity: product.quantity,
+        price: productPrice, // استخدام price بدلاً من sellingPrice ليتناسب مع واجهة API
+        sellingPrice: productPrice,
+        purchasePrice: purchasePrice,
+        quantity: productQuantity,
         discount: productDiscount,
-        totalPrice: productTotal,
-        profit: profit
+        total: calculatedProductTotal, // استخدام total بدلاً من totalPrice ليتناسب مع واجهة API
+        profit: calculatedProfit // ربح المنتج بعد تطبيق الخصم
       };
     });
     

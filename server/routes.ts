@@ -125,7 +125,14 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
       }
       
       // حساب الربح لهذا المنتج
-      const productProfit = (sellingPrice - purchasePrice) * quantity;
+      // الحصول على نسبة الخصم إن وجدت
+      const discountPercentage = parseFloat(product.discount) || 0;
+      
+      // حساب سعر البيع بعد تطبيق الخصم
+      const discountedSellingPrice = sellingPrice * (1 - (discountPercentage / 100));
+      
+      // حساب الربح مع الأخذ في الاعتبار نسبة الخصم
+      const productProfit = (discountedSellingPrice - purchasePrice) * quantity;
       
       if (purchasePrice <= 0) {
         console.warn(`[حساب الربح - تحسين] [${reportType}] ⚠️ سعر الشراء غير متوفر للمنتج "${product.productName || product.name || 'غير معروف'}", نستخدم سعر شراء = 0. هذا سيؤدي لحساب ربح أعلى من الواقع!`);
@@ -2139,7 +2146,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // حساب الربح لهذا المنتج - استخدام سعر الشراء الفعلي فقط
-        const productProfit = (sellingPrice - purchasePrice) * quantity;
+        // الحصول على نسبة الخصم إن وجدت
+        const discountPercentage = parseFloat(product.discount) || 0;
+        
+        // حساب سعر البيع بعد تطبيق الخصم
+        const discountedSellingPrice = sellingPrice * (1 - (discountPercentage / 100));
+        
+        // حساب الربح مع الأخذ في الاعتبار نسبة الخصم
+        const productProfit = (discountedSellingPrice - purchasePrice) * quantity;
         
         if (purchasePrice <= 0) {
           console.warn(`[${reportType}] سعر الشراء غير متوفر للمنتج ${productName}, نستخدم سعر شراء = 0`);
