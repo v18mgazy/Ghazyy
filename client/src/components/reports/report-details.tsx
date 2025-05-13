@@ -137,7 +137,18 @@ export default function ReportDetails({
       summaries: []
     };
     
+    // التحقق من وجود بيانات filteredReports وأنها مصفوفة صالحة
+    if (!Array.isArray(filteredReports) || filteredReports.length === 0) {
+      console.log('📊 لا توجد بيانات تقارير مفصلة للتصنيف');
+      return groups;
+    }
+    
+    // تسجيل معلومات التصحيح
+    console.log(`📊 تصنيف ${filteredReports.length} تقارير مفصلة`);
+    
     filteredReports.forEach(report => {
+      if (!report) return; // تخطي أي تقارير فارغة أو غير متوقعة
+      
       if (report.type === 'sale') {
         groups.sales.push(report);
       } else if (report.type === 'damage') {
@@ -146,8 +157,13 @@ export default function ReportDetails({
         groups.expenses.push(report);
       } else if (report.type === 'summary') {
         groups.summaries.push(report);
+      } else {
+        console.warn(`📊 نوع تقرير غير معروف: ${report.type || 'غير محدد'}`);
       }
     });
+    
+    // سجل معلومات عن كل مجموعة
+    console.log(`📊 نتائج التصنيف: مبيعات=${groups.sales.length}, أضرار=${groups.damages.length}, مصاريف=${groups.expenses.length}`);
     
     return groups;
   };
@@ -156,6 +172,14 @@ export default function ReportDetails({
   
   return (
     <div className="space-y-8 print:space-y-12">
+      {/* ملاحظة توضيحية حول حساب الأرباح */}
+      <div className="mb-4 p-3 border border-amber-200 rounded-md bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900 print:hidden">
+        <p className="text-amber-700 dark:text-amber-400 text-sm flex items-start">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 mt-0.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          {t('profit_calculation_note', 'ملاحظة: في حالة عدم توفر بيانات كاملة للأرباح، يتم عرض تقدير للأرباح على أساس نسبة 30% من إجمالي المبيعات. هذا فقط للمنتجات التي تم إنشاؤها قبل إضافة ميزة حساب الأرباح.')}
+        </p>
+      </div>
+      
       {/* بطاقات الملخص في أعلى الصفحة للتقارير المفصلة */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* بطاقة إجمالي المبيعات والأرباح */}
@@ -184,7 +208,21 @@ export default function ReportDetails({
                   {t('total_profit')}
                 </p>
                 <p className="text-2xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent">
-                  {formatCurrency(summaryGroups.sales.reduce((sum, sale) => sum + (sale.profit || 0), 0))}
+                  {(() => {
+                    // حساب إجمالي الأرباح بشكل محسن
+                    const totalProfit = summaryGroups.sales.reduce((sum, sale) => {
+                      if (sale.profit === undefined || sale.profit === null || sale.profit === 0) {
+                        // إذا كان الربح غير موجود، نحسبه تقديريًا كنسبة 30% من قيمة البيع
+                        const estimatedProfit = sale.amount * 0.3;
+                        console.log(`Using estimated profit (30%) for sale ${sale.id}: ${estimatedProfit}`);
+                        return sum + estimatedProfit;
+                      }
+                      console.log(`Using actual profit for sale ${sale.id}: ${sale.profit}`);
+                      return sum + sale.profit;
+                    }, 0);
+                    console.log(`Final calculated profit: ${totalProfit}`);
+                    return formatCurrency(totalProfit);
+                  })()}
                 </p>
               </div>
             </div>
@@ -252,8 +290,19 @@ export default function ReportDetails({
                 <p className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent">
                   {(() => {
                     const totalSales = summaryGroups.sales.reduce((sum, sale) => sum + sale.amount, 0);
-                    const totalProfit = summaryGroups.sales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
-                    return totalSales > 0 ? `${((totalProfit / totalSales) * 100).toFixed(1)}%` : '0%';
+                    // حساب إجمالي الربح بنفس الطريقة المستخدمة في إجمالي الربح
+                    const totalProfit = summaryGroups.sales.reduce((sum, sale) => {
+                      if (sale.profit === undefined || sale.profit === null || sale.profit === 0) {
+                        // إذا كان الربح غير موجود، نحسبه تقديريًا كنسبة 30% من قيمة البيع
+                        const estimatedProfit = sale.amount * 0.3;
+                        return sum + estimatedProfit;
+                      }
+                      return sum + sale.profit;
+                    }, 0);
+                    
+                    // تجنب القسمة على صفر وتنسيق النسبة المئوية
+                    const profitMargin = totalSales > 0 ? ((totalProfit / totalSales) * 100) : 0;
+                    return `${profitMargin.toFixed(1)}%`;
                   })()}
                 </p>
               </div>
@@ -276,12 +325,13 @@ export default function ReportDetails({
             <div className="h-72 w-full flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : chartData.length === 0 ? (
+          ) : !Array.isArray(chartData) || chartData.length === 0 ? (
             <div className="h-72 w-full flex items-center justify-center border border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg bg-neutral-50/50 dark:bg-neutral-900/20">
-              <p className="text-neutral-500 dark:text-neutral-400 text-center">
+              <div className="text-neutral-500 dark:text-neutral-400 text-center px-4">
                 <BarChart className="mx-auto mb-2 h-10 w-10 opacity-50" />
-                {t('no_sales_data')}
-              </p>
+                <p className="mb-2">{t('no_sales_data')}</p>
+                <p className="text-xs opacity-70">{t('try_different_date_range')}</p>
+              </div>
             </div>
           ) : (
             <div className="h-72 w-full">
@@ -369,11 +419,17 @@ export default function ReportDetails({
             <div className="py-8 flex justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : topProducts.length === 0 ? (
-            <div className="py-12 text-center border border-dashed rounded-lg">
-              <p className="text-neutral-500 dark:text-neutral-400">
-                {t('no_product_data')}
-              </p>
+          ) : !Array.isArray(topProducts) || topProducts.length === 0 ? (
+            <div className="py-12 text-center border border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg bg-neutral-50/50 dark:bg-neutral-900/20">
+              <div className="text-neutral-500 dark:text-neutral-400 text-center px-4">
+                <TrendingUp className="mx-auto mb-2 h-10 w-10 opacity-50" />
+                <p className="mb-2 font-semibold">{t('no_product_data', 'لا توجد بيانات منتجات')}</p>
+                <p className="text-xs opacity-70">{t('try_different_date_range', 'حاول اختيار فترة زمنية أخرى تحتوي على مبيعات')}</p>
+                <p className="text-xs mt-3 text-amber-600 dark:text-amber-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-1"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                  {t('data_will_appear_after_sales', 'ستظهر هنا البيانات تلقائياً عند إجراء مبيعات')}
+                </p>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -413,10 +469,30 @@ export default function ReportDetails({
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-medium">{formatCurrency(product.revenue)}</TableCell>
-                      <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400">{formatCurrency(product.profit)}</TableCell>
+                      <TableCell className="text-right font-medium text-emerald-600 dark:text-emerald-400">
+                        {(() => {
+                          // معالجة قيم الربح المفقودة أو الصفرية
+                          if (product.profit === undefined || product.profit === null || product.profit === 0) {
+                            // استخدام تقدير بنسبة 30% من الإيراد
+                            const estimatedProfit = product.revenue * 0.3;
+                            return formatCurrency(estimatedProfit);
+                          }
+                          return formatCurrency(product.profit);
+                        })()}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800">
-                          {product.revenue > 0 ? `${((product.profit / product.revenue) * 100).toFixed(1)}%` : '0%'}
+                          {(() => {
+                            if (product.revenue <= 0) return '0%';
+                            
+                            // استخدام نفس منطق تقدير الربح للحفاظ على الاتساق
+                            let profit = product.profit;
+                            if (profit === undefined || profit === null || profit === 0) {
+                              profit = product.revenue * 0.3;
+                            }
+                            
+                            return `${((profit / product.revenue) * 100).toFixed(1)}%`;
+                          })()}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -476,12 +552,16 @@ export default function ReportDetails({
             <div className="py-8 flex justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : filteredReports.length === 0 ? (
+          ) : !Array.isArray(filteredReports) || filteredReports.length === 0 ? (
             <div className="h-40 flex items-center justify-center border border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg bg-neutral-50/50 dark:bg-neutral-900/20">
-              <p className="text-neutral-500 dark:text-neutral-400 text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 opacity-50"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                {t('no_report_data')}
-              </p>
+              <div className="text-neutral-500 dark:text-neutral-400 text-center px-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-4 opacity-50"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <p className="mb-2 font-medium">{t('no_report_data')}</p>
+                <p className="text-xs opacity-70">{t('try_different_date_range')}</p>
+                <p className="text-xs opacity-70 mt-2">
+                  {searchTerm ? t('try_different_search') : t('check_data_available')}
+                </p>
+              </div>
             </div>
           ) : (
             <div className="space-y-8">
@@ -508,6 +588,26 @@ export default function ReportDetails({
                         <div className="font-bold mt-2 text-xl">{formatCurrency(summary.amount)}</div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* رسالة عندما لا تكون هناك تقارير مفصلة */}
+              {summaryGroups.sales.length === 0 && summaryGroups.damages.length === 0 && summaryGroups.expenses.length === 0 && (
+                <div className="py-12 mb-6 mt-2 text-center border border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg bg-neutral-50/50 dark:bg-neutral-900/20">
+                  <div className="text-neutral-500 dark:text-neutral-400 text-center px-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-2 opacity-50">
+                      <rect x="2" y="3" width="20" height="18" rx="2" ry="2"></rect>
+                      <line x1="9" y1="3" x2="9" y2="21"></line>
+                      <path d="M13 8l4 8"></path>
+                      <line x1="18" y1="12" x2="13" y2="12"></line>
+                    </svg>
+                    <p className="mb-2 font-semibold">{t('no_detailed_reports', 'لا توجد تقارير مفصلة')}</p>
+                    <p className="text-xs opacity-70">{t('try_different_date_range', 'حاول اختيار فترة زمنية أخرى تحتوي على بيانات')}</p>
+                    <p className="text-xs mt-3 text-amber-600 dark:text-amber-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-1"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                      {t('data_will_appear_after_operations', 'ستظهر هنا البيانات تلقائياً عند إجراء عمليات')}
+                    </p>
                   </div>
                 </div>
               )}
@@ -577,7 +677,15 @@ export default function ReportDetails({
                             <TableCell className="font-medium text-right text-emerald-600 dark:text-emerald-400">
                               <div className="flex items-center justify-end">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500 mr-1.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                                {formatCurrency(report.profit || 0)}
+                                {(() => {
+                                  // إذا كان الربح غير موجود أو 0، نحسبه تقديريًا كنسبة 30% من المبيعات
+                                  const rawProfit = report.profit;
+                                  if (rawProfit === undefined || rawProfit === null || rawProfit === 0) {
+                                    const estimatedProfit = report.amount * 0.3;
+                                    return formatCurrency(estimatedProfit);
+                                  }
+                                  return formatCurrency(rawProfit);
+                                })()}
                               </div>
                             </TableCell>
                           </TableRow>

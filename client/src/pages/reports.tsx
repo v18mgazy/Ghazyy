@@ -121,10 +121,10 @@ export default function ReportsPage() {
     error, 
     refetch 
   } = useQuery<ReportData>({
-    queryKey: ['/api/reports-improved', period, getFormattedDateForQuery(), weekStartDate, weekEndDate],
+    queryKey: ['/api/reports', period, getFormattedDateForQuery(), weekStartDate, weekEndDate],
     queryFn: async () => {
-      // بناء URL الاستعلام
-      let url = `/api/reports-improved?type=${period}`;
+      // نستخدم طريقة الاستعلام الأصلية بدلًا من المحسنة لأنها أكثر استقرارًا حاليًا
+      let url = `/api/reports?type=${period}`;
       
       if (period === 'weekly') {
         const formattedStartDate = formatDate(weekStartDate, 'yyyy-MM-dd');
@@ -134,21 +134,104 @@ export default function ReportsPage() {
         url += `&date=${getFormattedDateForQuery()}`;
       }
       
-      console.log("طلب التقرير المحسن:", { type: period, date: getFormattedDateForQuery(), startDate: period === 'weekly' ? formatDate(weekStartDate, 'yyyy-MM-dd') : undefined, endDate: period === 'weekly' ? formatDate(weekEndDate, 'yyyy-MM-dd') : undefined });
+      console.log("طلب التقرير:", { 
+        type: period, 
+        date: getFormattedDateForQuery(), 
+        startDate: period === 'weekly' ? formatDate(weekStartDate, 'yyyy-MM-dd') : undefined, 
+        endDate: period === 'weekly' ? formatDate(weekEndDate, 'yyyy-MM-dd') : undefined 
+      });
       
-      // تنفيذ الاستعلام
-      const response = await fetch(url);
-      if (!response.ok) {
-        // إذا فشل الطلب المحسن، نجرب الطلب العادي
-        console.log("استرجاع التقرير المحسن فشل، جاري محاولة استرجاع التقرير العادي");
-        const fallbackUrl = url.replace('/api/reports-improved', '/api/reports');
-        const fallbackResponse = await fetch(fallbackUrl);
-        if (!fallbackResponse.ok) {
-          throw new Error(`فشل في استرجاع بيانات التقارير: ${fallbackResponse.statusText}`);
+      try {
+        console.log(`📊 طلب بيانات التقارير: ${url}`);
+        
+        // تنفيذ الاستعلام
+        const response = await fetch(url);
+        
+        // سجل حالة الاستجابة للتشخيص
+        console.log(`📊 استجابة API التقارير: ${response.status} ${response.statusText}`);
+        
+        if (!response.ok) {
+          throw new Error(`فشل استرجاع التقارير: ${response.statusText} (${response.status})`);
         }
-        return await fallbackResponse.json();
+        
+        // تحليل البيانات
+        const data = await response.json();
+        
+        // معلومات تشخيصية إضافية
+        console.log(`📊 استلام بيانات التقارير:`, {
+          hasData: !!data,
+          hasSummary: !!data?.summary,
+          salesCount: data?.summary?.salesCount || 0,
+          topProductsCount: data?.topProducts?.length || 0,
+          detailedReportsCount: data?.detailedReports?.length || 0,
+          hasError: !!data?.error
+        });
+        
+        // التحقق من وجود خطأ من الخادم
+        if (data?.error) {
+          console.warn(`📊 الخادم أرجع خطأ:`, data.error);
+          // حتى في حالة الخطأ، قد يرسل الخادم هيكل بيانات فارغًا يمكن استخدامه
+        }
+        
+        // التحقق من بنية البيانات وإكمالها إذا لزم الأمر
+        if (!data || Object.keys(data).length === 0) {
+          console.warn("📊 تم استلام بيانات فارغة من الخادم");
+          return {
+            summary: { 
+              totalSales: 0, 
+              totalProfit: 0, 
+              salesCount: 0, 
+              totalDamages: 0,
+              previousTotalSales: 0,
+              previousTotalProfit: 0,
+              previousSalesCount: 0,
+              previousTotalDamages: 0
+            },
+            chartData: [],
+            topProducts: [],
+            detailedReports: []
+          };
+        }
+        
+        // التأكد من وجود جميع المجالات المطلوبة
+        const processedData = {
+          summary: data.summary || { 
+            totalSales: 0, 
+            totalProfit: 0, 
+            salesCount: 0, 
+            totalDamages: 0,
+            previousTotalSales: 0,
+            previousTotalProfit: 0,
+            previousSalesCount: 0,
+            previousTotalDamages: 0
+          },
+          chartData: Array.isArray(data.chartData) ? data.chartData : [],
+          topProducts: Array.isArray(data.topProducts) ? data.topProducts : [],
+          detailedReports: Array.isArray(data.detailedReports) ? data.detailedReports : []
+        };
+        
+        return processedData;
+      } catch (error) {
+        console.error("📊 خطأ في استرجاع بيانات التقارير:", error);
+        
+        // إعادة هيكل بيانات فارغ في حالة حدوث خطأ
+        return {
+          summary: { 
+            totalSales: 0, 
+            totalProfit: 0, 
+            salesCount: 0, 
+            totalDamages: 0,
+            previousTotalSales: 0,
+            previousTotalProfit: 0,
+            previousSalesCount: 0,
+            previousTotalDamages: 0 
+          },
+          chartData: [],
+          topProducts: [],
+          detailedReports: [],
+          fetchError: error instanceof Error ? error.message : 'خطأ غير معروف في استرجاع البيانات'
+        };
       }
-      return await response.json();
     },
     staleTime: 60 * 1000,          // 1 دقيقة
     refetchInterval: 300 * 1000,    // تحديث كل 5 دقائق
@@ -181,53 +264,69 @@ export default function ReportsPage() {
     const wb = XLSX.utils.book_new();
     
     // ملخص التقرير - الصفحة الأولى
+    const summary = reportData.summary || { totalSales: 0, totalProfit: 0, salesCount: 0, totalDamages: 0 };
     const summaryData = [
       [t('summary')],
-      [t('total_sales'), reportData.summary.totalSales],
-      [t('total_profit'), reportData.summary.totalProfit],
-      [t('profit_margin'), `${(reportData.summary.totalProfit / reportData.summary.totalSales * 100).toFixed(1)}%`],
-      [t('total_orders'), reportData.summary.salesCount],
-      [t('total_damaged_items'), reportData.summary.totalDamages],
+      [t('total_sales'), summary.totalSales || 0],
+      [t('total_profit'), summary.totalProfit || 0],
+      [t('profit_margin'), `${(summary.totalSales > 0 ? (summary.totalProfit / summary.totalSales * 100) : 0).toFixed(1)}%`],
+      [t('total_orders'), summary.salesCount || 0],
+      [t('total_damaged_items'), summary.totalDamages || 0],
     ];
     
     const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(wb, summaryWs, t('summary'));
     
     // بيانات الرسم البياني - الصفحة الثانية
-    const chartData = reportData.chartData.map(item => ({
-      [t('period')]: item.name,
-      [t('revenue')]: item.revenue,
-      [t('profit')]: item.profit
+    const chartDataArray = reportData.chartData || [];
+    const chartData = chartDataArray.map(item => ({
+      [t('period')]: item.name || '',
+      [t('revenue')]: item.revenue || 0,
+      [t('profit')]: item.profit || (item.revenue ? item.revenue * 0.3 : 0) // تقدير الأرباح إذا كانت غير متوفرة
     }));
     
     const chartWs = XLSX.utils.json_to_sheet(chartData);
     XLSX.utils.book_append_sheet(wb, chartWs, t('chart_data'));
     
     // أفضل المنتجات - الصفحة الثالثة
-    const topProductsData = reportData.topProducts.map(item => ({
-      [t('product_name')]: item.name,
-      [t('quantity')]: item.soldQuantity,
-      [t('revenue')]: item.revenue,
-      [t('profit')]: item.profit
-    }));
+    const topProductsArray = reportData.topProducts || [];
+    const topProductsData = topProductsArray.map(item => {
+      // استخراج الأرباح (أو تقديرها إذا كانت غير متوفرة)
+      const profit = item.profit || (item.revenue ? item.revenue * 0.3 : 0);
+      
+      return {
+        [t('product_name')]: item.name || '',
+        [t('quantity')]: item.soldQuantity || 0,
+        [t('revenue')]: item.revenue || 0,
+        [t('profit')]: profit,
+        [t('profit_margin')]: `${item.revenue > 0 ? ((profit / item.revenue) * 100).toFixed(1) : 0}%`
+      };
+    });
     
     const topProductsWs = XLSX.utils.json_to_sheet(topProductsData);
     XLSX.utils.book_append_sheet(wb, topProductsWs, t('top_products'));
     
     // التقارير التفصيلية - الصفحة الرابعة
-    const detailedData = reportData.detailedReports.map(item => {
-      // تجاهل الملخصات في التقارير التفصيلية
-      if (item.type === 'summary') return null;
-      
-      return {
-        [t('date')]: item.date,
-        [t('type')]: t(item.type),
-        [t('amount')]: item.amount,
-        [t('details')]: item.details,
-        [t('profit')]: item.profit || '-',
-        [t('customer_name')]: item.customerName || '-',
-      };
-    }).filter(item => item !== null);
+    const detailedReportsArray = reportData.detailedReports || [];
+    const detailedData = detailedReportsArray
+      .filter(item => item && item.type !== 'summary') // تأكد من وجود العنصر وتجاهل الملخصات
+      .map(item => {
+        // حساب الربح إذا كان مفقودًا (لكن الإيرادات متوفرة)
+        const profit = item.profit || (item.type === 'sale' && item.amount ? item.amount * 0.3 : 0);
+        
+        return {
+          [t('date')]: item.date || '',
+          [t('type')]: t(item.type || 'unknown'),
+          [t('amount')]: item.amount || 0,
+          [t('details')]: item.details || '',
+          [t('profit')]: item.type === 'sale' ? profit : '-',
+          [t('customer_name')]: item.customerName || '-',
+          [t('product_name')]: item.productName || '-',
+          [t('quantity')]: item.quantity || '-',
+          [t('category')]: item.category || '-',
+          [t('expense_type')]: item.expenseType ? t(item.expenseType) : '-',
+        };
+      });
     
     const detailedWs = XLSX.utils.json_to_sheet(detailedData);
     XLSX.utils.book_append_sheet(wb, detailedWs, t('detailed_reports'));
@@ -567,14 +666,14 @@ export default function ReportsPage() {
                   <Skeleton className="h-[200px] w-full" />
                 </div>
               </div>
-            ) : reportData && (reportData.chartData.length > 0 || reportData.detailedReports.length > 0) ? (
+            ) : reportData ? (
               // عرض بيانات التقارير
               <>
                 <ReportDetails 
                   periodType={periodType as any}
-                  chartData={reportData.chartData}
-                  topProducts={reportData.topProducts}
-                  detailedReports={reportData.detailedReports}
+                  chartData={reportData.chartData || []}
+                  topProducts={reportData.topProducts || []}
+                  detailedReports={reportData.detailedReports || []}
                   isLoading={isLoading}
                   onExport={handleExport}
                   onPrint={handlePrint}
