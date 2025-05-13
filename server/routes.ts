@@ -983,8 +983,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       console.log(`Request to update invoice with ID: ${id}`);
-      console.log('REQUEST BODY:', JSON.stringify(req.body, null, 2));
-      console.log('invoiceDiscount value:', req.body.invoiceDiscount);
       
       const invoiceId = parseInt(id);
       if (isNaN(invoiceId)) {
@@ -1039,7 +1037,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...(req.body.subtotal !== undefined && { subtotal: req.body.subtotal }),
         ...(req.body.discount !== undefined && { discount: req.body.discount }),
         ...(req.body.itemsDiscount !== undefined && { itemsDiscount: req.body.itemsDiscount }),
-        ...(req.body.invoiceDiscount !== undefined && { invoiceDiscount: parseFloat(req.body.invoiceDiscount) || 0 }),
+        ...(req.body.invoiceDiscount !== undefined && { invoiceDiscount: req.body.invoiceDiscount }),
         ...(req.body.total !== undefined && { total: req.body.total }),
         ...(req.body.paymentMethod && { paymentMethod: req.body.paymentMethod }),
         ...(req.body.paymentStatus && { paymentStatus: req.body.paymentStatus }),
@@ -1056,8 +1054,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...(req.body.productProfits && { productProfits: req.body.productProfits }),
         updatedAt: new Date().toISOString()
       };
-      
-      console.log('Created updateData with invoiceDiscount:', updateData?.invoiceDiscount);
       
       // إذا كان هناك بيانات منتجات مرسلة مباشرة كـ productsData، نستخدمها كما هي
       if (req.body.productsData) {
@@ -1095,10 +1091,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subtotal: req.body.subtotal || 0,
         total: req.body.total || 0
       };
-      
-      console.log('New invoice data prepared for createInvoiceWithId:', JSON.stringify(newInvoiceData, null, 2));
-      console.log('invoiceDiscount from request body:', req.body.invoiceDiscount);
-      console.log('invoiceDiscount in newInvoiceData:', newInvoiceData.invoiceDiscount);
       
       // إنشاء فاتورة جديدة بنفس المعرف باستخدام الوظيفة الجديدة
       const updatedInvoice = await storage.createInvoiceWithId(invoiceId, newInvoiceData);
@@ -1768,83 +1760,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to create invoice' });
     }
   });
-  
-
-
-  // إعادة إنشاء فاتورة كاملة بمعرف محدد (تستخدم عند تحديث الفواتير)
-  // استخدام كلا من POST و PUT لنفس النهاية النهائية ولكن طريقة PUT ستقوم بالحذف ثم الإنشاء في معاملة واحدة
-  app.post('/api/invoices/recreate/:id', handleRecreateInvoice);
-  app.put('/api/invoices/recreate/:id', handleRecreateInvoice);
-  
-  // دالة معالجة إعادة إنشاء الفاتورة
-  async function handleRecreateInvoice(req, res) {
-    try {
-      const { id } = req.params;
-      console.log(`Request to recreate invoice with ID: ${id} using ${req.method} method`);
-      console.log('REQUEST BODY:', JSON.stringify(req.body, null, 2));
-      
-      const invoiceId = parseInt(id);
-      if (isNaN(invoiceId)) {
-        console.error('Invalid invoice ID format:', id);
-        return res.status(400).json({ message: 'Invalid invoice ID format' });
-      }
-      
-      // التحقق من البيانات المطلوبة
-      if (!req.body.customerId) {
-        return res.status(400).json({ message: 'Customer ID is required' });
-      }
-      
-      // إذا كانت الطريقة هي PUT، تحقق من وجود الفاتورة أولاً
-      if (req.method === 'PUT') {
-        const existingInvoice = await storage.getInvoice(invoiceId);
-        if (!existingInvoice) {
-          return res.status(404).json({ message: `Invoice with ID ${invoiceId} not found` });
-        }
-      }
-      
-      // إعداد بيانات الفاتورة الجديدة
-      const newInvoiceData = {
-        ...req.body,
-        // إنشاء فاتورة جديدة بنفس تاريخ الإنشاء الأصلي أو تاريخ جديد
-        createdAt: new Date(),
-        date: new Date(),
-        updatedAt: new Date(),
-        userId: req.body.userId || 1
-      };
-      
-      console.log('Creating completely new invoice with data:', JSON.stringify(newInvoiceData, null, 2));
-      
-      // إذا كانت الطريقة هي PUT، احذف الفاتورة القديمة أولاً
-      if (req.method === 'PUT') {
-        try {
-          await storage.deleteInvoice(invoiceId);
-          console.log(`Deleted old invoice with ID ${invoiceId} before recreating it`);
-        } catch (deleteError) {
-          console.error(`Error deleting old invoice with ID ${invoiceId}:`, deleteError);
-          return res.status(500).json({ message: 'Error deleting old invoice before recreation', error: String(deleteError) });
-        }
-      }
-      
-      // إنشاء فاتورة جديدة بالمعرف المحدد
-      const newInvoice = await storage.createInvoiceWithId(invoiceId, newInvoiceData);
-      console.log('Created completely new invoice:', newInvoice);
-      
-      // تحديث التقارير بعد إنشاء الفاتورة الجديدة
-      try {
-        const today = new Date().toISOString().split('T')[0];
-        await generateAndSaveReport('daily', today);
-        console.log(`Updated daily report for ${today}`);
-      } catch (reportError) {
-        console.error('Error updating reports after recreating invoice:', reportError);
-        // لا نريد إيقاف العملية إذا فشل تحديث التقارير
-      }
-      
-      res.status(201).json(newInvoice);
-    } catch (error) {
-      console.error('Error recreating invoice:', error);
-      res.status(500).json({ message: 'Error recreating invoice', error: String(error) });
-    }
-  }
   
   app.post('/api/invoices/:invoiceId/items', async (req, res) => {
     try {
@@ -4145,35 +4060,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingReports && existingReports.length > 0) {
         // تحديث التقرير الموجود
         const existingReport = existingReports[0];
-        
-        // إزالة الحقول غير المتوافقة من كائن البيانات
-        const { updatedAt, ...validReportData } = newReportData;
-        
-        await storage.updateReportData(existingReport.id, {
-          date: new Date(date),
-          type: 'daily',
-          salesCount: validReportData.orders || 0,
-          revenue: validReportData.sales || 0,
-          cost: 0, // لا نملك هذه البيانات هنا
-          discounts: 0, // لا نملك هذه البيانات هنا
-          damages: 0, // لا نملك هذه البيانات هنا
-          profit: validReportData.profit || 0
-        });
-        
+        await storage.updateReportData(existingReport.id, newReportData);
         console.log(`[تحديث] تم تحديث التقرير اليومي لتاريخ ${date} بنجاح`);
       } else {
         // إنشاء تقرير جديد
         await storage.createReportData({
-          date: new Date(date),
-          type: 'daily',
-          salesCount: newReportData.orders || 0,
-          revenue: newReportData.sales || 0,
-          cost: 0,
-          discounts: 0,
-          damages: 0,
-          profit: newReportData.profit || 0
+          ...newReportData,
+          createdAt: new Date()
         });
-        
         console.log(`[تحديث] تم إنشاء تقرير يومي جديد لتاريخ ${date}`);
       }
     } catch (error) {
@@ -4191,11 +4085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[إنشاء] بدء إنشاء تقرير ${type} لتاريخ ${date}`);
       
       // استخدام دالة generateReport من report-helpers.ts
-      const reportParams = { 
-        storage, 
-        type, 
-        date 
-      };
+      const reportParams = { type, date };
       const reportData = await generateReport(reportParams);
       
       if (!reportData) {
@@ -4218,35 +4108,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingReports && existingReports.length > 0) {
         // تحديث التقرير الموجود
         const existingReport = existingReports[0];
-        
-        // هيكل البيانات المتوافق مع Partial<ReportData>
-        await storage.updateReportData(existingReport.id, {
-          date: new Date(date),
-          type: type,
-          salesCount: reportData.orderCount || 0,
-          revenue: reportData.totalSales || 0,
-          cost: reportData.totalCost || 0,
-          discounts: reportData.totalDiscounts || 0,
-          damages: reportData.totalDamages || 0,
-          profit: reportData.totalProfit || 0,
-          dataJson: JSON.stringify(reportData)
-        });
-        
+        await storage.updateReportData(existingReport.id, storedReportData);
         console.log(`[إنشاء] تم تحديث التقرير الموجود من نوع ${type} لتاريخ ${date}`);
       } else {
         // إنشاء تقرير جديد
         await storage.createReportData({
-          date: new Date(date),
-          type: type,
-          salesCount: reportData.orderCount || 0,
-          revenue: reportData.totalSales || 0,
-          cost: reportData.totalCost || 0,
-          discounts: reportData.totalDiscounts || 0,
-          damages: reportData.totalDamages || 0,
-          profit: reportData.totalProfit || 0,
-          dataJson: JSON.stringify(reportData)
+          ...storedReportData,
+          createdAt: new Date()
         });
-        
         console.log(`[إنشاء] تم إنشاء تقرير جديد من نوع ${type} لتاريخ ${date}`);
       }
     } catch (error) {

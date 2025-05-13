@@ -176,18 +176,18 @@ export default function InvoiceManagementPage() {
     mutationFn: async (updateData: {
       invoiceId: number;
       customerId: number | null;
-      invoiceDiscount: number; // تغيير الاسم من discount إلى invoiceDiscount
+      discount: number;
       paymentMethod: string;
       notes: string | null;
       products: InvoiceProduct[];
     }) => {
-      console.log('Creating completely new invoice to replace invoice ID:', updateData.invoiceId);
+      console.log('Updating invoice with data:', updateData);
       const { invoiceId, ...data } = updateData;
       
       // حساب إجماليات الفاتورة
       const subtotal = data.products.reduce((sum, product) => sum + (product.price * product.quantity), 0);
       const itemsDiscount = data.products.reduce((sum, product) => sum + (product.discount || 0), 0);
-      const invoiceDiscount = data.invoiceDiscount; // تم تغيير الاسم هنا أيضًا
+      const invoiceDiscount = data.discount;
       const total = subtotal - itemsDiscount - invoiceDiscount;
       
       // تحويل منتجات الفاتورة إلى JSON
@@ -234,14 +234,7 @@ export default function InvoiceManagementPage() {
       console.log('Sending invoice data to server:', invoiceData);
       
       try {
-        // الرجوع للطريقة الأصلية التي كانت تعمل
-        console.log(`Deleting old invoice with ID ${invoiceId} completely`);
-        await apiRequest('DELETE', `/api/invoices/${invoiceId}`);
-        
-        // ثم نستخدم النقطة النهائية الجديدة لإنشاء فاتورة جديدة بالكامل بنفس المعرف
-        console.log(`Creating brand new invoice with same ID ${invoiceId}`);
-        
-        const res = await apiRequest('POST', `/api/invoices/recreate/${invoiceId}`, invoiceData);
+        const res = await apiRequest('PUT', `/api/invoices/${invoiceId}`, invoiceData);
         const responseData = await res.json();
         console.log('Server response:', responseData);
         return responseData;
@@ -596,21 +589,10 @@ export default function InvoiceManagementPage() {
   const saveInvoiceChanges = () => {
     if (!invoiceToEdit) return;
     
-    // إضافة سجلات إضافية للتأكد من البيانات المرسلة
-    console.log('Saving invoice changes with data:', {
-      invoiceId: invoiceToEdit.id,
-      customerId: editedCustomerId,
-      invoiceDiscount: editedDiscount,
-      editedDiscount: editedDiscount, // قيمة للتحقق
-      paymentMethod: editedPaymentMethod,
-      notes: editedNotes,
-      products: editedProducts
-    });
-    
     updateInvoiceMutation.mutate({
       invoiceId: invoiceToEdit.id,
       customerId: editedCustomerId,
-      invoiceDiscount: editedDiscount, // تم تغيير الاسم من discount إلى invoiceDiscount
+      discount: editedDiscount,
       paymentMethod: editedPaymentMethod,
       notes: editedNotes,
       products: editedProducts
