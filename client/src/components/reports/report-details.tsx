@@ -896,38 +896,57 @@ export default function ReportDetails({
                               <div className="flex items-center justify-end">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500 mr-1.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
                                 {(() => {
-                                  // احتساب الربح مع الخصم
-                                  const rawProfit = report.profit;
+                                  // استخدام البيانات المحسنة من API حساب الربح
+                                  const finalProfit = report.profit;
                                   
-                                  // إذا كان هناك خصم، سنعرض الربح بشكل واضح مع تأثير الخصم
-                                  if (report.discount && report.discount > 0) {
-                                    const subtotal = report.subtotal || (report.amount + report.discount);
-                                    // بناءً على نسبة الربح الحالية
-                                    const currentProfit = rawProfit || (report.amount * 0.3);
-                                    const profitWithoutDiscount = subtotal * (currentProfit / report.amount);
-                                    
-                                    // حساب نسبة تأثير الخصم على الربح
-                                    const profitReduction = profitWithoutDiscount - currentProfit;
-                                    const reductionPercentage = ((profitReduction / profitWithoutDiscount) * 100).toFixed(1);
+                                  // التحقق مما إذا كانت لدينا بيانات محسنة للخصم والربح
+                                  if (report.profitWithoutDiscount && report.profitReduction && report.profitReduction > 0) {
+                                    // عرض الربح مع معلومات تأثير الخصم
+                                    const reductionPercentage = ((report.profitReduction / report.profitWithoutDiscount) * 100).toFixed(1);
                                     
                                     return (
                                       <div className="flex flex-col">
-                                        <span>{formatCurrency(currentProfit)}</span>
+                                        <span>{formatCurrency(finalProfit)}</span>
                                         <span className="text-xs text-amber-600 dark:text-amber-400">
                                           ({reductionPercentage}% {t('profit_reduction')})
                                         </span>
                                       </div>
                                     );
+                                  } 
+                                  // إذا كان هناك خصم لكن ليس لدينا حسابات محسنة للربح، فسوف نستخدم طريقة تقريبية
+                                  else if ((report.discount && report.discount > 0) || 
+                                          (report.invoiceDiscount && report.invoiceDiscount > 0) || 
+                                          (report.itemsDiscount && report.itemsDiscount > 0)) {
+                                    // نحسب تأثير الخصم بالطريقة القديمة كمرجع
+                                    const subtotal = report.subtotal || (report.amount + (report.discount || 0) + (report.invoiceDiscount || 0) + (report.itemsDiscount || 0));
+                                    
+                                    // بناءً على نسبة الربح الحالية
+                                    const currentProfit = finalProfit || (report.amount * 0.3);
+                                    const estimatedProfitWithoutDiscount = subtotal * (currentProfit / report.amount);
+                                    const estimatedProfitReduction = estimatedProfitWithoutDiscount - currentProfit;
+                                    const reductionPercentage = ((estimatedProfitReduction / estimatedProfitWithoutDiscount) * 100).toFixed(1);
+                                    
+                                    // نظهر الرسالة فقط إذا كان هناك تأثير ملحوظ
+                                    if (estimatedProfitReduction > 1) {
+                                      return (
+                                        <div className="flex flex-col">
+                                          <span>{formatCurrency(currentProfit)}</span>
+                                          <span className="text-xs text-amber-600 dark:text-amber-400">
+                                            (~{reductionPercentage}% {t('profit_reduction')})
+                                          </span>
+                                        </div>
+                                      );
+                                    }
                                   }
                                   
                                   // إذا كان الربح غير موجود أو 0، نحسبه تقديريًا كنسبة 30% من المبيعات
-                                  if (rawProfit === undefined || rawProfit === null || rawProfit === 0) {
+                                  if (finalProfit === undefined || finalProfit === null || finalProfit === 0) {
                                     const estimatedProfit = report.amount * 0.3;
                                     return formatCurrency(estimatedProfit);
                                   }
                                   
                                   // الربح بدون خصم
-                                  return formatCurrency(rawProfit);
+                                  return formatCurrency(finalProfit);
                                 })()}
                               </div>
                             </TableCell>
