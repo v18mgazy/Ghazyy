@@ -562,6 +562,26 @@ export default function InvoiceManagementPage() {
   
   // تحديث كمية منتج في القائمة
   const updateProductQuantity = (productId: number, quantity: number) => {
+    // التحقق من توفر الكمية في المخزون
+    const productsArray = Array.isArray(products) ? products : [];
+    const inventoryProduct = productsArray.find((p: any) => p.id === productId);
+    
+    if (inventoryProduct) {
+      const availableStock = inventoryProduct.stock || 0;
+      
+      // إذا كانت الكمية المطلوبة أكبر من المتوفر
+      if (quantity > availableStock) {
+        toast({
+          title: t('error'),
+          description: t('not_enough_stock', { available: availableStock }),
+          variant: 'destructive',
+        });
+        
+        // تعيين الكمية إلى الحد الأقصى المتوفر
+        quantity = availableStock;
+      }
+    }
+    
     setEditedProducts(prevProducts => 
       prevProducts.map(product => {
         if (product.productId === productId) {
@@ -638,6 +658,51 @@ export default function InvoiceManagementPage() {
       toast({
         title: t('error'),
         description: t('invalid_product_data'),
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // التحقق من توفر المخزون قبل الحفظ
+    const productsArray = Array.isArray(products) ? products : [];
+    
+    // استخراج منتجات الفاتورة الأصلية من invoiceToEdit
+    const originalProducts = parseProducts(invoiceToEdit);
+    
+    // حساب الكميات المطلوبة بعد التعديل (مع مراعاة الكميات الأصلية)
+    const inventoryCheck = editedProducts.map(editedProduct => {
+      // البحث عن نفس المنتج في الفاتورة الأصلية
+      const originalProduct = originalProducts.find(p => p.productId === editedProduct.productId);
+      const originalQuantity = originalProduct ? originalProduct.quantity : 0;
+      
+      // البحث عن المنتج في المخزون
+      const inventoryProduct = productsArray.find((p: any) => p.id === editedProduct.productId);
+      const availableStock = inventoryProduct ? (inventoryProduct.stock || 0) : 0;
+      
+      // حساب الكمية الإضافية المطلوبة (إذا كانت الكمية الجديدة أكبر من الأصلية)
+      const additionalQuantity = Math.max(0, editedProduct.quantity - originalQuantity);
+      
+      return {
+        productId: editedProduct.productId,
+        productName: editedProduct.productName,
+        requiredQuantity: additionalQuantity,
+        availableStock,
+        isValid: additionalQuantity <= availableStock
+      };
+    });
+    
+    // التحقق من توفر جميع المنتجات
+    const invalidStockProducts = inventoryCheck.filter(p => !p.isValid);
+    
+    if (invalidStockProducts.length > 0) {
+      // عرض رسالة خطأ مع المنتجات التي لا تتوفر بالكميات المطلوبة
+      const productErrors = invalidStockProducts.map(p => 
+        `${p.productName}: ${t('required')} ${p.requiredQuantity}, ${t('available')} ${p.availableStock}`
+      ).join('\n');
+      
+      toast({
+        title: t('error'),
+        description: t('not_enough_stock_for_products') + '\n' + productErrors,
         variant: 'destructive',
       });
       return;
@@ -1256,6 +1321,17 @@ export default function InvoiceManagementPage() {
                         const productsArray = Array.isArray(products) ? products : [];
                         const product = productsArray.find((p: any) => p.id === productId);
                         if (!product) return;
+                        
+                        // التحقق من توفر الكمية في المخزون
+                        const stock = product.stock || 0;
+                        if (stock <= 0) {
+                          toast({
+                            title: t('error'),
+                            description: t('product_out_of_stock'),
+                            variant: 'destructive',
+                          });
+                          return;
+                        }
                         
                         // إضافة المنتج إلى القائمة
                         setEditedProducts([
