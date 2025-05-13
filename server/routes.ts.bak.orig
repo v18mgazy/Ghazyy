@@ -12,7 +12,6 @@ import { supplierInvoiceRoutes } from "./supplier-invoice-routes";
 import { supplierPaymentRoutes } from "./supplier-payment-routes";
 import { z } from "zod";
 import { type ZodError } from "zod-validation-error";
-//استخدام وظائف مضمنة لتحسين حساب الأرباح
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -1918,344 +1917,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // طرق API لبيانات التقارير
-  // وظيفة محسنة لحساب الأرباح
-  function calculateProfitImproved(invoice: any, reportType: string = 'unknown'): number {
-    try {
-      if (!invoice || !invoice.productData) {
-        console.warn(`[حساب الربح] بيانات فاتورة غير صالحة: ${JSON.stringify(invoice)}`);
-        return 0;
-      }
-
-      // محاولة تحليل بيانات المنتج إذا كانت سلسلة نصية
-      let productData;
-      if (typeof invoice.productData === 'string') {
-        try {
-          productData = JSON.parse(invoice.productData);
-        } catch (e) {
-          console.error(`[${reportType}] خطأ في تحليل بيانات المنتج: ${e.message}`);
-          return 0;
-        }
-      } else {
-        productData = invoice.productData;
-      }
-
-      if (!Array.isArray(productData)) {
-        console.warn(`[${reportType}] بيانات المنتج ليست مصفوفة: ${typeof productData}`);
-        return 0;
-      }
-
-      let totalProfit = 0;
-      for (const product of productData) {
-        // التحقق من وجود سعر البيع وسعر الشراء وكمية صالحة
-        const purchasePrice = parseFloat(product.purchasePrice) || 0;
-        const sellingPrice = parseFloat(product.price) || 0;
-        const quantity = parseInt(product.quantity) || 0;
-        
-        // حساب الربح لهذا المنتج
-        const productProfit = (sellingPrice - purchasePrice) * quantity;
-        
-        // إضافة إلى إجمالي الربح
-        totalProfit += productProfit;
-      }
-
-      return totalProfit;
-    } catch (error) {
-      console.error(`[${reportType}] خطأ في حساب الربح: ${error.message}`);
-      return 0;
-    }
-  }
-
-  app.get('/api/reports-improved', async (req, res) => {
-    try {
-      const { type = 'daily', date, startDate, endDate } = req.query;
-      
-      // طباعة معلومات الطلب للتصحيح
-      console.log('Improved report request:', { type, date, startDate, endDate });
-      
-      // متغيرات لتخزين البيانات
-      let sales = 0;
-      let profit = 0;
-      let orders = 0;
-      let expenses = 0;
-      let damagedValue = 0;
-      let reportDate = '';
-      let storeInfo = null;
-      let products = [];
-      let detailedData = [];
-      
-      try {
-        // الحصول على معلومات المتجر
-        storeInfo = await storage.getStoreInfo();
-      } catch (e) {
-        console.log('No store info found');
-      }
-      
-      // الحصول على بيانات بناءً على نوع التقرير
-      let invoices = [];
-      let damagedItems = [];
-      let expenseItems = [];
-      
-      // تعيين تاريخ التقرير
-      reportDate = date ? date.toString() : new Date().toISOString().split('T')[0];
-      
-      // الحصول على الفواتير بناءً على التاريخ ونوع التقرير
-      switch(type) {
-        case 'daily':
-          // فلترة الفواتير لليوم المحدد
-          const dailyInvoices = await storage.getAllInvoices();
-          invoices = dailyInvoices.filter(inv => 
-            !inv.isDeleted && 
-            inv.date && 
-            inv.date.toString().split('T')[0] === reportDate
-          );
-          
-          // الحصول على العناصر التالفة لهذا اليوم
-          const allDamagedItems = await storage.getAllDamagedItems();
-          damagedItems = allDamagedItems.filter(item => 
-            item.date && 
-            item.date.toString().split('T')[0] === reportDate
-          );
-          
-          // الحصول على المصاريف لهذا اليوم
-          const allExpenses = await storage.getAllExpenses();
-          expenseItems = allExpenses.filter(exp => 
-            exp.date && 
-            exp.date.toString().split('T')[0] === reportDate
-          );
-          break;
-          
-        case 'weekly':
-          // إذا تم تحديد نطاق تاريخ مخصص (startDate و endDate)
-          if (startDate && endDate) {
-            const weeklyInvoices = await storage.getAllInvoices();
-            const start = new Date(startDate.toString());
-            const end = new Date(endDate.toString());
-            
-            // فلترة الفواتير ضمن النطاق
-            invoices = weeklyInvoices.filter(inv => {
-              if (inv.isDeleted || !inv.date) return false;
-              const invDate = new Date(inv.date);
-              return invDate >= start && invDate <= end;
-            });
-            
-            // فلترة العناصر التالفة ضمن النطاق
-            const weeklyDamagedItems = await storage.getAllDamagedItems();
-            damagedItems = weeklyDamagedItems.filter(item => {
-              if (!item.date) return false;
-              const itemDate = new Date(item.date);
-              return itemDate >= start && itemDate <= end;
-            });
-            
-            // فلترة المصاريف ضمن النطاق
-            const weeklyExpenses = await storage.getAllExpenses();
-            expenseItems = weeklyExpenses.filter(exp => {
-              if (!exp.date) return false;
-              const expDate = new Date(exp.date);
-              return expDate >= start && expDate <= end;
-            });
-            
-            reportDate = `${startDate} to ${endDate}`;
-          }
-          break;
-          
-        case 'monthly':
-          // فلترة الفواتير للشهر المحدد
-          const monthlyInvoices = await storage.getAllInvoices();
-          const [year, month] = reportDate.split('-');
-          
-          invoices = monthlyInvoices.filter(inv => {
-            if (inv.isDeleted || !inv.date) return false;
-            const invDate = new Date(inv.date);
-            return invDate.getFullYear() === parseInt(year) && 
-                  invDate.getMonth() + 1 === parseInt(month);
-          });
-          
-          // العناصر التالفة للشهر
-          const monthlyDamagedItems = await storage.getAllDamagedItems();
-          damagedItems = monthlyDamagedItems.filter(item => {
-            if (!item.date) return false;
-            const itemDate = new Date(item.date);
-            return itemDate.getFullYear() === parseInt(year) && 
-                  itemDate.getMonth() + 1 === parseInt(month);
-          });
-          
-          // المصاريف للشهر
-          const monthlyExpenses = await storage.getAllExpenses();
-          expenseItems = monthlyExpenses.filter(exp => {
-            if (!exp.date) return false;
-            const expDate = new Date(exp.date);
-            return expDate.getFullYear() === parseInt(year) && 
-                  expDate.getMonth() + 1 === parseInt(month);
-          });
-          break;
-          
-        case 'yearly':
-          // فلترة الفواتير للسنة المحددة
-          const yearlyInvoices = await storage.getAllInvoices();
-          
-          invoices = yearlyInvoices.filter(inv => {
-            if (inv.isDeleted || !inv.date) return false;
-            const invDate = new Date(inv.date);
-            return invDate.getFullYear() === parseInt(reportDate);
-          });
-          
-          // العناصر التالفة للسنة
-          const yearlyDamagedItems = await storage.getAllDamagedItems();
-          damagedItems = yearlyDamagedItems.filter(item => {
-            if (!item.date) return false;
-            const itemDate = new Date(item.date);
-            return itemDate.getFullYear() === parseInt(reportDate);
-          });
-          
-          // المصاريف للسنة
-          const yearlyExpenses = await storage.getAllExpenses();
-          expenseItems = yearlyExpenses.filter(exp => {
-            if (!exp.date) return false;
-            const expDate = new Date(exp.date);
-            return expDate.getFullYear() === parseInt(reportDate);
-          });
-          break;
-      }
-      
-      // حساب الإجماليات
-      orders = invoices.length;
-      sales = invoices.reduce((sum, inv) => sum + (parseFloat(inv.total) || 0), 0);
-      
-      // استخدام الوظيفة المحسنة لحساب الأرباح
-      profit = invoices.reduce((sum, inv) => sum + calculateProfitImproved(inv, type), 0);
-      
-      // حساب قيمة العناصر التالفة
-      damagedValue = damagedItems.reduce((sum, item) => {
-        return sum + (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 0);
-      }, 0);
-      
-      // حساب إجمالي المصاريف
-      expenses = expenseItems.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
-      
-      // إعداد قائمة أفضل المنتجات مبيعًا
-      const productMap = new Map();
-      
-      // تجميع بيانات المنتجات من جميع الفواتير
-      invoices.forEach(inv => {
-        if (!inv.productData) return;
-        
-        let prodData;
-        try {
-          if (typeof inv.productData === 'string') {
-            prodData = JSON.parse(inv.productData);
-          } else {
-            prodData = inv.productData;
-          }
-          
-          if (Array.isArray(prodData)) {
-            prodData.forEach(prod => {
-              const name = prod.name;
-              const quantity = parseInt(prod.quantity) || 0;
-              const purchasePrice = parseFloat(prod.purchasePrice) || 0;
-              const sellingPrice = parseFloat(prod.price) || 0;
-              const profit = (sellingPrice - purchasePrice) * quantity;
-              
-              if (productMap.has(name)) {
-                const existing = productMap.get(name);
-                productMap.set(name, {
-                  quantity: existing.quantity + quantity,
-                  sales: existing.sales + (sellingPrice * quantity),
-                  profit: existing.profit + profit
-                });
-              } else {
-                productMap.set(name, {
-                  quantity: quantity,
-                  sales: sellingPrice * quantity,
-                  profit: profit
-                });
-              }
-            });
-          }
-        } catch (e) {
-          console.error('Error processing product data:', e);
-        }
-      });
-      
-      // تحويل خريطة المنتجات إلى مصفوفة وترتيبها حسب المبيعات
-      products = Array.from(productMap.entries()).map(([name, data]) => ({
-        name,
-        quantity: data.quantity,
-        sales: data.sales,
-        profit: data.profit
-      })).sort((a, b) => b.sales - a.sales);
-      
-      // إنشاء البيانات التفصيلية للتقرير
-      // للتقرير اليومي، نضيف كل فاتورة كعنصر منفصل
-      invoices.forEach(inv => {
-        detailedData.push({
-          id: inv.id,
-          date: inv.date,
-          invoiceNumber: inv.invoiceNumber,
-          customerName: inv.customerName || 'زبون غير معروف',
-          total: parseFloat(inv.total) || 0,
-          profit: calculateProfitImproved(inv, 'detailed'),
-          type: 'invoice'
-        });
-      });
-      
-      // إضافة العناصر التالفة إلى البيانات التفصيلية
-      damagedItems.forEach(item => {
-        detailedData.push({
-          id: item.id,
-          date: item.date,
-          productName: item.productName,
-          quantity: item.quantity,
-          price: item.price,
-          total: (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 0),
-          reason: item.reason,
-          type: 'damaged'
-        });
-      });
-      
-      // إضافة المصاريف إلى البيانات التفصيلية
-      expenseItems.forEach(exp => {
-        detailedData.push({
-          id: exp.id,
-          date: exp.date,
-          amount: exp.amount,
-          details: exp.details,
-          expenseType: exp.expenseType,
-          type: 'expense'
-        });
-      });
-      
-      // ترتيب البيانات التفصيلية حسب التاريخ
-      detailedData.sort((a, b) => {
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
-        return dateB.getTime() - dateA.getTime();
-      });
-      
-      // إعداد بيانات التقرير النهائية
-      const reportData = {
-        type,
-        date: reportDate,
-        summary: {
-          sales,
-          profit,
-          orders,
-          expenses,
-          damagedValue,
-          netProfit: profit - expenses - damagedValue
-        },
-        top_products: products.slice(0, 10),
-        detailed_data: detailedData,
-        store_info: storeInfo
-      };
-      
-      // إرسال البيانات
-      res.json(reportData);
-    } catch (error) {
-      console.error('Error generating improved report:', error);
-      res.status(500).json({ message: 'Failed to generate improved report', error: error.message });
-    }
-  });
-
   app.get('/api/reports', async (req, res) => {
     try {
       const { type, date, startDate, endDate } = req.query;
@@ -2379,11 +2040,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalSales += invoice.total;
           salesCount++;
           
-          // استخدام الوظيفة المحسنة لحساب الربح بدقة
-          console.log(`Calculating profit for invoice ${invoice.id} using improved method`);
-          const invoiceProfit = calculateProfitImproved(invoice, type as string);
-          console.log(`Profit for invoice ${invoice.id}: ${invoiceProfit}`);
-          totalProfit += invoiceProfit;
+          // استخدام بيانات المنتجات المخزنة مباشرة في الفاتورة
+          if (invoice.productsData) {
+            try {
+              const productsData = JSON.parse(invoice.productsData);
+              for (const product of productsData) {
+                // إضافة الربح - استخدام حقل الربح المحسوب مسبقًا (profit) إذا كان موجودًا
+                // أو حساب الربح من سعر الشراء وسعر البيع
+                console.log('Calculating profit for product:', product);
+                if (product.profit !== null && product.profit !== undefined) {
+                  console.log('Using existing profit:', product.profit);
+                  totalProfit += Number(product.profit);
+                } else if (product.purchasePrice != null && (product.sellingPrice != null || product.price != null)) {
+                  // استخدم sellingPrice إذا كان موجودًا، وإلا استخدم price
+                  const sellingPrice = product.sellingPrice || product.price || 0;
+                  const purchasePrice = Number(product.purchasePrice) || 0;
+                  const quantity = Number(product.quantity) || 1;
+                  const profit = (sellingPrice - purchasePrice) * quantity;
+                  console.log(`Calculated profit from price difference: (${sellingPrice} - ${purchasePrice}) * ${quantity} = ${profit}`);
+                  totalProfit += profit;
+                } else {
+                  // استخدام تقدير للربح (30% من سعر البيع) للفواتير التي لا تحتوي على سعر الشراء
+                  const sellingPrice = product.sellingPrice || product.price || 0;
+                  const quantity = Number(product.quantity) || 1;
+                  const estimatedProfit = sellingPrice * quantity * 0.3;
+                  console.log(`Using estimated profit (30%): ${sellingPrice} * ${quantity} * 0.3 = ${estimatedProfit}`);
+                  totalProfit += estimatedProfit;
+                }
+              }
+            } catch (err) {
+              console.error(`Error parsing productsData for invoice ${invoice.id}:`, err);
+            }
+          }
         }
       }
       
