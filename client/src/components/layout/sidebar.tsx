@@ -48,7 +48,13 @@ export default function Sidebar({ isOpen, onClose, isAdmin }: SidebarProps) {
       href: '/',
       adminOnly: false
     },
-
+    {
+      title: t('invoices'),
+      icon: <FileText className="h-5 w-5" />,
+      description: t('invoice_management'),
+      href: '/invoices',
+      adminOnly: false
+    },
     {
       title: t('customers'),
       icon: <Users className="h-5 w-5" />,
