@@ -126,13 +126,13 @@ export async function calculateProfitFromProductsData(invoice: any, reportType =
             const profitReductionPercentage = originalProfit > 0 ? ((originalProfit - productProfit) / originalProfit * 100) : 0;
             
             // تأكيد أن الخصم أثر على الربح بشكل واضح
-            console.log(`[${reportType}] خصم المنتج ${discount}% وخصم الفاتورة ${(invoiceDiscountRate*100).toFixed(1)}% أدى إلى تقليل الربح من ${originalProfit.toFixed(2)} إلى ${productProfit.toFixed(2)} (نقص ${profitReductionPercentage.toFixed(1)}%)`);
+            console.log(`[${reportType}] خصم المنتج ${discount} وخصم الفاتورة (معدل ${(invoiceDiscountRate*100).toFixed(1)}%) أدى إلى تقليل الربح من ${originalProfit.toFixed(2)} إلى ${productProfit.toFixed(2)} (نقص ${profitReductionPercentage.toFixed(1)}%)`);
             
-            console.log(`[${reportType}] [تفاصيل تأثير الخصم] سعر المنتج: ${sellingPrice}، بعد خصم المنتج (${discount}%): ${productDiscountedPrice}، بعد خصم الفاتورة (${(invoiceDiscountRate*100).toFixed(1)}%): ${finalSellingPrice}، الربح النهائي: ${productProfit}`);
+            console.log(`[${reportType}] [تفاصيل تأثير الخصم] سعر المنتج: ${sellingPrice}، بعد خصم المنتج (${discount}): ${productDiscountedPrice}، بعد تطبيق معدل خصم الفاتورة (${(invoiceDiscountRate*100).toFixed(1)}%): ${finalSellingPrice}، الربح النهائي: ${productProfit}`);
             calculatedProfit += productProfit;
             
             console.log(`[${reportType}] بيانات المنتج الأصلية:`, JSON.stringify(product));
-            console.log(`[${reportType}] معالجة منتج "${product.productName || product.name || 'Unknown'}": سعر البيع=${sellingPrice}, سعر الشراء=${purchasePrice}, كمية=${quantity}${discount > 0 ? `, خصم=${discount}%` : ''}`);
+            console.log(`[${reportType}] معالجة منتج "${product.productName || product.name || 'Unknown'}": سعر البيع=${sellingPrice}, سعر الشراء=${purchasePrice}, كمية=${quantity}${discount > 0 ? `, خصم=${discount}` : ''}`);
             console.log(`[${reportType}] حساب ربح المنتج بعد كل الخصومات: (${finalSellingPrice} - ${purchasePrice}) × ${quantity} = ${productProfit}`);
             
             // إضافة الخصم والربح كحقول في بيانات المنتج للاستخدام في أماكن أخرى
@@ -159,15 +159,20 @@ export async function calculateProfitFromProductsData(invoice: any, reportType =
       console.warn(`No products data found for invoice ID: ${invoice.id}, unable to calculate profit - using zero`);
     }
     
-    // خصم نسبة من الربح إذا كان هناك خصم إجمالي على الفاتورة
-    if (invoice.discountPercentage && Number(invoice.discountPercentage) > 0) {
-      const invoiceDiscountPercentage = Number(invoice.discountPercentage);
+    // تعديل الربح إذا كان هناك خصم على الفاتورة لم يتم حسابه سابقًا
+    if (invoice.invoiceDiscount && Number(invoice.invoiceDiscount) > 0 && 
+        (!invoice.itemsDiscount || invoice.itemsDiscount === "0" || Number(invoice.itemsDiscount) === 0)) {
+      const invoiceDiscount = Number(invoice.invoiceDiscount);
       const originalProfit = calculatedProfit;
+      const subtotal = Number(invoice.subtotal) || 0;
       
-      // تطبيق خصم الفاتورة الإجمالي على الربح
-      calculatedProfit = calculatedProfit * (1 - (invoiceDiscountPercentage / 100));
-      
-      console.log(`Applied invoice discount ${invoiceDiscountPercentage}% to profit: ${originalProfit} → ${calculatedProfit}`);
+      // لم يعد يتم استخدام نسبة الخصم المئوية. نطبق خصم مباشر من قيمة الربح بنسبة قيمة الخصم إلى إجمالي الفاتورة
+      if (subtotal > 0) {
+        const discountImpactRate = invoiceDiscount / subtotal; 
+        calculatedProfit = calculatedProfit * (1 - discountImpactRate);
+        
+        console.log(`خصم الفاتورة (${invoiceDiscount}) يؤثر على الربح بمعدل ${(discountImpactRate*100).toFixed(1)}%: ${originalProfit} → ${calculatedProfit}`);
+      }
     }
     
     console.log(`Total profit calculated for ${reportType} report, invoice ID: ${invoice.id}: ${calculatedProfit}`);
