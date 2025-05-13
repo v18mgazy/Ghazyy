@@ -2228,21 +2228,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const productProfitNoDiscount = unitProfitNoDiscount * quantity;
         profitWithoutItemDiscount += productProfitNoDiscount;
         
-        // حساب الربح لهذا المنتج - استخدام سعر الشراء الفعلي فقط
+        // تطبيق المعادلة الجديدة: اجمالي الارباح = سعر البيع - سعر الشراء - الخصم
         // الحصول على نسبة الخصم إن وجدت
         const discountPercentage = parseFloat(product.discount) || 0;
         
-        // حساب سعر البيع بعد تطبيق الخصم
-        const discountedSellingPrice = sellingPrice * (1 - (discountPercentage / 100));
+        // حساب قيمة الخصم على مستوى المنتج
+        const productDiscountAmount = sellingPrice * (discountPercentage / 100) * quantity;
         
-        // حساب الربح مع الأخذ في الاعتبار نسبة الخصم
-        const productProfit = (discountedSellingPrice - purchasePrice) * quantity;
+        // تقدير حصة المنتج من خصم الفاتورة (إذا كان موجوداً)
+        let invoiceDiscountShare = 0;
+        if (invoice.invoiceDiscount && Number(invoice.invoiceDiscount) > 0 && invoice.subtotal && Number(invoice.subtotal) > 0) {
+          // حساب نسبة المنتج من إجمالي الفاتورة
+          const productSubtotal = sellingPrice * quantity * (1 - (discountPercentage / 100));
+          const productRatio = productSubtotal / Number(invoice.subtotal);
+          invoiceDiscountShare = Number(invoice.invoiceDiscount) * productRatio;
+          console.log(`[${reportType}] حصة المنتج ${productName} من خصم الفاتورة: ${productRatio.toFixed(2)} * ${invoice.invoiceDiscount} = ${invoiceDiscountShare.toFixed(2)}`);
+        }
+        
+        // إجمالي الخصم = خصم المنتج + حصته من خصم الفاتورة
+        const totalDiscount = productDiscountAmount + invoiceDiscountShare;
+        
+        // تطبيق المعادلة: الربح = سعر البيع - سعر الشراء - الخصم
+        const totalSales = sellingPrice * quantity;
+        const totalCost = purchasePrice * quantity;
+        const productProfit = Math.max(0, totalSales - totalCost - totalDiscount);
         
         if (purchasePrice <= 0) {
           console.warn(`[${reportType}] سعر الشراء غير متوفر للمنتج ${productName}, نستخدم سعر شراء = 0`);
         }
         
-        console.log(`[${reportType}] حساب ربح المنتج: (${discountedSellingPrice} - ${purchasePrice}) * ${quantity} = ${productProfit}`);
+        console.log(`[${reportType}] تطبيق المعادلة الجديدة: الربح = سعر البيع (${totalSales}) - سعر الشراء (${totalCost}) - الخصم (${totalDiscount}) = ${productProfit}`);
         
         // إضافة إلى إجمالي الربح
         totalProfit += productProfit;
