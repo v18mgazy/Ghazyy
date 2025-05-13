@@ -19,9 +19,16 @@ interface Product {
 interface BarcodeScannerProps {
   onProductScanned: (product: Product) => void;
   continueScanning?: boolean; // تحديد ما إذا كان يجب الاستمرار في المسح بعد العثور على منتج
+  scanDelay?: number; // مدة الانتظار بين عمليات المسح المتتالية (بالملي ثانية)
+  checkInventory?: boolean; // التحقق من توفر المخزون قبل إضافة المنتج
 }
 
-export default function BarcodeScanner({ onProductScanned, continueScanning = false }: BarcodeScannerProps) {
+export default function BarcodeScanner({ 
+  onProductScanned, 
+  continueScanning = false,
+  scanDelay = 2000, // مهلة 2 ثانية افتراضيًا بين المسح المتتالية
+  checkInventory = true // التحقق من المخزون افتراضيًا
+}: BarcodeScannerProps) {
   const { t } = useTranslation();
   const { language } = useLocale();
   const { toast } = useToast();
@@ -33,6 +40,8 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
   const rtl = language === 'ar';
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [scannedCount, setScannedCount] = useState<number>(0);
+  const [isWaiting, setIsWaiting] = useState(false); // حالة الانتظار بين عمليات المسح المتتالية
+  const [waitProgress, setWaitProgress] = useState(0); // لعرض تقدم الانتظار كنسبة
 
   useEffect(() => {
     // تنظيف الماسح عند إلغاء تحميل المكون
@@ -42,6 +51,37 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
       }
     };
   }, [isScanning]);
+  
+  // تحديث شريط التقدم أثناء الانتظار
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    if (isWaiting) {
+      // تقسيم فترة الانتظار إلى 20 خطوة لتحديث شريط التقدم
+      const steps = 20;
+      const stepTime = scanDelay / steps;
+      let currentStep = 0;
+      
+      setWaitProgress(0);
+      
+      intervalId = setInterval(() => {
+        currentStep++;
+        setWaitProgress((currentStep / steps) * 100);
+        
+        if (currentStep >= steps) {
+          // انتهت فترة الانتظار
+          setIsWaiting(false);
+          clearInterval(intervalId!);
+        }
+      }, stepTime);
+    }
+    
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isWaiting, scanDelay]);
 
   const cleanupScanner = () => {
     try {
@@ -99,6 +139,11 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
   };
 
   const handleBarcodeDetected = async (result: any) => {
+    // إذا كان الماسح في حالة انتظار، نتجاهل المسح الجديد
+    if (isWaiting) {
+      return;
+    }
+    
     if (result && result.codeResult && result.codeResult.code) {
       const barcode = result.codeResult.code;
       
@@ -117,6 +162,21 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
         }
         
         const product = await response.json();
+        
+        // التحقق من المخزون إذا كان مطلوبًا
+        if (checkInventory && (!product.quantity || product.quantity <= 0)) {
+          setError(t('out_of_stock'));
+          toast({
+            title: t('error'),
+            description: `${product.name} - ${t('out_of_stock')}`,
+            variant: 'destructive',
+            duration: 3000
+          });
+          setTimeout(() => {
+            setError(null);
+          }, 2000);
+          return;
+        }
         
         // إذا كنا نستمر في المسح، نضيف المنتج مباشرة
         if (continueScanning) {
@@ -140,6 +200,12 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
           }, 2500);
           
           console.log('Product added to invoice:', product.name);
+          
+          // في وضع المسح المستمر، نبدأ فترة انتظار قبل السماح بالمسح التالي
+          if (scanDelay > 0) {
+            setIsWaiting(true);
+            // سيتم تعيين isWaiting إلى false تلقائيًا بعد انتهاء المهلة عن طريق useEffect
+          }
         } else {
           setScannedProduct(product);
         }
@@ -148,7 +214,6 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
         console.error('Error finding product:', err);
         // إذا كان هناك خطأ وكنا نستمر في المسح، نعيد تشغيل الماسح
         if (continueScanning) {
-          setError(null);
           setTimeout(() => {
             setError(null);
           }, 2000); // يظهر خطأ لمدة ثانيتين ثم يختفي للسماح بالمسح مرة أخرى
