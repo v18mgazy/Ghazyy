@@ -182,7 +182,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
       const invoiceElement = document.createElement('div');
       
       // استخراج البيانات اللازمة
-      const products = invoiceProducts || [];
+      const products = invoiceProducts || []; console.log("Printing products:", products);
       
       // إنشاء HTML للفاتورة بتنسيق محسن (باللغة الإنجليزية فقط للتوافق)
       invoiceElement.innerHTML = `
@@ -238,7 +238,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
               </tr>
             </thead>
             <tbody>
-              ${products.map((item, index) => {
+              ${invoiceProducts.map((item, index) => {
                 const productTotal = item.sellingPrice * item.quantity;
                 const discountAmount = item.discount ? (productTotal * (item.discount / 100)) : 0;
                 const finalTotal = productTotal - discountAmount;
@@ -246,7 +246,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                 return `
                 <tr>
                   <td style="padding: 10px; border: 1px solid #ddd;">
-                    <div style="font-weight: 500;">${item.productName}</div>
+                    <div style="font-weight: 500;">${item.productName || item.name || "Unknown Product"}</div>
                     ${item.discount > 0 ? `<div style="font-size: 12px; color: #777;">${item.discount}% discount</div>` : ''}
                   </td>
                   <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">
@@ -462,7 +462,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
               </tr>
             </thead>
             <tbody>
-              ${products.map((item, index) => {
+              ${invoiceProducts.map((item, index) => {
                 const productTotal = item.sellingPrice * item.quantity;
                 const discountAmount = item.discount ? (productTotal * (item.discount / 100)) : 0;
                 const finalTotal = productTotal - discountAmount;
@@ -470,7 +470,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
                 return `
                 <tr>
                   <td style="padding: 10px; border: 1px solid #ddd;">
-                    <div style="font-weight: 500;">${item.productName}</div>
+                    <div style="font-weight: 500;">${item.productName || item.name || "Unknown Product"}</div>
                     ${item.discount > 0 ? `<div style="font-size: 12px; color: #777;">${item.discount}% discount</div>` : ''}
                   </td>
                   <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">
