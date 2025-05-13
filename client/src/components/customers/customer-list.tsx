@@ -107,6 +107,138 @@ export default function CustomerList({
     const whatsappLink = createWhatsAppLink(customer.phone);
     window.open(whatsappLink, '_blank');
   };
+  
+  // دالة لإضافة مديونية جديدة للعميل
+  const handleAddDebt = async () => {
+    if (!selectedCustomer || debtAmount <= 0 || !debtReason) {
+      toast({
+        title: t('validation_error'),
+        description: t('debt_amount_reason_required'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/customers/${selectedCustomer.id}/debt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: debtAmount,
+          reason: debtReason,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add debt');
+      }
+
+      toast({
+        title: t('success'),
+        description: t('debt_added_successfully'),
+      });
+
+      // إعادة تحميل بيانات العملاء
+      if (typeof onRefreshData === 'function') {
+        onRefreshData();
+      }
+      
+      // إغلاق نافذة الحوار وإعادة تعيين القيم
+      setShowAddDebtDialog(false);
+      setDebtAmount(0);
+      setDebtReason('');
+    } catch (error) {
+      console.error('Error adding debt:', error);
+      toast({
+        title: t('error'),
+        description: t('error_adding_debt'),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // دالة لخفض مديونية العميل
+  const handleReduceDebt = async () => {
+    if (!selectedCustomer || debtAmount <= 0 || !debtReason) {
+      toast({
+        title: t('validation_error'),
+        description: t('debt_amount_reason_required'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/customers/${selectedCustomer.id}/reduce-debt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: debtAmount,
+          reason: debtReason,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reduce debt');
+      }
+
+      toast({
+        title: t('success'),
+        description: t('debt_reduced_successfully'),
+      });
+
+      // إعادة تحميل بيانات العملاء
+      if (typeof onRefreshData === 'function') {
+        onRefreshData();
+      }
+      
+      // إغلاق نافذة الحوار وإعادة تعيين القيم
+      setShowReduceDebtDialog(false);
+      setDebtAmount(0);
+      setDebtReason('');
+    } catch (error) {
+      console.error('Error reducing debt:', error);
+      toast({
+        title: t('error'),
+        description: t('error_reducing_debt'),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // دالة لعرض سجل المديونية للعميل
+  const viewDebtHistory = async (customer: Customer) => {
+    try {
+      setSelectedCustomer(customer);
+      setShowDebtHistory(true);
+      
+      const response = await fetch(`/api/customers/${customer.id}/debt-history`);
+      
+      if (!response.ok) {
+        console.error('API returned error status:', response.status);
+        setDebtHistory([]);
+        return;
+      }
+      
+      const debtHistoryData = await response.json();
+      
+      if (!Array.isArray(debtHistoryData)) {
+        console.log('No debt history found for customer');
+        setDebtHistory([]);
+        return;
+      }
+      
+      console.log('Debt history data:', debtHistoryData);
+      setDebtHistory(debtHistoryData);
+    } catch (error) {
+      console.error('Error viewing debt history:', error);
+      setDebtHistory([]);
+    }
+  };
 
   // استعلام للحصول على تاريخ مشتريات العميل (سيتم استخدامه عند طلب عرض التاريخ)
   const { isLoading: isLoadingHistory, refetch: fetchCustomerHistory } = useQuery({
@@ -338,8 +470,33 @@ export default function CustomerList({
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="text-amber-600 hover:text-amber-800 hover:bg-amber-50"
+                              onClick={() => {
+                                setSelectedCustomer(customer);
+                                setShowAddDebtDialog(true);
+                              }}
+                              title={t('add_debt')}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-green-600 hover:text-green-800 hover:bg-green-50"
+                              onClick={() => {
+                                setSelectedCustomer(customer);
+                                setShowReduceDebtDialog(true);
+                              }}
+                              title={t('reduce_debt')}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h20" /><path d="M5 20v-4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v4" /><path d="M6 8h12" /><path d="M9 12h6" /><path d="M17 4l4 4-4 4" /><path d="M7 4 3 8l4 4" /></svg>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                               onClick={() => onEditCustomer(customer)}
+                              title={t('edit_customer')}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -348,6 +505,7 @@ export default function CustomerList({
                               size="icon"
                               className="text-gray-600 hover:text-gray-800 hover:bg-gray-50"
                               onClick={() => viewHistory(customer)}
+                              title={t('view_history')}
                             >
                               <History className="h-4 w-4" />
                             </Button>
@@ -357,6 +515,7 @@ export default function CustomerList({
                               className="text-green-600 hover:text-green-800 hover:bg-green-50"
                               onClick={() => openWhatsApp(customer)}
                               disabled={!customer.phone}
+                              title={t('send_whatsapp')}
                             >
                               <MessageSquareShare className="h-4 w-4" />
                             </Button>
@@ -495,6 +654,168 @@ export default function CustomerList({
           
           <DialogFooter>
             <Button onClick={() => setShowHistory(false)}>
+              {t('close')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* مربع حوار إضافة مديونية */}
+      <Dialog open={showAddDebtDialog} onOpenChange={setShowAddDebtDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">{t('add_debt')}</DialogTitle>
+            <DialogDescription className="text-center">
+              {selectedCustomer && (
+                <span className="font-semibold text-primary">{selectedCustomer.name}</span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="debtAmount">{t('debt_amount')}</Label>
+              <Input
+                id="debtAmount"
+                type="number"
+                value={debtAmount}
+                onChange={(e) => setDebtAmount(Number(e.target.value))}
+                placeholder={t('enter_debt_amount')}
+                min="0"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="debtReason">{t('debt_reason')}</Label>
+              <Input
+                id="debtReason"
+                value={debtReason}
+                onChange={(e) => setDebtReason(e.target.value)}
+                placeholder={t('enter_debt_reason')}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDebtDialog(false)}>
+              {t('cancel')}
+            </Button>
+            <Button type="submit" onClick={handleAddDebt}>
+              {t('add')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* مربع حوار خفض المديونية */}
+      <Dialog open={showReduceDebtDialog} onOpenChange={setShowReduceDebtDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">{t('reduce_debt')}</DialogTitle>
+            <DialogDescription className="text-center">
+              {selectedCustomer && (
+                <span className="font-semibold text-primary">{selectedCustomer.name}</span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="debtAmount">{t('payment_amount')}</Label>
+              <Input
+                id="debtAmount"
+                type="number"
+                value={debtAmount}
+                onChange={(e) => setDebtAmount(Number(e.target.value))}
+                placeholder={t('enter_payment_amount')}
+                min="0"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="debtReason">{t('payment_details')}</Label>
+              <Input
+                id="debtReason"
+                value={debtReason}
+                onChange={(e) => setDebtReason(e.target.value)}
+                placeholder={t('enter_payment_details')}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReduceDebtDialog(false)}>
+              {t('cancel')}
+            </Button>
+            <Button type="submit" onClick={handleReduceDebt}>
+              {t('save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* مربع حوار سجل المديونية */}
+      <Dialog open={showDebtHistory} onOpenChange={setShowDebtHistory}>
+        <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-center">{t('debt_history')}</DialogTitle>
+            <DialogDescription className="text-center">
+              {selectedCustomer && (
+                <span className="font-semibold text-primary">{selectedCustomer.name}</span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {debtHistory.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {t('no_debt_history')}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('date')}</TableHead>
+                  <TableHead>{t('amount')}</TableHead>
+                  <TableHead>{t('type')}</TableHead>
+                  <TableHead>{t('reason')}</TableHead>
+                  {debtHistory.some(item => item.invoiceId) && (
+                    <TableHead>{t('invoice_number')}</TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {debtHistory.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      {new Date(item.date).toLocaleDateString('ar-EG')}
+                    </TableCell>
+                    <TableCell className={item.amount > 0 ? "text-red-600" : "text-green-600"}>
+                      {formatCurrency(Math.abs(item.amount))}
+                    </TableCell>
+                    <TableCell>
+                      {item.amount > 0 ? t('debt_added') : t('debt_reduced')}
+                    </TableCell>
+                    <TableCell>{item.reason}</TableCell>
+                    {debtHistory.some(i => i.invoiceId) && (
+                      <TableCell>
+                        {item.invoiceId ? item.invoiceId : '-'}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+              <tfoot>
+                <tr className="border-t">
+                  <td colSpan={2} className="py-2 px-4 text-right font-semibold">
+                    {t('current_total_debt')}:
+                  </td>
+                  <td className="py-2 px-4 text-right font-bold">
+                    {formatCurrency(
+                      selectedCustomer?.totalDebt || 0
+                    )}
+                  </td>
+                  <td></td>
+                  {debtHistory.some(item => item.invoiceId) && <td></td>}
+                </tr>
+              </tfoot>
+            </Table>
+          )}
+
+          <DialogFooter>
+            <Button onClick={() => setShowDebtHistory(false)}>
               {t('close')}
             </Button>
           </DialogFooter>
