@@ -124,28 +124,49 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
         }
       }
       
-      // حساب الربح لهذا المنتج
-      // الحصول على قيمة الخصم المباشرة (وليست نسبة مئوية)
+      // 3. حساب الربح بدون أي خصومات
+      const unitProfitNoDiscount = sellingPrice - purchasePrice;
+      let profitWithoutDiscount = unitProfitNoDiscount * quantity;
+      
+      // 4. حساب خصم المنتج (قيمة مباشرة وليست نسبة مئوية)
       const productDiscount = parseFloat(product.discount) || 0;
       
-      // حساب سعر البيع بعد تطبيق الخصم - استخدام قيمة مباشرة وليس نسبة مئوية
-      const discountedSellingPrice = sellingPrice - productDiscount;
+      // 5. حساب حصة المنتج من خصم الفاتورة (إذا وجد)
+      let invoiceDiscountShare = 0;
+      if (invoice.invoiceDiscount && invoice.subtotal) {
+        const productSubtotal = sellingPrice * quantity;
+        const invoiceDiscount = parseFloat(invoice.invoiceDiscount) || 0;
+        const invoiceSubtotal = parseFloat(invoice.subtotal) || 0;
+        
+        if (invoiceSubtotal > 0) {
+          invoiceDiscountShare = (productSubtotal / invoiceSubtotal) * invoiceDiscount;
+          console.log(`[${reportType}] حصة المنتج ${product.productName || product.name || 'غير معروف'} من خصم الفاتورة: ${(productSubtotal / invoiceSubtotal).toFixed(2)} * ${invoiceDiscount} = ${invoiceDiscountShare.toFixed(2)}`);
+        }
+      }
       
-      // حساب الربح حسب المعادلة الجديدة: الربح = سعر البيع - سعر الشراء - الخصم
-      const productProfit = ((sellingPrice - productDiscount) - purchasePrice) * quantity;
+      // 6. حساب إجمالي الخصم لهذا المنتج
+      const totalProductDiscount = productDiscount + invoiceDiscountShare;
+      
+      // 7. حساب الربح النهائي باستخدام المعادلة الجديدة: الربح = سعر البيع - سعر الشراء - الخصم
+      console.log(`[${reportType}] تطبيق المعادلة الجديدة: الربح = سعر البيع (${sellingPrice}) - سعر الشراء (${purchasePrice}) - الخصم (${totalProductDiscount}) = ${sellingPrice - purchasePrice - totalProductDiscount}`);
+      const finalUnitProfit = sellingPrice - purchasePrice - totalProductDiscount / quantity;
+      const productProfit = finalUnitProfit * quantity;
       
       if (purchasePrice <= 0) {
         console.warn(`[حساب الربح - تحسين] [${reportType}] ⚠️ سعر الشراء غير متوفر للمنتج "${product.productName || product.name || 'غير معروف'}", نستخدم سعر شراء = 0. هذا سيؤدي لحساب ربح أعلى من الواقع!`);
       }
       
-      // سجل بيانات إضافية للمساعدة في فهم العملية
+      // 8. سجل بيانات إضافية للمساعدة في فهم العملية
       console.log(`[حساب الربح - تحسين] [${reportType}] حساب ربح المنتج "${product.productName || product.name || 'غير معروف'}":`);
       console.log(`  - سعر البيع: ${sellingPrice}`);
-      console.log(`  - قيمة الخصم المباشرة: ${productDiscount}`);
-      console.log(`  - سعر البيع بعد الخصم: ${discountedSellingPrice}`);
+      console.log(`  - قيمة خصم المنتج: ${productDiscount}`);
+      console.log(`  - حصة المنتج من خصم الفاتورة: ${invoiceDiscountShare.toFixed(2)}`);
+      console.log(`  - إجمالي الخصم: ${totalProductDiscount.toFixed(2)}`);
       console.log(`  - سعر الشراء: ${purchasePrice}`);
       console.log(`  - الكمية: ${quantity}`);
-      console.log(`  - الربح: ((${sellingPrice} - ${productDiscount}) - ${purchasePrice}) * ${quantity} = ${productProfit}`);
+      console.log(`  - الربح: (${sellingPrice} - ${purchasePrice} - ${totalProductDiscount / quantity}) * ${quantity} = ${productProfit.toFixed(2)}`);
+      console.log(`  - الربح قبل الخصم: ${profitWithoutDiscount.toFixed(2)}`);
+      console.log(`  - تأثير الخصم: ${(profitWithoutDiscount - productProfit).toFixed(2)}`);
       
       // إضافة إلى إجمالي الربح
       totalProfit += productProfit;

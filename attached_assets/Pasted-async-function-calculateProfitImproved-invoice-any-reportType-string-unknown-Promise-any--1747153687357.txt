@@ -1,0 +1,65 @@
+async function calculateProfitImproved(invoice: any, reportType: string = 'unknown'): Promise<any> {
+  try {
+    // ... (الكود الحالي للتحقق من صحة البيانات)
+
+    let totalProfit = 0;
+    let profitWithoutAnyDiscount = 0;
+    let totalDiscountAmount = 0;
+
+    for (const product of productData) {
+      // 1. استخراج بيانات المنتج الأساسية
+      const sellingPrice = parseFloat(product.price || product.sellingPrice) || 0;
+      let purchasePrice = parseFloat(product.purchasePrice) || 0;
+      const quantity = parseInt(product.quantity) || 0;
+
+      // 2. التحقق من صحة البيانات
+      if (sellingPrice <= 0 || quantity <= 0) continue;
+
+      // 3. إذا كان سعر الشراء غير معروف، احسبه تلقائياً
+      if (purchasePrice <= 0) {
+        purchasePrice = sellingPrice * 0.7; // افتراض هامش ربح 30%
+      }
+
+      // 4. حساب الربح بدون أي خصومات
+      const unitProfitNoDiscount = sellingPrice - purchasePrice;
+      profitWithoutAnyDiscount += unitProfitNoDiscount * quantity;
+
+      // 5. حساب خصم المنتج (إذا وجد)
+      const productDiscount = sellingPrice * ((product.discount || 0) / 100);
+
+      // 6. حساب حصة المنتج من خصم الفاتورة (إذا وجد)
+      let invoiceDiscountShare = 0;
+      if (invoice.invoiceDiscount && invoice.subtotal) {
+        const productSubtotal = (sellingPrice - productDiscount) * quantity;
+        const invoiceDiscount = parseFloat(invoice.invoiceDiscount) || 0;
+        const invoiceSubtotal = parseFloat(invoice.subtotal) || 0;
+        
+        if (invoiceSubtotal > 0) {
+          invoiceDiscountShare = (productSubtotal / invoiceSubtotal) * invoiceDiscount;
+        }
+      }
+
+      // 7. حساب الخصم الكلي للمنتج
+      const totalDiscount = productDiscount + invoiceDiscountShare;
+      totalDiscountAmount += totalDiscount * quantity;
+
+      // 8. حساب الربح النهائي بعد جميع الخصومات
+      const finalUnitProfit = (sellingPrice - totalDiscount) - purchasePrice;
+      const productProfit = finalUnitProfit * quantity;
+
+      totalProfit += productProfit;
+    }
+
+    return {
+      profit: Math.max(0, totalProfit),
+      profitWithoutDiscount: profitWithoutAnyDiscount,
+      profitReduction: profitWithoutAnyDiscount - totalProfit,
+      totalDiscountAmount,
+      discountDetails: {
+        // ... (تفاصيل الخصم)
+      }
+    };
+  } catch (error) {
+    // ... (معالجة الأخطاء)
+  }
+}
