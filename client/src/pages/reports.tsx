@@ -121,10 +121,10 @@ export default function ReportsPage() {
     error, 
     refetch 
   } = useQuery<ReportData>({
-    queryKey: ['/api/reports', period, getFormattedDateForQuery(), weekStartDate, weekEndDate],
+    queryKey: ['/api/reports-improved', period, getFormattedDateForQuery(), weekStartDate, weekEndDate],
     queryFn: async () => {
       // بناء URL الاستعلام
-      let url = `/api/reports?type=${period}`;
+      let url = `/api/reports-improved?type=${period}`;
       
       if (period === 'weekly') {
         const formattedStartDate = formatDate(weekStartDate, 'yyyy-MM-dd');
@@ -134,12 +134,19 @@ export default function ReportsPage() {
         url += `&date=${getFormattedDateForQuery()}`;
       }
       
-      console.log("طلب التقرير:", { type: period, date: getFormattedDateForQuery(), startDate: period === 'weekly' ? formatDate(weekStartDate, 'yyyy-MM-dd') : undefined, endDate: period === 'weekly' ? formatDate(weekEndDate, 'yyyy-MM-dd') : undefined });
+      console.log("طلب التقرير المحسن:", { type: period, date: getFormattedDateForQuery(), startDate: period === 'weekly' ? formatDate(weekStartDate, 'yyyy-MM-dd') : undefined, endDate: period === 'weekly' ? formatDate(weekEndDate, 'yyyy-MM-dd') : undefined });
       
       // تنفيذ الاستعلام
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`فشل في استرجاع بيانات التقارير: ${response.statusText}`);
+        // إذا فشل الطلب المحسن، نجرب الطلب العادي
+        console.log("استرجاع التقرير المحسن فشل، جاري محاولة استرجاع التقرير العادي");
+        const fallbackUrl = url.replace('/api/reports-improved', '/api/reports');
+        const fallbackResponse = await fetch(fallbackUrl);
+        if (!fallbackResponse.ok) {
+          throw new Error(`فشل في استرجاع بيانات التقارير: ${fallbackResponse.statusText}`);
+        }
+        return await fallbackResponse.json();
       }
       return await response.json();
     },
