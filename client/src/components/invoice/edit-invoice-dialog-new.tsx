@@ -15,8 +15,8 @@ function calculateProductProfit(product: any, invoiceDiscount: number, subtotal:
   const quantity = product.quantity;
   const productDiscount = product.discount || 0;
   
-  // حساب سعر البيع بعد تطبيق خصم المنتج
-  const priceAfterProductDiscount = price * (1 - (productDiscount / 100));
+  // حساب سعر البيع بعد تطبيق خصم المنتج - استخدام قيمة خصم مباشرة وليس نسبة مئوية
+  const priceAfterProductDiscount = price - productDiscount;
   const productTotal = priceAfterProductDiscount * quantity;
   
   // حساب حصة المنتج من خصم الفاتورة
