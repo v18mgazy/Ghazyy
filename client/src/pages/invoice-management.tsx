@@ -705,6 +705,7 @@ export default function InvoiceManagement() {
           name: productName,
           barcode: product.barcode || '',
           price: productPrice,
+          purchasePrice: product.purchasePrice || 0,
           quantity: quantity,
           total: total,
           discount: product.discount || 0,
@@ -721,6 +722,8 @@ export default function InvoiceManagement() {
         customerAddress: latestInvoiceData.customerAddress || '',
         subtotal: latestInvoiceData.subtotal || 0,
         discount: latestInvoiceData.discount || 0,
+        itemsDiscount: latestInvoiceData.itemsDiscount || 0,
+        invoiceDiscount: latestInvoiceData.invoiceDiscount || 0,
         total: latestInvoiceData.total || 0,
         paymentMethod: latestInvoiceData.paymentMethod || 'cash',
         paymentStatus: latestInvoiceData.paymentStatus || 'completed',
@@ -731,36 +734,9 @@ export default function InvoiceManagement() {
       
       console.log('Prepared invoice for edit:', invoiceToEdit);
       
-      // 5. فتح نافذة تعديل الفاتورة
-      // في هذه المرحلة، يمكننا إما:
-      // أ) إرسال المستخدم إلى صفحة إنشاء فاتورة جديدة مع تمرير البيانات الحالية
-      // ب) فتح نافذة منبثقة لتعديل الفاتورة
-      
-      // الخيار ب: فتح نافذة تعديل الفاتورة
-      // نحتاج إلى استدعاء مكون تعديل الفاتورة هنا
-      // انظر إلى components/invoice/edit-invoice-dialog.tsx
-      
-      // بدلاً من ذلك، سنقوم مؤقتًا بعرض تفاصيل الفاتورة فقط
-      // مع إرسال طلب PATCH للتحديث (تحديث بسيط لتغيير حالة الفاتورة)
-      
-      // 6. تحديث الفاتورة بشكل بسيط (مؤقتًا)
-      // في المستقبل، يجب استبدال هذا بفتح محرر الفاتورة
-      const simpleUpdateResponse = await fetch(`/api/invoices/${invoice.dbId || invoice.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          paymentStatus: latestInvoiceData.paymentStatus === 'completed' ? 'pending' : 'completed'
-        })
-      });
-      
-      if (!simpleUpdateResponse.ok) {
-        throw new Error('Failed to update invoice status');
-      }
-      
-      // 7. تحديث البيانات المحلية والكاش
-      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      // 5. تعيين البيانات المطلوبة للتعديل وفتح النافذة المنبثقة
+      setEditingInvoice(invoiceToEdit);
+      setIsEditInvoiceDialogOpen(true);
       
       toast({
         title: t('edit_invoice'),
@@ -1446,6 +1422,15 @@ export default function InvoiceManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* نافذة تعديل الفاتورة */}
+      {editingInvoice && (
+        <EditInvoiceDialog
+          open={isEditInvoiceDialogOpen}
+          onOpenChange={setIsEditInvoiceDialogOpen}
+          invoice={editingInvoice}
+        />
+      )}
     </div>
   );
 }

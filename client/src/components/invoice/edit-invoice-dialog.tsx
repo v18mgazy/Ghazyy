@@ -190,8 +190,6 @@ export default function EditInvoiceDialog({
   
   // Handle barcode scan result
   const handleBarcodeResult = async (barcode: string) => {
-    setIsScannerOpen(false);
-    
     try {
       const response = await fetch(`/api/products/barcode/${barcode}`);
       if (!response.ok) {
@@ -483,7 +481,10 @@ export default function EditInvoiceDialog({
           </DialogHeader>
           
           <div className="py-4">
-            <BarcodeScanner onDetected={handleBarcodeResult} />
+            <BarcodeScanner onProductScanned={(product) => {
+              handleBarcodeResult(product.barcode);
+              setIsScannerOpen(false);
+            }} />
           </div>
           
           <DialogFooter>
