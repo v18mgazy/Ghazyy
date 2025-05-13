@@ -70,6 +70,12 @@ export default function CustomerList({
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [showAddDebtDialog, setShowAddDebtDialog] = useState(false);
+  const [showReduceDebtDialog, setShowReduceDebtDialog] = useState(false);
+  const [showDebtHistory, setShowDebtHistory] = useState(false);
+  const [debtAmount, setDebtAmount] = useState(0);
+  const [debtReason, setDebtReason] = useState('');
+  const [debtHistory, setDebtHistory] = useState<CustomerDebt[]>([]);
   
   const perPage = 10;
   
@@ -279,6 +285,8 @@ export default function CustomerList({
                     <TableHead className="font-semibold">{t('address')}</TableHead>
                     <TableHead className="font-semibold">{t('notes')}</TableHead>
                     <TableHead className="font-semibold">{t('potential')}</TableHead>
+                    <TableHead className="font-semibold">{t('old_debt')}</TableHead>
+                    <TableHead className="font-semibold">{t('total_debt')}</TableHead>
                     <TableHead className="font-semibold">{t('total_purchases')}</TableHead>
                     <TableHead className="font-semibold text-right">{t('actions')}</TableHead>
                   </TableRow>
@@ -318,7 +326,13 @@ export default function CustomerList({
                             {customer.isPotential ? t('yes') : t('no')}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-medium">{formatCurrency(customer.totalPurchases)}</TableCell>
+                        <TableCell className={customer.oldDebt > 0 ? "font-medium text-amber-700" : "font-medium"}>
+                          {formatCurrency(customer.oldDebt || 0)}
+                        </TableCell>
+                        <TableCell className={customer.totalDebt > 0 ? "font-medium text-red-700" : "font-medium"}>
+                          {formatCurrency(customer.totalDebt || 0)}
+                        </TableCell>
+                        <TableCell className="font-medium">{formatCurrency(customer.totalPurchases || 0)}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2 justify-end">
                             <Button
