@@ -280,37 +280,15 @@ export default function InvoiceManagement() {
     setIsEditInvoiceDialogOpen(true);
   };
   
-  // استخدام البارکود لإيجاد المنتج
-  const handleBarcodeDetected = (barcode: string) => {
-    // لا نغلق نافذة الماسح الضوئي للسماح بمسح متعدد
-    // setIsBarcodeDialogOpen(false);
+  // استخدام البارکود لإيجاد المنتج والتعامل مع المنتج المسحوب مباشرة
+  const handleBarcodeDetected = (product: any) => {
+    console.log('Found product by barcode:', product);
+    setScannedProduct(product);
     
-    // البحث عن المنتج باستخدام الباركود
-    fetch(`/api/products/barcode/${barcode}`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Product not found');
-        }
-        return response.json();
-      })
-      .then(product => {
-        console.log('Found product:', product);
-        setScannedProduct(product);
-        
-        toast({
-          title: t('product_found'),
-          description: `${product.name} - ${formatCurrency(product.price)}`,
-        });
-      })
-      .catch(error => {
-        console.error('Error finding product:', error);
-        
-        toast({
-          title: t('error'),
-          description: t('no_product_found_with_barcode'),
-          variant: 'destructive',
-        });
-      });
+    toast({
+      title: t('product_found'),
+      description: `${product.name} - ${formatCurrency(product.sellingPrice)}`,
+    });
   };
   
   // Open invoice details dialog with items - استخدام مكون عرض تفاصيل الفاتورة الجديد
@@ -746,7 +724,10 @@ export default function InvoiceManagement() {
           </DialogHeader>
           
           <div className="py-4">
-            <BarcodeScanner onDetected={handleBarcodeDetected} />
+            <BarcodeScanner 
+              onProductScanned={handleBarcodeDetected} 
+              continueScanning={true} 
+            />
           </div>
           
           <DialogFooter>
