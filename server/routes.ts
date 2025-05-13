@@ -1672,15 +1672,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         productProfits: productProfits.join(','),
         userId: userId,
         isDeleted: false,
-        // نضبط تاريخ الإنشاء مع الحفاظ على التوقيت المحلي
+        // استخدام تاريخ الجهاز المحلي مباشرة دون أي تعديلات على التوقيت
         createdAt: (() => {
           const now = new Date();
-          now.setHours(now.getHours() + 3); // تعديل للتوقيت المحلي
           return now.toISOString();
         })(),
         updatedAt: (() => {
           const now = new Date();
-          now.setHours(now.getHours() + 3); // تعديل للتوقيت المحلي
           return now.toISOString();
         })()
       };
