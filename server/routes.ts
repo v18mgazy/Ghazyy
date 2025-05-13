@@ -12,7 +12,66 @@ import { supplierInvoiceRoutes } from "./supplier-invoice-routes";
 import { supplierPaymentRoutes } from "./supplier-payment-routes";
 import { z } from "zod";
 import { type ZodError } from "zod-validation-error";
-//استخدام وظائف مضمنة لتحسين حساب الأرباح
+
+/**
+ * دالة محسنة لحساب الأرباح من بيانات الفاتورة
+ * @param invoice - الفاتورة التي نحسب ربحها
+ * @param reportType - نوع التقرير الذي يتم حساب الربح له (للتسجيل فقط)
+ * @returns إجمالي الربح المحسوب
+ */
+function calculateProfitImproved(invoice: any, reportType: string = 'unknown'): number {
+  try {
+    if (!invoice || !invoice.productData) {
+      // التحقق من وجود productsData إذا لم يكن هناك productData
+      if (invoice && invoice.productsData) {
+        console.log(`[${reportType}] استخدام productsData بدلاً من productData للفاتورة ${invoice.id}`);
+        // استدعاء نفس الدالة مرة أخرى مع تعيين productData
+        const invoiceWithProductData = {...invoice, productData: invoice.productsData};
+        return calculateProfitImproved(invoiceWithProductData, reportType);
+      }
+      
+      console.warn(`[حساب الربح] بيانات فاتورة غير صالحة: ${JSON.stringify(invoice)}`);
+      return invoice?.total ? invoice.total * 0.3 : 0; // 30% من القيمة الإجمالية كتقدير
+    }
+
+    // محاولة تحليل بيانات المنتج إذا كانت سلسلة نصية
+    let productData;
+    if (typeof invoice.productData === 'string') {
+      try {
+        productData = JSON.parse(invoice.productData);
+      } catch (e) {
+        console.error(`[${reportType}] خطأ في تحليل بيانات المنتج: ${e.message}`);
+        return invoice?.total ? invoice.total * 0.3 : 0;
+      }
+    } else {
+      productData = invoice.productData;
+    }
+
+    if (!Array.isArray(productData)) {
+      console.warn(`[${reportType}] بيانات المنتج ليست مصفوفة: ${typeof productData}`);
+      return invoice?.total ? invoice.total * 0.3 : 0;
+    }
+
+    let totalProfit = 0;
+    for (const product of productData) {
+      // التحقق من وجود سعر البيع وسعر الشراء وكمية صالحة
+      const purchasePrice = parseFloat(product.purchasePrice) || 0;
+      const sellingPrice = parseFloat(product.price) || 0;
+      const quantity = parseInt(product.quantity) || 0;
+      
+      // حساب الربح لهذا المنتج
+      const productProfit = (sellingPrice - purchasePrice) * quantity;
+      
+      // إضافة إلى إجمالي الربح
+      totalProfit += productProfit;
+    }
+
+    return totalProfit;
+  } catch (error) {
+    console.error(`[${reportType}] خطأ في حساب الربح: ${error.message}`);
+    return invoice?.total ? invoice.total * 0.3 : 0;
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -2463,65 +2522,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // وظائف مساعدة لإنشاء بيانات التقارير
-  // وظيفة مساعدة لحساب الربح من بيانات المنتجات
+  // تم استبدال الدالة القديمة بدالة calculateProfitImproved المعرفة أعلى الملف
+  // نستخدم دالة التجسير لتحافظ على التوافقية مع الكود القديم
   function calculateProfitFromProductsData(invoice: any, reportType: string = 'unknown'): number {
-    let calculatedProfit = 0;
-    
-    try {
-      // إجراء نسخة من فاتورة قبل التجريب للتأكد من أن البيانات لن تتأثر
-      const invoiceCopy = JSON.parse(JSON.stringify(invoice));
-      
-      if (invoiceCopy.productsData) {
-        const products = JSON.parse(invoiceCopy.productsData);
-        if (Array.isArray(products)) {
-          console.log(`Calculating profit for ${reportType} report, invoice ID: ${invoiceCopy.id}, with ${products.length} products`);
-          
-          for (const product of products) {
-            // استخدام الربح المحسوب مسبقًا أو حسابه من سعر الشراء والبيع
-            if (product.profit !== undefined && product.profit !== null) {
-              const productProfit = Number(product.profit);
-              calculatedProfit += productProfit;
-              console.log(`Using pre-calculated profit for product '${product.productName || product.name || 'Unknown'}': ${productProfit}`);
-            } else if (product.purchasePrice !== undefined && (product.sellingPrice || product.price)) {
-              const sellingPrice = product.sellingPrice || product.price || 0;
-              const purchasePrice = Number(product.purchasePrice) || 0;
-              const quantity = Number(product.quantity) || 1;
-              const productProfit = (sellingPrice - purchasePrice) * quantity;
-              calculatedProfit += productProfit;
-              console.log(`Calculated profit for product '${product.productName || product.name || 'Unknown'}': (${sellingPrice} - ${purchasePrice}) * ${quantity} = ${productProfit}`);
-            } else {
-              // استخدام هامش ربح تقديري 30% فقط إذا لم تتوفر البيانات
-              const sellingPrice = product.sellingPrice || product.price || 0;
-              const quantity = Number(product.quantity) || 1;
-              const productProfit = (sellingPrice * quantity) * 0.3;
-              calculatedProfit += productProfit;
-              console.log(`Using estimated profit (30%) for product '${product.productName || product.name || 'Unknown'}': ${sellingPrice} * ${quantity} * 0.3 = ${productProfit}`);
-            }
-          }
-        } else {
-          console.warn(`Products data is not an array for invoice ID: ${invoiceCopy.id}`);
-        }
-      } else {
-        // استخدام هامش ربح تقديري 30% فقط إذا لم تتوفر بيانات المنتجات
-        calculatedProfit = (invoiceCopy.total || 0) * 0.3;
-        console.log(`No products data found for invoice ID: ${invoiceCopy.id}, using estimated profit (30%): ${invoiceCopy.total} * 0.3 = ${calculatedProfit}`);
-      }
-      
-      console.log(`Total profit calculated for ${reportType} report, invoice ID: ${invoiceCopy.id}: ${calculatedProfit}`);
-    } catch (err) {
-      console.error(`Error calculating profit for ${reportType} report:`, err);
-      // في حالة فشل حساب الربح، نستخدم هامش الربح التقديري
-      calculatedProfit = (invoice.total || 0) * 0.3;
-      console.log(`Using fallback profit calculation due to error: ${invoice.total} * 0.3 = ${calculatedProfit}`);
-    }
-    
-    // تأكد من أن القيمة المُرجعة ليست NaN
-    if (isNaN(calculatedProfit)) {
-      console.warn(`Calculated profit is NaN, returning 0 instead for invoice ID: ${invoice.id || 'Unknown'}`);
-      return 0;
-    }
-    
-    return calculatedProfit;
+    // استدعاء الدالة المحسنة وإرجاع نتيجتها
+    console.log(`[تجسير] استدعاء الدالة المحسنة لحساب الربح من النوع ${reportType}`);
+    return calculateProfitImproved(invoice, reportType);
   }
 
   function formatDateForReportType(dateInput: Date, type: string): string {
@@ -2873,22 +2879,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   productData.soldQuantity += item.quantity || 0;
                   productData.revenue += item.total || 0;
                   
-                  // حساب الربح باستخدام الربح المحسوب مسبقًا أو سعر الشراء والبيع
-                  if (item.profit !== undefined && item.profit !== null) {
-                    productData.profit += Number(item.profit);
-                  } else if (item.purchasePrice !== undefined && (item.sellingPrice || item.price)) {
-                    const sellingPrice = item.sellingPrice || item.price || 0;
-                    const purchasePrice = Number(item.purchasePrice) || 0;
-                    const quantity = Number(item.quantity) || 1;
-                    const profit = (sellingPrice - purchasePrice) * quantity;
-                    console.log(`Calculated profit for product ${item.productName || 'Unknown'}: (${sellingPrice} - ${purchasePrice}) * ${quantity} = ${profit}`);
-                    productData.profit += profit;
-                  } else {
-                    // استخدام هامش ربح تقديري 30٪ فقط إذا لم تتوفر البيانات
-                    const sellingPrice = item.sellingPrice || item.price || 0;
-                    const quantity = Number(item.quantity) || 1;
-                    productData.profit += (sellingPrice * quantity) * 0.3;
-                  }
+                  // حساب الربح بطريقة متناسقة باستخدام سعر الشراء والبيع
+                  const sellingPrice = item.sellingPrice || item.price || 0;
+                  const purchasePrice = Number(item.purchasePrice) || 0;
+                  const quantity = Number(item.quantity) || 1;
+                  const profit = (sellingPrice - purchasePrice) * quantity;
+                  console.log(`[أفضل المنتجات] حساب ربح المنتج ${item.productName || 'Unknown'}: (${sellingPrice} - ${purchasePrice}) * ${quantity} = ${profit}`);
+                  productData.profit += profit;
                   
                   productSalesMap.set(productId, productData);
                 }
@@ -2930,28 +2927,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (isInDateRange) {
         // حساب الأرباح من بيانات المنتجات إذا كانت متوفرة
-        let calculatedProfit = 0;
-        
-        try {
-          if (invoice.productsData) {
-            const products = JSON.parse(invoice.productsData);
-            if (Array.isArray(products)) {
-              for (const product of products) {
-                // استخدام الربح المحسوب مسبقًا أو حسابه الآن
-                if (product.profit !== undefined) {
-                  calculatedProfit += product.profit;
-                } else if (product.purchasePrice !== undefined && product.price) {
-                  calculatedProfit += (product.price - product.purchasePrice) * product.quantity;
-                } else {
-                  // استخدام متوسط هامش ربح 30% إذا لم يكن سعر الشراء متاحًا
-                  calculatedProfit += (product.total || 0) * 0.3;
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error calculating profit from invoice products:", error);
-        }
+        // استخدام دالة حساب الربح المحسنة لحساب الربح
+        let calculatedProfit = calculateProfitImproved(invoice, 'detailed');
         
         detailedReports.push({
           id: invoice.id,
