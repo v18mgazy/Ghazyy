@@ -701,11 +701,14 @@ export class LocalFirebaseStorage implements IStorage {
     console.log("LocalFirebaseStorage: Creating new supplier", supplier);
     const id = this.supplierIdCounter++;
     
+    const now = new Date();
+    const localDateString = now.toISOString().replace('Z', '');
+    
     const newSupplier: Supplier = {
       id,
       ...supplier,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date(localDateString),
+      updatedAt: new Date(localDateString)
     };
     
     this.suppliers.set(id, newSupplier);
@@ -719,10 +722,13 @@ export class LocalFirebaseStorage implements IStorage {
       return undefined;
     }
     
+    const now = new Date();
+    const localDateString = now.toISOString().replace('Z', '');
+    
     const updatedSupplier: Supplier = {
       ...supplier,
       ...supplierData,
-      updatedAt: new Date()
+      updatedAt: new Date(localDateString)
     };
     
     this.suppliers.set(id, updatedSupplier);
@@ -751,13 +757,16 @@ export class LocalFirebaseStorage implements IStorage {
   async createSupplierInvoice(invoice: InsertSupplierInvoice): Promise<SupplierInvoice> {
     const id = this.supplierInvoiceIdCounter++;
     
+    const now = new Date();
+    const localDateString = now.toISOString().replace('Z', '');
+    
     const newInvoice: SupplierInvoice = {
       id,
       ...invoice,
       paidAmount: invoice.paidAmount || 0,
       paymentStatus: invoice.paymentStatus || 'pending',
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date(localDateString),
+      updatedAt: new Date(localDateString)
     };
     
     this.supplierInvoices.set(id, newInvoice);
@@ -771,10 +780,13 @@ export class LocalFirebaseStorage implements IStorage {
       return undefined;
     }
     
+    const now = new Date();
+    const localDateString = now.toISOString().replace('Z', '');
+    
     const updatedInvoice: SupplierInvoice = {
       ...invoice,
       ...invoiceData,
-      updatedAt: new Date()
+      updatedAt: new Date(localDateString)
     };
     
     this.supplierInvoices.set(id, updatedInvoice);
