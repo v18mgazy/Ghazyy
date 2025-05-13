@@ -32,6 +32,7 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
   const scannerRef = useRef<HTMLDivElement>(null);
   const rtl = language === 'ar';
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [scannedCount, setScannedCount] = useState<number>(0);
 
   useEffect(() => {
     // تنظيف الماسح عند إلغاء تحميل المكون
@@ -120,19 +121,23 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
         // إذا كنا نستمر في المسح، نضيف المنتج مباشرة
         if (continueScanning) {
           onProductScanned(product);
+          
+          // زيادة عدد المنتجات الممسوحة
+          setScannedCount(prev => prev + 1);
+          
           // إضافة إشعار بنجاح الإضافة
           toast({
-            title: t('success'),
-            description: t('product_added_to_invoice', { name: product.name }),
+            title: t('product_added'),
+            description: `${product.name} - ${formatCurrency(product.sellingPrice)}`,
             variant: 'default',
             duration: 2000
           });
           
           // عرض رسالة نجاح مؤقتة داخل المكون
-          setSuccessMessage(product.name);
+          setSuccessMessage(`${product.name} - ${formatCurrency(product.sellingPrice)}`);
           setTimeout(() => {
             setSuccessMessage(null);
-          }, 1500);
+          }, 2500);
           
           console.log('Product added to invoice:', product.name);
         } else {
@@ -203,9 +208,16 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
           <QrCode className={`${rtl ? 'ml-2' : 'mr-2'} h-5 w-5 text-primary`} />
           <span className="gradient-heading">{t('scan_barcode')}</span>
           {continueScanning && (
-            <span className="ml-auto bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-green-200">
-              {t('continuous_mode')}
-            </span>
+            <div className="ml-auto flex items-center gap-2">
+              {scannedCount > 0 && (
+                <span className="bg-primary/10 text-primary text-xs font-medium px-2.5 py-0.5 rounded-full border border-primary/20">
+                  {scannedCount} {t('products')}
+                </span>
+              )}
+              <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-green-200">
+                {t('continuous_mode')}
+              </span>
+            </div>
           )}
         </CardTitle>
       </CardHeader>
