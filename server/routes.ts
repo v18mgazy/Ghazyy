@@ -3196,7 +3196,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       name: string, 
       soldQuantity: number,
       revenue: number,
-      profit: number 
+      profit: number,
+      profitWithoutDiscount?: number,
+      profitReduction?: number,
+      discountImpact?: boolean
     }>();
     
     // تهيئة خريطة المنتجات بالبيانات الأساسية
@@ -3207,7 +3210,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: product.name || 'منتج غير معروف',
           soldQuantity: 0,
           revenue: 0,
-          profit: 0
+          profit: 0,
+          // إضافة حقول لتتبع تأثير الخصم على الربح
+          profitWithoutDiscount: 0,
+          profitReduction: 0,
+          discountImpact: false
         });
       }
     }
@@ -3276,10 +3283,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   };
                   
                   // إنشاء كائن فاتورة بسيط يحتوي على بيانات المنتج الواحد فقط
+                  // مع تضمين معلومات الخصم من الفاتورة الأصلية
                   const singleItemInvoice = {
                     id: invoice.id,
                     invoiceNumber: invoice.invoiceNumber,
-                    productData: JSON.stringify([productItem])
+                    productData: JSON.stringify([productItem]),
+                    // إضافة معلومات الخصم من الفاتورة الأصلية
+                    discount: invoice.discount || 0,
+                    invoiceDiscount: invoice.invoiceDiscount || 0,
+                    itemsDiscount: invoice.itemsDiscount || 0,
+                    discountPercentage: invoice.discountPercentage || 0,
+                    // معلومات إضافية مهمة للحساب
+                    subtotal: invoice.subtotal,
+                    total: invoice.total
                   };
                   
                   try {
@@ -3297,6 +3313,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       // إظهار معلومات الخصم إذا كان مؤثراً
                       if (profitResult.profitReduction > 0) {
                         console.log(`[أفضل المنتجات - محسّن] تأثير الخصم: قبل=${profitResult.profitWithoutDiscount}, بعد=${profitValue}, الفرق=${profitResult.profitReduction}`);
+                        
+                        // حفظ معلومات الخصم في كائن المنتج
+                        productData.profitWithoutDiscount = (productData.profitWithoutDiscount || 0) + profitResult.profitWithoutDiscount;
+                        productData.profitReduction = (productData.profitReduction || 0) + profitResult.profitReduction;
+                        productData.discountImpact = true;
+                        
+                        // تسجيل معلومات موسعة
+                        console.log(`[أفضل المنتجات - محسّن] تمت إضافة معلومات الخصم للمنتج "${item.productName || 'Unknown'}":
+                          - الربح الأصلي: ${productData.profitWithoutDiscount}
+                          - انخفاض الربح: ${productData.profitReduction}
+                          - الربح النهائي: ${productData.profit + profitValue}`);
                       }
                     } else {
                       console.log(`[أفضل المنتجات - محسّن] حساب ربح المنتج ${item.productName || 'Unknown'}: الربح = ${profitValue}`);
