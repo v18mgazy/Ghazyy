@@ -211,7 +211,7 @@ export default function ReportDetails({
                   {formatCurrency(summaryGroups.sales.reduce((sum, sale) => sum + sale.amount, 0))}
                 </p>
                 
-                {/* في حالة وجود خصومات، نعرض النص بجانب الفاتورة */}
+                {/* في حالة وجود خصومات، نعرض النص بجانب المبيعات */}
                 {(() => {
                   // حساب إجمالي الخصومات المطبقة
                   const totalDiscounts = summaryGroups.sales.reduce((sum, sale) => {
@@ -228,15 +228,31 @@ export default function ReportDetails({
                     // حساب النسبة المئوية للخصم
                     const discountPercentage = ((totalDiscounts / totalBeforeDiscount) * 100).toFixed(1);
                     
+                    // حساب المبيعات بعد الخصم
+                    const totalSalesAfterDiscount = summaryGroups.sales.reduce((sum, sale) => sum + sale.amount, 0);
+                    
                     return (
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
-                        <span className="text-amber-600 dark:text-amber-400">
-                          {formatCurrency(totalDiscounts)}
-                        </span>
-                        <span className="text-muted-foreground">
-                          ({discountPercentage}% {t('total_discounts')})
-                        </span>
-                      </p>
+                      <div className="mt-1">
+                        <p className="text-xs flex items-center gap-1 opacity-80">
+                          <span className="text-muted-foreground">
+                            {t('total_before_discount')}: 
+                          </span>
+                          <span className="font-medium">
+                            {formatCurrency(totalBeforeDiscount)}
+                          </span>
+                        </p>
+                        <p className="text-xs flex items-center gap-1 opacity-80">
+                          <span className="text-amber-600 dark:text-amber-400">
+                            {t('total_discounts')}: 
+                          </span>
+                          <span className="font-medium">
+                            {formatCurrency(totalDiscounts)}
+                          </span>
+                          <span className="text-muted-foreground">
+                            ({discountPercentage}%)
+                          </span>
+                        </p>
+                      </div>
                     );
                   }
                   
@@ -263,7 +279,7 @@ export default function ReportDetails({
                   })()}
                 </p>
                 
-                {/* في حالة وجود خصومات، نعرض تأثير الخصم على إجمالي الربح */}
+                {/* في حالة وجود خصومات، نعرض تأثير الخصم على إجمالي الربح بطريقة مشابهة للمبيعات */}
                 {(() => {
                   // حساب إجمالي الخصومات المطبقة
                   const totalDiscounts = summaryGroups.sales.reduce((sum, sale) => {
@@ -296,14 +312,27 @@ export default function ReportDetails({
                     const reductionPercentage = ((profitReduction / estimatedProfitWithoutDiscount) * 100).toFixed(1);
                     
                     return (
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
-                        <span className="text-amber-600 dark:text-amber-400">
-                          {formatCurrency(profitReduction)}
-                        </span>
-                        <span className="text-muted-foreground">
-                          ({reductionPercentage}% {t('profit_reduction')})
-                        </span>
-                      </p>
+                      <div className="mt-1">
+                        <p className="text-xs flex items-center gap-1 opacity-80">
+                          <span className="text-muted-foreground">
+                            {t('profit_without_discount')}: 
+                          </span>
+                          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(estimatedProfitWithoutDiscount)}
+                          </span>
+                        </p>
+                        <p className="text-xs flex items-center gap-1 opacity-80">
+                          <span className="text-amber-600 dark:text-amber-400">
+                            {t('profit_reduction')}: 
+                          </span>
+                          <span className="font-medium">
+                            {formatCurrency(profitReduction)}
+                          </span>
+                          <span className="text-muted-foreground">
+                            ({reductionPercentage}%)
+                          </span>
+                        </p>
+                      </div>
                     );
                   }
                   
@@ -712,7 +741,10 @@ export default function ReportDetails({
                           <TableHead className="font-medium text-primary-dark dark:text-primary-light py-3">{t('customer')}</TableHead>
                           <TableHead className="font-medium text-primary-dark dark:text-primary-light py-3">{t('details')}</TableHead>
                           <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('amount')}</TableHead>
-                          <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('discount')}</TableHead>
+                          {/* إظهار عمود الخصم فقط إذا كان هناك خصومات */}
+                          {summaryGroups.sales.some(report => report.discount && report.discount > 0) && (
+                            <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('discount')}</TableHead>
+                          )}
                           <TableHead className="font-medium text-primary-dark dark:text-primary-light py-3">{t('status')}</TableHead>
                           <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('profit')}</TableHead>
                         </TableRow>
@@ -755,22 +787,25 @@ export default function ReportDetails({
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell className="text-right">
-                              {report.discount && report.discount > 0 ? (
-                                <span className="text-primary bg-primary/10 px-2 py-1 rounded-md inline-flex justify-center items-center">
-                                  <span className="text-primary font-medium mr-1">
-                                    {formatCurrency(report.discount)}
-                                  </span>
-                                  {report.discountPercentage && (
-                                    <span className="text-xs text-muted-foreground">
-                                      ({report.discountPercentage}%)
+                            {/* عرض خلية الخصم فقط إذا كان يوجد خصومات في التقرير */}
+                            {summaryGroups.sales.some(r => r.discount && r.discount > 0) && (
+                              <TableCell className="text-right">
+                                {report.discount && report.discount > 0 ? (
+                                  <span className="text-primary bg-primary/10 px-2 py-1 rounded-md inline-flex justify-center items-center">
+                                    <span className="text-primary font-medium mr-1">
+                                      {formatCurrency(report.discount)}
                                     </span>
-                                  )}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
+                                    {report.discountPercentage && (
+                                      <span className="text-xs text-muted-foreground">
+                                        ({report.discountPercentage}%)
+                                      </span>
+                                    )}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                            )}
                             <TableCell>
                               <Badge 
                                 variant="outline" 
