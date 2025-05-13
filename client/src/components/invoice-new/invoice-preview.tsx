@@ -323,7 +323,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ invoice, onClose }) => 
               {invoice.invoiceDiscount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">
-                    {t('invoice_discount')} {invoice.discountPercentage && `(${invoice.discountPercentage}%)`}:
+                    {t('invoice_discount')}:
                   </span>
                   <span>- {formatCurrency(invoice.invoiceDiscount)}</span>
                 </div>

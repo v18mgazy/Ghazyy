@@ -208,14 +208,15 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
     }, 0);
     
     // حساب قيمة الخصم على مستوى الفاتورة
-    // يتم تطبيق خصم الفاتورة على المبلغ بعد خصم المنتجات
+    // يتم تطبيق خصم الفاتورة كقيمة مباشرة بدلاً من نسبة مئوية
     const subtotalAfterProductDiscount = newSubtotal - newTotalDiscount;
-    const invoiceDiscountAmount = invoiceDiscount > 0 
-      ? (subtotalAfterProductDiscount * (invoiceDiscount / 100)) 
-      : 0;
+    const invoiceDiscountAmount = invoiceDiscount > 0 ? invoiceDiscount : 0;
+    
+    // التأكد من أن الخصم لا يتجاوز إجمالي الفاتورة بعد خصم المنتجات
+    const validInvoiceDiscount = Math.min(invoiceDiscountAmount, subtotalAfterProductDiscount);
       
     // حساب المجموع النهائي بعد جميع الخصومات
-    const newTotal = subtotalAfterProductDiscount - invoiceDiscountAmount;
+    const newTotal = subtotalAfterProductDiscount - validInvoiceDiscount;
     
     // تحديث حالة المكون
     setSubtotal(newSubtotal);
@@ -382,8 +383,11 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       return sum + (productPrice * productQuantity * (1 - (productDiscount / 100)));
     }, 0);
     
-    // نسبة خصم الفاتورة
-    const invoiceDiscountRate = invoiceDiscount / 100;
+    // تحضير خصم الفاتورة مع التأكد من أنه لا يتجاوز إجمالي الفاتورة
+    const invoiceDiscountValue = Math.min(invoiceDiscount, subtotalBeforeInvoiceDiscount);
+    
+    // معدل الخصم (كنسبة من الإجمالي للتوزيع على المنتجات)
+    const invoiceDiscountRate = invoiceDiscountValue > 0 ? (invoiceDiscountValue / subtotalBeforeInvoiceDiscount) : 0;
     
     // إضافة تأثير الخصم على مستوى المنتج والفاتورة
     const invoiceItems = invoiceProducts.map(product => {
@@ -398,7 +402,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       // حساب نسبة هذا المنتج من إجمالي الفاتورة (بعد الخصومات على مستوى المنتج)
       const productRatioOfInvoice = productTotalAfterProductDiscount / subtotalBeforeInvoiceDiscount;
       
-      // حساب حصة المنتج من خصم الفاتورة
+      // حصة المنتج من خصم الفاتورة (بناءً على نسبة قيمته من الإجمالي)
       const productShareOfInvoiceDiscount = productTotalAfterProductDiscount * invoiceDiscountRate;
       
       // إجمالي سعر المنتج النهائي بعد جميع الخصومات
@@ -436,14 +440,16 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
     // إنشاء رقم فاتورة عشوائي
     const randomInvoiceNumber = `INV-${Math.floor(Math.random() * 900000) + 100000}`;
     
-    // حساب قيمة خصم الفاتورة بشكل صحيح
+    // حساب قيمة خصم الفاتورة بشكل صحيح (الآن كقيمة مباشرة)
     const subtotalAfterProductDiscount = subtotal - totalDiscount;
-    const invoiceDiscountAmount = invoiceDiscount > 0 
-      ? (subtotalAfterProductDiscount * (invoiceDiscount / 100)) 
-      : 0;
+    const invoiceDiscountAmount = invoiceDiscount > 0 ? invoiceDiscount : 0;
+    
+    // التأكد من أن الخصم لا يتجاوز إجمالي الفاتورة بعد خصم المنتجات
+    // استخدام نفس المتغير المعرف سابقاً
+    const finalInvoiceDiscount = Math.min(invoiceDiscountAmount, subtotalAfterProductDiscount);
     
     // حساب الإجمالي النهائي مع مراعاة جميع الخصومات
-    const finalTotal = Number((subtotalAfterProductDiscount - invoiceDiscountAmount).toFixed(2));
+    const finalTotal = Number((subtotalAfterProductDiscount - finalInvoiceDiscount).toFixed(2));
     
     // إنشاء كائن الفاتورة للإرسال
     const invoice = {
@@ -457,8 +463,8 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       paymentStatus,
       subtotal,
       itemsDiscount: totalDiscount,
-      invoiceDiscount: invoiceDiscountAmount,
-      discountPercentage: invoiceDiscount,
+      invoiceDiscount: finalInvoiceDiscount,
+      discountPercentage: 0, // لم نعد نستخدم النسبة المئوية
       total: finalTotal, // استخدام الإجمالي المحسوب بدقة بعد تطبيق جميع الخصومات
       notes: invoiceNotes,
       products: invoiceItems
@@ -863,12 +869,12 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                               id="invoice-discount"
                               type="number"
                               min="0"
-                              max="100"
+                              step="0.01"
                               value={invoiceDiscount || 0}
-                              onChange={(e) => setInvoiceDiscount(parseInt(e.target.value) || 0)}
+                              onChange={(e) => setInvoiceDiscount(parseFloat(e.target.value) || 0)}
                               className="pr-8 py-1 h-10 text-base"
                             />
-                            <Percent className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <DollarSign className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           </div>
                         </div>
                         
@@ -887,9 +893,8 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                           
                           {invoiceDiscount > 0 && (
                             <div className="flex justify-between text-base">
-                              <span className="text-muted-foreground font-medium">{t('invoice_discount')} ({invoiceDiscount}%):</span>
-                              {/* تطبيق الخصم على المبلغ بعد خصم المنتجات بشكل صحيح */}
-                              <span className="text-destructive/90 font-medium">- {formatCurrency((subtotal - totalDiscount) * (invoiceDiscount / 100))}</span>
+                              <span className="text-muted-foreground font-medium">{t('invoice_discount')}:</span>
+                              <span className="text-destructive/90 font-medium">- {formatCurrency(invoiceDiscount)}</span>
                             </div>
                           )}
                           
