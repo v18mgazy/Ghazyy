@@ -2276,25 +2276,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const subtotal = invoice.subtotal ? Number(invoice.subtotal) : 0;
       const total = invoice.total ? Number(invoice.total) : 0;
       
-      // 2. حساب نسبة الخصم الفعلية من الإجمالي
-      let effectiveDiscountRatio = 0;
+      // 2. استخدام القيمة الفعلية للخصم بدلاً من النسبة
+      let totalInvoiceDiscount = 0;
       
-      // إذا كان لدينا قيمة الإجمالي قبل الخصم والإجمالي بعد الخصم، يمكن حساب نسبة الخصم الفعلية
+      // حساب قيمة الخصم الإجمالية
       if (subtotal > 0 && total > 0 && subtotal > total) {
-        effectiveDiscountRatio = (subtotal - total) / subtotal;
-        console.log(`[حساب الربح - تحسين] [${reportType}] حساب نسبة الخصم الفعلية: (${subtotal} - ${total}) / ${subtotal} = ${effectiveDiscountRatio}`);
+        // حساب الخصم من الفرق بين الإجمالي قبل وبعد الخصم
+        totalInvoiceDiscount = subtotal - total;
+        console.log(`[حساب الربح - تحسين] [${reportType}] حساب قيمة الخصم الفعلية: ${subtotal} - ${total} = ${totalInvoiceDiscount}`);
       } 
-      // إذا لم تكن متوفرة، نحسب نسبة الخصم الفعلية من قيم الخصم الفردية
-      else if (invoiceDiscountPercentage > 0) {
-        effectiveDiscountRatio = invoiceDiscountPercentage / 100;
-        console.log(`[حساب الربح - تحسين] [${reportType}] استخدام نسبة الخصم المعطاة: ${invoiceDiscountPercentage}% = ${effectiveDiscountRatio}`);
+      // استخدام قيمة الخصم المخزنة
+      else if (invoiceDiscountAmount > 0) {
+        totalInvoiceDiscount = invoiceDiscountAmount;
+        console.log(`[حساب الربح - تحسين] [${reportType}] استخدام قيمة الخصم المخزنة: ${totalInvoiceDiscount}`);
+      }
+      // إذا كان يوجد نسبة خصم ولكن لا يوجد قيمة
+      else if (invoiceDiscountPercentage > 0 && subtotal > 0) {
+        // تحويل النسبة إلى قيمة
+        totalInvoiceDiscount = subtotal * (invoiceDiscountPercentage / 100);
+        console.log(`[حساب الربح - تحسين] [${reportType}] تحويل نسبة الخصم ${invoiceDiscountPercentage}% إلى قيمة: ${totalInvoiceDiscount}`);
       }
       
-      // 3. تطبيق الخصم الإضافي على الربح
+      // 3. تطبيق الخصم على الربح بشكل متناسب
       const originalProfit = totalProfit;
-      if (effectiveDiscountRatio > 0) {
-        totalProfit = totalProfit * (1 - effectiveDiscountRatio);
-        console.log(`[حساب الربح - تحسين] [${reportType}] تطبيق خصم الفاتورة ${(effectiveDiscountRatio * 100).toFixed(1)}% على الربح: ${originalProfit} → ${totalProfit}`);
+      if (totalInvoiceDiscount > 0 && subtotal > 0) {
+        // نسبة الربح إلى إجمالي الفاتورة
+        const profitRatio = originalProfit / subtotal;
+        
+        // حصة الربح من الخصم
+        const discountOnProfit = totalInvoiceDiscount * profitRatio;
+        
+        // تطبيق الخصم على الربح
+        totalProfit = Math.max(0, originalProfit - discountOnProfit);
+        
+        console.log(`[حساب الربح - تحسين] [${reportType}] تطبيق خصم الفاتورة (${totalInvoiceDiscount}) على الربح بنسبة ${(profitRatio * 100).toFixed(1)}%: ${originalProfit} → ${totalProfit}`);
       }
       
       // 4. تحضير معلومات إضافية للتقارير
