@@ -1,12 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Camera, ScanLine, QrCode, AlertCircle, RefreshCw, FileBarChart2 } from 'lucide-react';
+import { Camera, ScanLine, QrCode, AlertCircle, RefreshCw, FileBarChart2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { startBarcodeScanner, stopBarcodeScanner } from '@/lib/barcode';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useLocale } from '@/hooks/use-locale';
+import { useToast } from '@/hooks/use-toast';
 
 interface Product {
   id: string;
@@ -17,9 +18,10 @@ interface Product {
 
 interface BarcodeScannerProps {
   onProductScanned: (product: Product) => void;
+  continueScanning?: boolean; // تحديد ما إذا كان يجب الاستمرار في المسح بعد العثور على منتج
 }
 
-export default function BarcodeScanner({ onProductScanned }: BarcodeScannerProps) {
+export default function BarcodeScanner({ onProductScanned, continueScanning = false }: BarcodeScannerProps) {
   const { t } = useTranslation();
   const { language } = useLocale();
   const [isScanning, setIsScanning] = useState(false);
@@ -96,7 +98,11 @@ export default function BarcodeScanner({ onProductScanned }: BarcodeScannerProps
   const handleBarcodeDetected = async (result: any) => {
     if (result && result.codeResult && result.codeResult.code) {
       const barcode = result.codeResult.code;
-      stopScanner();
+      
+      // إذا كنا نريد الاستمرار في المسح، لا نوقف الماسح
+      if (!continueScanning) {
+        stopScanner();
+      }
       
       try {
         console.log('Barcode detected:', barcode);
@@ -108,10 +114,25 @@ export default function BarcodeScanner({ onProductScanned }: BarcodeScannerProps
         }
         
         const product = await response.json();
-        setScannedProduct(product);
+        
+        // إذا كنا نستمر في المسح، نضيف المنتج مباشرة
+        if (continueScanning) {
+          onProductScanned(product);
+          // إضافة إشعار بنجاح الإضافة
+          console.log('Product added to invoice:', product.name);
+        } else {
+          setScannedProduct(product);
+        }
       } catch (err) {
         setError(t('product_not_found'));
         console.error('Error finding product:', err);
+        // إذا كان هناك خطأ وكنا نستمر في المسح، نعيد تشغيل الماسح
+        if (continueScanning) {
+          setError(null);
+          setTimeout(() => {
+            setError(null);
+          }, 2000); // يظهر خطأ لمدة ثانيتين ثم يختفي للسماح بالمسح مرة أخرى
+        }
       }
     }
   };
