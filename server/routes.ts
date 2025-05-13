@@ -874,6 +874,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // مسارات إدارة ديون العملاء
+  
+  // إضافة مديونية جديدة للعميل
+  app.post('/api/customer-debts', async (req, res) => {
+    try {
+      // التحقق من صحة البيانات
+      const debtData = insertCustomerDebtSchema.parse(req.body);
+      
+      // إنشاء سجل المديونية الجديد
+      const debt = await storage.createCustomerDebt(debtData);
+      
+      // تحديث إجمالي مديونية العميل
+      const customer = await storage.getCustomer(debtData.customerId);
+      if (customer) {
+        const newTotalDebt = (customer.totalDebt || 0) + debtData.amount;
+        await storage.updateCustomer(debtData.customerId, { 
+          totalDebt: newTotalDebt 
+        });
+      }
+      
+      res.status(201).json(debt);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Validation error', errors: err.errors });
+      }
+      console.error('Error adding customer debt:', err);
+      res.status(500).json({ message: 'Failed to add customer debt' });
+    }
+  });
+  
+  // الحصول على سجل المديونية لعميل محدد
+  app.get('/api/customer-debts/:customerId', async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const debts = await storage.getCustomerDebts(parseInt(customerId));
+      res.json(debts);
+    } catch (err) {
+      console.error('Error fetching customer debts:', err);
+      res.status(500).json({ message: 'Failed to fetch customer debts' });
+    }
+  });
+  
   // مسار جديد للحصول على فواتير العميل
   app.get('/api/customer-invoices/:customerId', async (req, res) => {
     try {

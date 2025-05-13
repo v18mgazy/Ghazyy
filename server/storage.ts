@@ -14,7 +14,8 @@ import {
   type StoreInfo, type InsertStoreInfo,
   type Supplier, type InsertSupplier,
   type SupplierInvoice, type InsertSupplierInvoice,
-  type SupplierPayment, type InsertSupplierPayment
+  type SupplierPayment, type InsertSupplierPayment,
+  type CustomerDebt, type InsertCustomerDebt
 } from "@shared/schema";
 import { db } from './lib/firebase';
 import { 
@@ -48,6 +49,11 @@ export interface IStorage {
   searchCustomers(query: string): Promise<Customer[]>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: number, customerData: Partial<Customer>): Promise<Customer | undefined>;
+  
+  // Customer debt management
+  getCustomerDebt(id: number): Promise<CustomerDebt | undefined>;
+  getCustomerDebts(customerId: number): Promise<CustomerDebt[]>;
+  createCustomerDebt(debtData: InsertCustomerDebt): Promise<CustomerDebt>;
   
   // Invoice management
   getInvoice(id: number): Promise<Invoice | undefined>;
