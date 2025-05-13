@@ -121,6 +121,9 @@ export default function InvoiceManagementPage() {
   // حالة البحث
   const [searchTerm, setSearchTerm] = useState('');
   
+  // حالة الترتيب
+  const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc');
+  
   // استعلام لجلب الفواتير
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['/api/invoices'],
@@ -533,6 +536,23 @@ export default function InvoiceManagementPage() {
     if (invoiceToDelete) {
       deleteMutation.mutate(invoiceToDelete.id);
     }
+  };
+  
+  // تغيير اتجاه الترتيب
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === 'desc' ? 'asc' : 'desc');
+  };
+  
+  // ترتيب الفواتير حسب التاريخ
+  const sortInvoices = (invoiceList: Invoice[]) => {
+    if (!Array.isArray(invoiceList)) return [];
+    
+    return [...invoiceList].sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.date || 0).getTime();
+      const dateB = new Date(b.createdAt || b.date || 0).getTime();
+      
+      return sortDirection === 'desc' ? dateB - dateA : dateA - dateB;
+    });
   };
   
   // فتح صفحة تعديل الفاتورة
