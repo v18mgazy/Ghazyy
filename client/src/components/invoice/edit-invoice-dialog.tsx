@@ -88,13 +88,22 @@ export default function EditInvoiceDialog({
   // طباعة قيم الفاتورة في الكونسول للتحقق منها
   useEffect(() => {
     console.log('Invoice data for edit:', invoice);
-    console.log('Invoice discount value:', invoice?.invoiceDiscount);
-    // نتأكد من أن قيمة الخصم دائمًا رقم وليست نصًا
-    const numericDiscount = typeof invoice?.invoiceDiscount === 'string' 
-      ? parseFloat(invoice.invoiceDiscount) 
-      : invoice?.invoiceDiscount;
+    console.log('Invoice discount value (direct):', invoice?.invoiceDiscount);
+    console.log('Invoice discount type:', typeof invoice?.invoiceDiscount);
     
-    setInvoiceDiscount(numericDiscount || 0);
+    // نتأكد من أن قيمة الخصم دائمًا رقم وليست نصًا
+    let numericDiscount = 0;
+    
+    if (invoice?.invoiceDiscount !== undefined && invoice?.invoiceDiscount !== null) {
+      if (typeof invoice.invoiceDiscount === 'string') {
+        numericDiscount = parseFloat(invoice.invoiceDiscount);
+      } else if (typeof invoice.invoiceDiscount === 'number') {
+        numericDiscount = invoice.invoiceDiscount;
+      }
+    }
+    
+    console.log('Processed numeric discount value:', numericDiscount);
+    setInvoiceDiscount(numericDiscount);
   }, [invoice]);
   
   // استعلام لجلب بيانات المنتجات وحالة المخزون
@@ -141,6 +150,7 @@ export default function EditInvoiceDialog({
   // Handle update invoice
   const handleUpdateInvoice = () => {
     setIsLoading(true);
+    console.log('Processing invoice update with discount:', invoiceDiscount);
     
     // Convert products to the expected format for the API
     const productsData = JSON.stringify(products.map(product => ({
