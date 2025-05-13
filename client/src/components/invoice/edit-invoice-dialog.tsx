@@ -591,7 +591,10 @@ export default function EditInvoiceDialog({
                         min="0"
                         className="w-24 h-8 text-right"
                         value={invoiceDiscount}
-                        onChange={(e) => setInvoiceDiscount(Number(e.target.value))}
+                        onChange={(e) => {
+                          console.log('Setting invoice discount to:', e.target.value);
+                          setInvoiceDiscount(Number(e.target.value));
+                        }}
                       />
                     </div>
                   </div>

@@ -723,7 +723,7 @@ export default function InvoiceManagement() {
         subtotal: latestInvoiceData.subtotal || 0,
         discount: latestInvoiceData.discount || 0,
         itemsDiscount: latestInvoiceData.itemsDiscount || 0,
-        invoiceDiscount: latestInvoiceData.invoiceDiscount || 0,
+        invoiceDiscount: parseFloat(latestInvoiceData.invoiceDiscount) || 0,
         total: latestInvoiceData.total || 0,
         paymentMethod: latestInvoiceData.paymentMethod || 'cash',
         paymentStatus: latestInvoiceData.paymentStatus || 'completed',
