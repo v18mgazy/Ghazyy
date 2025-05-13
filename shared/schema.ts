@@ -73,7 +73,10 @@ export const invoices = pgTable("invoices", {
   customerAddress: text("customer_address"),
   date: timestamp("date").notNull().defaultNow(),
   subtotal: real("subtotal").notNull(),
-  discount: real("discount").default(0),
+  discount: real("discount").default(0), // للتوافقية مع الإصدارات القديمة
+  itemsDiscount: real("items_discount").default(0), // مجموع خصومات المنتجات
+  invoiceDiscount: real("invoice_discount").default(0), // قيمة خصم الفاتورة
+  discountPercentage: real("discount_percentage").default(0), // نسبة خصم الفاتورة
   total: real("total").notNull(),
   paymentMethod: text("payment_method").notNull(),
   paymentStatus: text("payment_status").notNull(),
@@ -103,6 +106,10 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   customerAddress: true,
   subtotal: true,
   discount: true,
+  // اضافة حقول الخصم الجديدة
+  itemsDiscount: true,
+  invoiceDiscount: true,
+  discountPercentage: true,
   total: true,
   paymentMethod: true,
   paymentStatus: true,

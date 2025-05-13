@@ -1268,11 +1268,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerPhone: req.body.customerPhone || customerInfo.customerPhone,
         customerAddress: req.body.customerAddress || customerInfo.customerAddress,
         subtotal: req.body.subtotal,
-        discount: req.body.discount || 0,
+        // حفظ بيانات الخصم بشكل صحيح
+        discount: req.body.discount || 0, 
+        itemsDiscount: req.body.itemsDiscount || 0, // خصم المنتجات
+        invoiceDiscount: req.body.invoiceDiscount || 0, // قيمة خصم الفاتورة
+        discountPercentage: req.body.discountPercentage || 0, // نسبة خصم الفاتورة
         total: req.body.total,
         paymentMethod: req.body.paymentMethod,
         paymentStatus: req.body.paymentStatus,
-        notes: customerInfo.notes,
+        notes: customerInfo.notes || req.body.notes,
         date: req.body.date || new Date().toISOString(),
         // تخزين بيانات المنتجات بالطريقتين للتوافق مع الإصدارات السابقة
         productsData: JSON.stringify(productsDataArray),
