@@ -273,6 +273,7 @@ export default function CustomersPage() {
             isLoading={isLoadingCustomers}
             onExportToExcel={exportToExcel}
             onEditCustomer={handleEditCustomer}
+            onRefreshData={() => refetch()}
           />
         </TabsContent>
         

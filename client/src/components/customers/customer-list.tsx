@@ -25,6 +25,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
   DialogDescription
 } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { createWhatsAppLink, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -56,13 +57,15 @@ interface CustomerListProps {
   isLoading: boolean;
   onExportToExcel: () => void;
   onEditCustomer: (customer: Customer) => void;
+  onRefreshData: () => void;
 }
 
 export default function CustomerList({
   customers,
   isLoading,
   onExportToExcel,
-  onEditCustomer
+  onEditCustomer,
+  onRefreshData
 }: CustomerListProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
