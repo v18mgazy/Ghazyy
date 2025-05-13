@@ -969,7 +969,8 @@ export class RealtimeDBStorage implements IStorage {
       if (type === 'weekly') {
         // إذا كان التاريخ يحتوي على العام فقط
         if (date.length === 4) {
-          const today = new Date().toISOString().substring(0, 10);
+          // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+          const today = new Date().toLocaleString('sv-SE').substring(0, 10);
           console.log(`Converting year-only date ${date} to today's date: ${today} for weekly report`);
           date = today;
         }
@@ -1188,7 +1189,8 @@ export class RealtimeDBStorage implements IStorage {
     if (type === 'weekly') {
       // إذا كان التاريخ يحتوي على العام فقط، نستخدم تاريخ اليوم
       if (date.length === 4) {
-        const today = new Date().toISOString().substring(0, 10);
+        // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+        const today = new Date().toLocaleString('sv-SE').substring(0, 10);
         console.log(`Converting year-only date (${date}) to today's date: ${today} for weekly filter`);
         date = today;
       }
@@ -1954,13 +1956,17 @@ export class RealtimeDBStorage implements IStorage {
   async createExpense(expense: InsertExpense): Promise<Expense> {
     try {
       const id = this.generateId('expenses');
-      const now = new Date().toISOString();
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const now = new Date();
+      const now_str = now.toLocaleString('sv-SE').replace(' ', 'T');
       
       const newExpense = {
-        date: expense.date instanceof Date ? expense.date.toISOString() : expense.date,
+        date: expense.date instanceof Date 
+          ? new Date(expense.date).toLocaleString('sv-SE').replace(' ', 'T') 
+          : expense.date,
         amount: expense.amount,
         details: expense.details,
-        createdAt: now,
+        createdAt: now_str,
         userId: expense.userId,
         expenseType: expense.expenseType || 'miscellaneous'
       };
