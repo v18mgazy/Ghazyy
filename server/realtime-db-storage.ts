@@ -1,6 +1,5 @@
 import { database, ref, set, get, remove, update, query, orderByChild, equalTo } from "./firebase-rtdb";
 import * as admin from "./firebase-rtdb"; // استخدم هذا المتغير للوصول إلى Firebase Admin
-import { getLocalISOString } from "./date-utils"; // استيراد دالة الحصول على التاريخ المحلي
 import type {
   User, InsertUser,
   Product, InsertProduct,
@@ -20,7 +19,12 @@ import type {
   SupplierPayment, InsertSupplierPayment
 } from "@shared/schema";
 import { IStorage } from "./storage";
-import { getLocalISOString, getLocalDate } from "./date-utils";
+
+// دالة للحصول على التاريخ المحلي بصيغة ISO
+function getLocalISOString(): string {
+  const now = new Date();
+  return now.toISOString().replace('Z', '');
+}
 
 export class RealtimeDBStorage implements IStorage {
   private generateId(collectionPath: string): number {

@@ -209,15 +209,7 @@
   "save_invoice": "Save Invoice",
   "potential_customer": "Potential Customer",
   "customer_notes": "Customer Notes",
-  "system_settings": "System Settings",
-  "date_time_settings": "Date & Time Settings",
-  "date_fix_explanation": "There's an issue with date storage in the database, resulting in a 3-hour difference between actual and stored time. Use this tool to fix all dates in the database.",
-  "date_fix_warning": "Warning: This process will update all dates in the database. Make sure no other users are using the system during this operation.",
-  "date_fix_confirm": "Are you sure you want to fix all dates in the database?",
-  "fix_dates": "Fix Dates",
-  "fixing_dates": "Fixing dates...",
-  "dates_fixed_successfully": "All dates fixed successfully",
-  "date_fix_error": "Error fixing dates",
+
   "profile": "Profile",
   
   "complete_sale": "Complete Sale",
@@ -532,7 +524,7 @@
   "damaged_items": "Damaged Items",
   "expenses_management": "Expenses Management",
   "users_management": "Users Management",
-  "system_settings": "System Settings",
+
   "last_login": "Last Login",
   "never": "Never logged in",
   "barcodes": "Barcodes",
