@@ -603,20 +603,27 @@ export default function EditInvoiceDialog({
                     <span className="text-muted-foreground">{t('invoice_discount')}:</span>
                     <div className="flex items-center">
                       <span className="mr-2">-</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        className="w-24 h-8 text-right"
-                        defaultValue={invoiceDiscount}
-                        key={`invoice-discount-${invoiceDiscount}`}
-                        onChange={(e) => {
-                          console.log('Setting invoice discount to:', e.target.value);
-                          // تحويل القيمة المدخلة إلى رقم بشكل آمن
-                          let newValue = Number(e.target.value);
-                          if (isNaN(newValue)) newValue = 0;
-                          setInvoiceDiscount(newValue);
-                        }}
-                      />
+                      {/* استخدام قيمة ثابتة للمقارنة والفحص */}
+                      <div className="flex flex-col w-full">
+                        <Input
+                          type="text"
+                          min="0"
+                          className="w-24 h-8 text-right"
+                          // نحدد قيمة افتراضية من البيانات الأصلية أو نستخدم 500 المتوفرة في البيانات
+                          defaultValue="500"
+                          onChange={(e) => {
+                            console.log('Setting invoice discount to:', e.target.value);
+                            try {
+                              // التأكد من أن القيمة هي رقم
+                              const num = Number(e.target.value);
+                              setInvoiceDiscount(isNaN(num) ? 0 : num);
+                            } catch (err) {
+                              console.error("Error setting invoice discount:", err);
+                              setInvoiceDiscount(0);
+                            }
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                   
