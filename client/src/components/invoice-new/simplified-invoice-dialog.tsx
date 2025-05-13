@@ -35,7 +35,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 
 // Custom Components
 import BarcodeScanner from '@/components/barcode-scanner';
-import InvoicePreview from '@/components/invoice/invoice-preview';
+import InvoicePreview from '@/components/invoice-new/invoice-preview';
 
 interface SimplifiedInvoiceDialogProps {
   open: boolean;
@@ -160,9 +160,9 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       // عرض قيمة الخصم وتفاصيله بشكل صحيح في الفاتورة
       const invoiceWithDiscountDetails = {
         ...data,
-        invoiceDiscount: finalInvoiceDiscount, // استخدام قيمة الخصم المعدلة
         subtotal: subtotal,
         itemsDiscount: totalDiscount,
+        invoiceDiscount: invoiceDiscount, // استخدام قيمة الخصم المباشرة
         total: total
       };
       
