@@ -88,17 +88,70 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
   // معالجة بيانات المنتجات من الفاتورة
   const parseProducts = () => {
     try {
-      if (invoiceData.productsData) {
+      // الحالة الأولى: إذا كانت المنتجات متوفرة مباشرة كمصفوفة (عند إنشاء فاتورة جديدة)
+      if (Array.isArray(products) && products.length > 0) {
+        console.log('Using direct products array:', products);
+        return products;
+      }
+      
+      // الحالة الثانية: إذا كانت بيانات المنتجات متوفرة كنص JSON (من قاعدة البيانات)
+      if (typeof invoiceData.productsData === 'string' && invoiceData.productsData) {
+        console.log('Parsing productsData from JSON:', invoiceData.productsData);
         return JSON.parse(invoiceData.productsData);
       }
+      
+      // الحالة الثالثة: إذا كانت الفاتورة تحتوي على مصفوفة منتجات مباشرة
+      if (invoiceData.products && Array.isArray(invoiceData.products)) {
+        console.log('Using products array from invoiceData:', invoiceData.products);
+        return invoiceData.products;
+      }
+      
+      // إذا لم تتوفر أي بيانات، نحاول تكوين بيانات المنتجات من حقول المنتجات المنفصلة
+      if (invoiceData.productIds && invoiceData.productNames && invoiceData.productQuantities && 
+          invoiceData.productPrices && invoiceData.productDiscounts) {
+        
+        console.log('Reconstructing products from separate fields');
+        
+        const ids = String(invoiceData.productIds).split(',');
+        const names = String(invoiceData.productNames).split(',');
+        const quantities = String(invoiceData.productQuantities).split(',').map(Number);
+        const prices = String(invoiceData.productPrices).split(',').map(Number);
+        const discounts = String(invoiceData.productDiscounts).split(',').map(Number);
+        
+        const reconstructedProducts = ids.map((id, index) => ({
+          productId: id,
+          productName: names[index],
+          quantity: quantities[index],
+          sellingPrice: prices[index],
+          discount: discounts[index],
+        }));
+        
+        console.log('Reconstructed products:', reconstructedProducts);
+        return reconstructedProducts;
+      }
+      
+      // إذا لم تتوفر أي بيانات، نرجع مصفوفة فارغة
+      console.log('No products data found, returning empty array');
       return [];
     } catch (error) {
       console.error('Error parsing products data:', error);
+      // ترجع مصفوفة بمنتج وهمي للتأكد من وجود محتوى على الأقل (للتنقيح فقط)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('In development mode, returning debug product');
+        return [{
+          productId: 'debug-product',
+          productName: 'Debug Product (Data Error)',
+          quantity: 1,
+          sellingPrice: invoiceData.total || 0,
+          discount: 0,
+        }];
+      }
       return [];
     }
   };
   
   const invoiceProducts = parseProducts();
+  console.log('Processed invoice products:', invoiceProducts);
   
   // حالات الدفع
   const getStatusBadgeProps = (status: string) => {
