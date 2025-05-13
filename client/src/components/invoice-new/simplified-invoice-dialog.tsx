@@ -437,7 +437,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       const totalCost = purchasePrice * productQuantity;
       const finalProfit = Number(Math.max(0, totalSales - totalCost - totalDiscount).toFixed(2));
       
-      console.log(`منتج ${product.name}: سعر=${productPrice}, خصم المنتج=${productDiscount}%, سعر الشراء=${purchasePrice}, إجمالي بعد خصم المنتج=${productTotalAfterProductDiscount}, حصة خصم الفاتورة=${productShareOfInvoiceDiscount}, ربح=${finalProfit}`);
+      console.log(`منتج ${product.name}: سعر=${productPrice}, خصم المنتج=${productDiscount}, سعر الشراء=${purchasePrice}, إجمالي بعد خصم المنتج=${productTotalAfterProductDiscount}, حصة خصم الفاتورة=${productShareOfInvoiceDiscount}, ربح=${finalProfit}`);
       
       return {
         productId: product.id,

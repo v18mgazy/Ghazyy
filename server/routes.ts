@@ -198,7 +198,6 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
       profitReduction,
       totalDiscountAmount,
       discountDetails: {
-        invoiceDiscountPercentage,
         invoiceDiscountAmount,
         itemsDiscountAmount,
         generalDiscountAmount
