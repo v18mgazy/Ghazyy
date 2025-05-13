@@ -79,6 +79,9 @@ export default function EditInvoiceDialog({
     invoice?.invoiceDiscount !== undefined ? Number(invoice.invoiceDiscount) : 0
   );
   
+  // طباعة قيمة الخصم في وحدة تحكم المتصفح للتحقق
+  console.log('Initial invoice discount value:', invoiceDiscount);
+  
   const [paymentMethod, setPaymentMethod] = useState(invoice?.paymentMethod || 'cash');
   const [notes, setNotes] = useState(invoice?.notes || '');
   
@@ -86,6 +89,12 @@ export default function EditInvoiceDialog({
   useEffect(() => {
     console.log('Invoice data for edit:', invoice);
     console.log('Invoice discount value:', invoice?.invoiceDiscount);
+    // نتأكد من أن قيمة الخصم دائمًا رقم وليست نصًا
+    const numericDiscount = typeof invoice?.invoiceDiscount === 'string' 
+      ? parseFloat(invoice.invoiceDiscount) 
+      : invoice?.invoiceDiscount;
+    
+    setInvoiceDiscount(numericDiscount || 0);
   }, [invoice]);
   
   // استعلام لجلب بيانات المنتجات وحالة المخزون
