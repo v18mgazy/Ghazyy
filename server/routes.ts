@@ -4041,6 +4041,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/suppliers', supplierRoutes);
   app.use('/api/supplier-invoices', supplierInvoiceRoutes);
   app.use('/api/supplier-payments', supplierPaymentRoutes);
+  
+  // مسار خاص لإصلاح التواريخ في قاعدة البيانات
+  app.post('/api/admin/fix-dates', async (req, res) => {
+    try {
+      // تأكد من أن المستخدم هو مدير نظام
+      if (!req.isAuthenticated || req.user?.role !== 'admin') {
+        return res.status(403).json({ error: 'غير مصرح لك بتنفيذ هذه العملية' });
+      }
+      
+      await fixAllDates();
+      res.status(200).json({ message: 'تم إصلاح جميع التواريخ بنجاح' });
+    } catch (error) {
+      console.error('Error fixing dates:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء إصلاح التواريخ' });
+    }
+  });
 
   /**
    * دالة لتحديث بيانات التقرير اليومي لتاريخ معين
