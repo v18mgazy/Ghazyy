@@ -127,9 +127,9 @@ export default function InvoiceManagementPage() {
   // تعيين بيانات المتجر عند استلامها
   useEffect(() => {
     if (storeInfo) {
-      setStoreName(storeInfo.name || '');
-      setStoreAddress(storeInfo.address || '');
-      setStorePhone(storeInfo.phone || '');
+      setStoreName((storeInfo as any).name || '');
+      setStoreAddress((storeInfo as any).address || '');
+      setStorePhone((storeInfo as any).phone || '');
     }
   }, [storeInfo]);
   
@@ -465,9 +465,9 @@ export default function InvoiceManagementPage() {
       <div id="invoice-preview" className="bg-white p-6 rounded-md shadow-sm">
         {/* رأس الفاتورة - معلومات المتجر */}
         <div className="text-center mb-4">
-          <h2 className="text-xl font-bold">{storeInfo && typeof storeInfo === 'object' && 'name' in storeInfo ? storeInfo.name : t('store')}</h2>
-          <p className="text-sm text-gray-600">{storeInfo && typeof storeInfo === 'object' && 'address' in storeInfo ? storeInfo.address : ''}</p>
-          <p className="text-sm text-gray-600">{storeInfo && typeof storeInfo === 'object' && 'phone' in storeInfo ? storeInfo.phone : ''}</p>
+          <h2 className="text-xl font-bold">{storeInfo ? (storeInfo as any).name || t('store') : t('store')}</h2>
+          <p className="text-sm text-gray-600">{storeInfo ? (storeInfo as any).address || '' : ''}</p>
+          <p className="text-sm text-gray-600">{storeInfo ? (storeInfo as any).phone || '' : ''}</p>
         </div>
         
         {/* معلومات الفاتورة */}
