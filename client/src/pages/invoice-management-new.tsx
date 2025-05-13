@@ -471,7 +471,11 @@ export default function InvoiceManagement() {
   
   // حساب إجمالي الفاتورة المعدلة
   const calculateEditedInvoiceTotal = () => {
-    return editedProducts.reduce((sum, product) => sum + product.total, 0);
+    // حساب مجموع المنتجات بعد خصم المنتج (إن وجد)
+    const productsTotal = editedProducts.reduce((sum, product) => sum + product.total, 0);
+    
+    // طرح خصم الفاتورة الإضافي (إن وجد)
+    return productsTotal - (editedInvoiceDiscount || 0);
   };
   
   // حفظ التعديلات على الفاتورة

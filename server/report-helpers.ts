@@ -57,8 +57,17 @@ export async function calculateProfitFromProductsData(invoice: any, reportType =
             // حساب الربح النهائي بعد تأثير جميع الخصومات
             const productProfit = (finalSellingPrice - purchasePrice) * quantity;
             
+            // حساب قيمة الخصم الإجمالية
+            const totalDiscount = (sellingPrice - finalSellingPrice) * quantity;
+            
+            // حساب الربح الأصلي قبل تطبيق الخصومات
+            const originalProfit = (sellingPrice - purchasePrice) * quantity;
+            
+            // حساب نسبة تأثير الخصم على الربح
+            const profitReductionPercentage = originalProfit > 0 ? ((originalProfit - productProfit) / originalProfit * 100) : 0;
+            
             // تأكيد أن الخصم أثر على الربح بشكل واضح
-            console.log(`[${reportType}] خصم المنتج ${discount}% وخصم الفاتورة ${(invoiceDiscountRate*100).toFixed(1)}% أدى إلى تقليل الربح من ${((sellingPrice - purchasePrice) * quantity).toFixed(2)} إلى ${productProfit.toFixed(2)}`);
+            console.log(`[${reportType}] خصم المنتج ${discount}% وخصم الفاتورة ${(invoiceDiscountRate*100).toFixed(1)}% أدى إلى تقليل الربح من ${originalProfit.toFixed(2)} إلى ${productProfit.toFixed(2)} (نقص ${profitReductionPercentage.toFixed(1)}%)`);
             
             console.log(`[${reportType}] [تفاصيل تأثير الخصم] سعر المنتج: ${sellingPrice}، بعد خصم المنتج (${discount}%): ${productDiscountedPrice}، بعد خصم الفاتورة (${(invoiceDiscountRate*100).toFixed(1)}%): ${finalSellingPrice}، الربح النهائي: ${productProfit}`);
             calculatedProfit += productProfit;
@@ -66,6 +75,14 @@ export async function calculateProfitFromProductsData(invoice: any, reportType =
             console.log(`[${reportType}] بيانات المنتج الأصلية:`, JSON.stringify(product));
             console.log(`[${reportType}] معالجة منتج "${product.productName || product.name || 'Unknown'}": سعر البيع=${sellingPrice}, سعر الشراء=${purchasePrice}, كمية=${quantity}${discount > 0 ? `, خصم=${discount}%` : ''}`);
             console.log(`[${reportType}] حساب ربح المنتج بعد كل الخصومات: (${finalSellingPrice} - ${purchasePrice}) × ${quantity} = ${productProfit}`);
+            
+            // إضافة الخصم والربح كحقول في بيانات المنتج للاستخدام في أماكن أخرى
+            if (typeof product === 'object') {
+              product.calculatedProfit = productProfit;
+              product.calculatedDiscount = totalDiscount;
+              product.originalProfit = originalProfit;
+              product.profitReductionPercentage = profitReductionPercentage;
+            }
           } else {
             // إذا لم تتوفر بيانات سعر الشراء، نسجل ملاحظة ونستخدم صفر للربح
             const sellingPrice = product.sellingPrice || product.price || 0;
