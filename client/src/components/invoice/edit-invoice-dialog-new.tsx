@@ -7,6 +7,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { formatCurrency } from '@/lib/utils';
 
 // دالة لحساب الربح بطريقة دقيقة مع مراعاة الخصومات
+// اجمالي الارباح = سعر البيع - سعر الشراء - الخصم
 function calculateProductProfit(product: any, invoiceDiscount: number, subtotal: number) {
   // الحصول على البيانات الأساسية للمنتج
   const price = product.price;
@@ -18,28 +19,21 @@ function calculateProductProfit(product: any, invoiceDiscount: number, subtotal:
   const priceAfterProductDiscount = price * (1 - (productDiscount / 100));
   const productTotal = priceAfterProductDiscount * quantity;
   
-  // حساب الربح قبل تطبيق خصم الفاتورة
-  const basicProfit = (priceAfterProductDiscount - purchasePrice) * quantity;
-  
-  if (invoiceDiscount <= 0 || subtotal <= 0) {
-    return basicProfit;
+  // حساب حصة المنتج من خصم الفاتورة
+  let productShareOfInvoiceDiscount = 0;
+  if (invoiceDiscount > 0 && subtotal > 0) {
+    const productRatio = productTotal / subtotal;
+    productShareOfInvoiceDiscount = invoiceDiscount * productRatio;
   }
   
-  // حساب نسبة هذا المنتج من إجمالي الفاتورة (بعد خصومات المنتج)
-  const productRatio = productTotal / subtotal;
+  // إجمالي الخصم على المنتج (خصم المنتج + حصته من خصم الفاتورة)
+  const totalDiscount = (price - priceAfterProductDiscount) * quantity + productShareOfInvoiceDiscount;
   
-  // حصة المنتج من خصم الفاتورة
-  const productShareOfInvoiceDiscount = invoiceDiscount * productRatio;
+  // تطبيق المعادلة المطلوبة: اجمالي الارباح = سعر البيع - سعر الشراء - الخصم
+  const totalProfit = (price * quantity) - (purchasePrice * quantity) - totalDiscount;
   
-  // حساب نسبة الربح إلى سعر البيع بعد خصم المنتج
-  const profitMargin = priceAfterProductDiscount > 0 ? 
-    (priceAfterProductDiscount - purchasePrice) / priceAfterProductDiscount : 0;
-  
-  // حساب مقدار الخصم الذي سيؤثر على الربح
-  const discountOnProfit = productShareOfInvoiceDiscount * profitMargin;
-  
-  // حساب الربح النهائي بعد تطبيق جميع الخصومات (مع ضمان عدم وجود ربح سالب)
-  return Math.max(0, basicProfit - discountOnProfit);
+  // ضمان عدم وجود ربح سالب
+  return Math.max(0, totalProfit);
 }
 
 // Icons

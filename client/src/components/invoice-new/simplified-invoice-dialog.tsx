@@ -425,17 +425,16 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       // الربح الأساسي بعد خصم المنتج وقبل خصم الفاتورة
       const basicProfit = (productPrice * (1 - (productDiscount / 100)) - purchasePrice) * productQuantity;
       
-      // حساب الربح النهائي بطريقة أكثر دقة
-      // 1. حساب نسبة الربح إلى سعر البيع بعد خصم المنتج
+      // حساب الربح النهائي بالمعادلة المطلوبة: اجمالي الارباح = سعر البيع - سعر الشراء - الخصم
+      // 1. حساب قيمة الخصم الإجمالية للمنتج (خصم المنتج + نصيبه من خصم الفاتورة)
       const priceAfterProductDiscount = productPrice * (1 - (productDiscount / 100));
-      const profitMargin = priceAfterProductDiscount > 0 ? (priceAfterProductDiscount - purchasePrice) / priceAfterProductDiscount : 0;
+      const productDiscountAmount = (productPrice - priceAfterProductDiscount) * productQuantity;
+      const totalDiscount = productDiscountAmount + productShareOfInvoiceDiscount;
       
-      // 2. تطبيق هذه النسبة على مقدار خصم الفاتورة للمنتج
-      const discountOnProfit = productShareOfInvoiceDiscount * profitMargin;
-      
-      // 3. حساب الربح النهائي بعد تطبيق جميع الخصومات
-      // ضمان عدم وجود ربح سالب
-      const finalProfit = Number(Math.max(0, basicProfit - discountOnProfit).toFixed(2));
+      // 2. تطبيق المعادلة الجديدة
+      const totalSales = productPrice * productQuantity;
+      const totalCost = purchasePrice * productQuantity;
+      const finalProfit = Number(Math.max(0, totalSales - totalCost - totalDiscount).toFixed(2));
       
       console.log(`منتج ${product.name}: سعر=${productPrice}, خصم المنتج=${productDiscount}%, سعر الشراء=${purchasePrice}, إجمالي بعد خصم المنتج=${productTotalAfterProductDiscount}, حصة خصم الفاتورة=${productShareOfInvoiceDiscount}, ربح=${finalProfit}`);
       
