@@ -521,33 +521,11 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
   if (showInvoicePreview && invoiceData) {
     return (
       <InvoicePreview 
-        open={showInvoicePreview}
-        onOpenChange={(open) => {
-          setShowInvoicePreview(open);
-          if (!open) onOpenChange(false);
+        invoice={invoiceData}
+        onClose={() => {
+          setShowInvoicePreview(false);
+          onOpenChange(false);
         }}
-        customer={{
-          id: invoiceData.customerId?.toString() || '',
-          name: invoiceData.customerName || '',
-          phone: invoiceData.customerPhone || '',
-          address: invoiceData.customerAddress || ''
-        }}
-        invoiceNumber={invoiceData.invoiceNumber || ''}
-        invoiceDate={invoiceData.date || new Date().toISOString()}
-        products={JSON.parse(invoiceData.productsData || '[]').map((product: any) => ({
-          id: product.productId?.toString() || '',
-          name: product.productName || '',
-          barcode: product.barcode || '',
-          sellingPrice: product.sellingPrice || 0,
-          quantity: product.quantity || 0,
-          discount: product.discount || 0
-        }))}
-        notes={invoiceData.notes || ''}
-        paymentMethod={invoiceData.paymentMethod || 'cash'}
-        subtotal={invoiceData.subtotal || 0}
-        itemsDiscount={invoiceData.itemsDiscount || 0}
-        invoiceDiscount={invoiceData.invoiceDiscount || 0}
-        total={invoiceData.total || 0}
       />
     );
   }
