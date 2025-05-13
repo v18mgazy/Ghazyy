@@ -329,6 +329,8 @@
   "deferred": "آجل",
   "share": "مشاركة",
   "visa": "فيزا",
+  "check_attachment_for_invoice_details": "يرجى الاطلاع على الملف المرفق للتفاصيل الكاملة للفاتورة",
+  "invoice_shared_as_text": "تم مشاركة الفاتورة كنص بدلاً من PDF",
   "e_wallet": "محفظة إلكترونية",
   "amount": "المبلغ",
   "customer": "العميل",

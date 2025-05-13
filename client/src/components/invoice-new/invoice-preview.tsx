@@ -335,7 +335,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
     }
   };
   
-  // مشاركة الفاتورة عبر واتساب
+  // مشاركة الفاتورة عبر واتساب بملف PDF
   const handleShare = async () => {
     if (!invoiceData.customerPhone) {
       toast({
@@ -349,33 +349,228 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
     setIsSharing(true);
     
     try {
-      // إنشاء محتوى الرسالة
-      const products = invoiceProducts.map((product: any, index: number) => 
-        `${index + 1}. ${product.productName} x${product.quantity} = ${formatCurrency(product.sellingPrice * product.quantity)}`
-      ).join('\\n');
+      // إنشاء عنصر HTML لتعيين الفاتورة بتنسيق محسن
+      const invoiceElement = document.createElement('div');
       
-      const message = `*${storeInfo.name || t('store')}*\\n` +
-        `${t('invoice_number')}: ${invoiceData.invoiceNumber}\\n` +
-        `${t('date')}: ${formatDate(invoiceData.date)}\\n` +
-        `${t('customer')}: ${invoiceData.customerName}\\n\\n` +
-        `*${t('products')}*:\\n${products}\\n\\n` +
-        `${t('subtotal')}: ${formatCurrency(invoiceData.subtotal)}\\n` +
-        (invoiceData.itemsDiscount > 0 ? `${t('item_discounts')}: ${formatCurrency(invoiceData.itemsDiscount)}\\n` : '') +
-        (invoiceData.invoiceDiscount > 0 ? `${t('invoice_discount')}: ${formatCurrency(invoiceData.invoiceDiscount)}\\n` : '') +
-        `*${t('total')}*: ${formatCurrency(invoiceData.total)}\\n\\n` +
-        `${t('payment_method')}: ${t(invoiceData.paymentMethod)}\\n` +
-        `${t('payment_status')}: ${getStatusBadgeProps(invoiceData.paymentStatus || 'paid').text}\\n\\n` +
-        `${t('thank_you_for_your_business')}`;
+      // استخراج البيانات اللازمة
+      const products = invoiceProducts || [];
       
-      const phoneNumber = invoiceData.customerPhone.replace(/[^0-9]/g, '');
-      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+      // إنشاء HTML للفاتورة بتنسيق محسن (باللغة الإنجليزية فقط للتوافق)
+      invoiceElement.innerHTML = `
+        <div style="font-family: Arial, sans-serif; width: 700px; padding: 20px; box-sizing: border-box; margin: 0 auto;">
+          <!-- Header -->
+          <div style="background-color: #2980b9; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">${storeInfo.name || 'Sales Ghazy'}</h1>
+            <p style="margin: 5px 0; font-size: 14px;">${storeInfo.address || ''}</p>
+            <p style="margin: 5px 0; font-size: 14px;">${storeInfo.phone || ''}</p>
+          </div>
+          
+          <!-- Invoice Information -->
+          <div style="margin: 20px 0; overflow: hidden;">
+            <div style="float: left; text-align: left; width: 50%;">
+              <h3 style="margin: 0 0 10px; color: #333; font-size: 16px; font-weight: bold;">
+                Invoice Information:
+              </h3>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Invoice Number:</strong> ${invoiceData.invoiceNumber}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Date:</strong> ${formatDate(invoiceData.date)}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Payment Method:</strong> ${getPaymentMethodName(invoiceData.paymentMethod)}
+              </p>
+            </div>
+            
+            <div style="float: right; text-align: right; width: 50%;">
+              <h3 style="margin: 0 0 10px; color: #333; font-size: 16px; font-weight: bold;">
+                Customer Information:
+              </h3>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Name:</strong> ${invoiceData.customerName}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Phone:</strong> ${invoiceData.customerPhone || 'N/A'}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Address:</strong> ${invoiceData.customerAddress || 'N/A'}
+              </p>
+            </div>
+          </div>
+          
+          <!-- Products Table -->
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #ddd;">
+            <thead>
+              <tr style="background-color: #f2f2f2;">
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Product</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Price</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Quantity</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${products.map((item, index) => {
+                const productTotal = item.sellingPrice * item.quantity;
+                const discountAmount = item.discount ? (productTotal * (item.discount / 100)) : 0;
+                const finalTotal = productTotal - discountAmount;
+                
+                return `
+                <tr>
+                  <td style="padding: 10px; border: 1px solid #ddd;">
+                    <div style="font-weight: 500;">${item.productName}</div>
+                    ${item.discount > 0 ? `<div style="font-size: 12px; color: #777;">${item.discount}% discount</div>` : ''}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">
+                    ${formatCurrency(item.sellingPrice)}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                    ${item.quantity}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">
+                    ${formatCurrency(finalTotal)}
+                  </td>
+                </tr>
+              `}).join('')}
+            </tbody>
+          </table>
+          
+          <!-- Payment Summary -->
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: right; width: 300px; margin-left: auto;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span style="font-weight: bold; color: #555;">Subtotal:</span>
+              <span>${formatCurrency(invoiceData.subtotal)}</span>
+            </div>
+            
+            ${(invoiceData.itemsDiscount && invoiceData.itemsDiscount > 0) ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #555;">Items Discount:</span>
+                <span>${formatCurrency(invoiceData.itemsDiscount)}</span>
+              </div>
+            ` : ''}
+            
+            ${(invoiceData.invoiceDiscount && invoiceData.invoiceDiscount > 0) ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #555;">Invoice Discount:</span>
+                <span>${formatCurrency(invoiceData.invoiceDiscount)}</span>
+              </div>
+            ` : ''}
+            
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 16px; border-top: 1px solid #ddd; padding-top: 10px;">
+              <span style="font-weight: bold; color: #333;">Total:</span>
+              <span style="font-weight: bold; color: #2980b9;">${formatCurrency(invoiceData.total)}</span>
+            </div>
+          </div>
+          
+          <!-- Thank You Message -->
+          <div style="text-align: center; margin-top: 30px; color: #2980b9; font-style: italic;">
+            <p>Thank you for your business! We look forward to serving you again.</p>
+          </div>
+          
+          <!-- Footer -->
+          <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #999;">
+            <p>© ${new Date().getFullYear()} Sales Ghazy - ${new Date().toLocaleDateString('en-US')}</p>
+          </div>
+        </div>
+      `;
       
-      window.open(whatsappUrl, '_blank');
-      
-      toast({
-        title: t('success'),
-        description: t('invoice_shared_successfully'),
+      // إضافة عنصر الفاتورة مؤقتًا للصفحة
+      Object.assign(invoiceElement.style, {
+        position: 'absolute',
+        left: '-9999px',
+        top: '-9999px',
+        zIndex: '-9999'
       });
+      document.body.appendChild(invoiceElement);
+      
+      try {
+        // توليد ملف PDF
+        const canvas = await html2canvas(invoiceElement, {
+          scale: 2,
+          logging: false,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+        });
+        
+        // إزالة عنصر الفاتورة المؤقت
+        document.body.removeChild(invoiceElement);
+        
+        // تحويل الصورة إلى PDF
+        const imgData = canvas.toDataURL('image/png');
+        
+        // إنشاء PDF
+        const pdfWidth = 210; // حجم A4 بالملم
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        const pdf = new jsPDF({
+          orientation: pdfHeight > pdfWidth ? 'portrait' : 'landscape',
+          unit: 'mm',
+          format: [pdfWidth, pdfHeight]
+        });
+        
+        // إضافة الصورة إلى PDF
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        
+        // تحويل PDF إلى سلسلة نصية بصيغة base64
+        const pdfBase64 = pdf.output('datauristring');
+        
+        // إنشاء نص الرسالة
+        const message = `*${storeInfo.name || t('store')}*\\n` +
+          `${t('invoice_number')}: ${invoiceData.invoiceNumber}\\n` +
+          `${t('date')}: ${formatDate(invoiceData.date)}\\n` +
+          `${t('customer')}: ${invoiceData.customerName}\\n\\n` +
+          `${t('total')}: ${formatCurrency(invoiceData.total)}\\n\\n` +
+          `${t('payment_method')}: ${getPaymentMethodName(invoiceData.paymentMethod)}\\n` +
+          `${t('payment_status')}: ${getStatusBadgeProps(invoiceData.paymentStatus || 'paid').text}\\n\\n` +
+          `${t('check_attachment_for_invoice_details')}\\n\\n` +
+          `${t('thank_you_for_your_business')}`;
+        
+        // تحديد رقم الهاتف وفتح التطبيق
+        const phoneNumber = invoiceData.customerPhone.replace(/[^0-9]/g, '');
+        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+        
+        // فتح واتساب وتنزيل الملف
+        window.open(whatsappUrl, '_blank');
+        pdf.save(`invoice-${invoiceData.invoiceNumber}.pdf`);
+        
+        toast({
+          title: t('success'),
+          description: t('invoice_shared_successfully'),
+        });
+      } catch (error) {
+        console.error('Error generating PDF for sharing:', error);
+        if (document.body.contains(invoiceElement)) {
+          document.body.removeChild(invoiceElement);
+        }
+        
+        // في حالة فشل إنشاء PDF، استخدم طريقة المشاركة النصية القديمة كخطة بديلة
+        const productsText = invoiceProducts.map((product: any, index: number) => 
+          `${index + 1}. ${product.productName} x${product.quantity} = ${formatCurrency(product.sellingPrice * product.quantity)}`
+        ).join('\\n');
+        
+        const fallbackMessage = `*${storeInfo.name || t('store')}*\\n` +
+          `${t('invoice_number')}: ${invoiceData.invoiceNumber}\\n` +
+          `${t('date')}: ${formatDate(invoiceData.date)}\\n` +
+          `${t('customer')}: ${invoiceData.customerName}\\n\\n` +
+          `*${t('products')}*:\\n${productsText}\\n\\n` +
+          `${t('subtotal')}: ${formatCurrency(invoiceData.subtotal)}\\n` +
+          (invoiceData.itemsDiscount > 0 ? `${t('item_discounts')}: ${formatCurrency(invoiceData.itemsDiscount)}\\n` : '') +
+          (invoiceData.invoiceDiscount > 0 ? `${t('invoice_discount')}: ${formatCurrency(invoiceData.invoiceDiscount)}\\n` : '') +
+          `*${t('total')}*: ${formatCurrency(invoiceData.total)}\\n\\n` +
+          `${t('payment_method')}: ${getPaymentMethodName(invoiceData.paymentMethod)}\\n` +
+          `${t('payment_status')}: ${getStatusBadgeProps(invoiceData.paymentStatus || 'paid').text}\\n\\n` +
+          `${t('thank_you_for_your_business')}`;
+        
+        const phoneNumber = invoiceData.customerPhone.replace(/[^0-9]/g, '');
+        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
+        
+        window.open(whatsappUrl, '_blank');
+        
+        toast({
+          title: t('success'),
+          description: t('invoice_shared_as_text'),
+        });
+      }
     } catch (error) {
       console.error('Error sharing invoice:', error);
       toast({

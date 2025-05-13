@@ -333,6 +333,8 @@
   "unauthorized": "Unauthorized",
   "share": "Share",
   "no_customer_phone": "No customer phone number available",
+  "check_attachment_for_invoice_details": "Please check the attachment for full invoice details",
+  "invoice_shared_as_text": "Invoice shared as text instead of PDF",
   "customer_phone_missing": "No customer phone number available",
   "share_error": "Error sharing invoice",
   "items": "Items",
