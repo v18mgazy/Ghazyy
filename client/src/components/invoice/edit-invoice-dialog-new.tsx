@@ -157,77 +157,7 @@ export default function EditInvoiceDialog({
     return allProducts.find((p: any) => p.barcode === barcode);
   };
 
-  // Handle barcode scan
-  const handleBarcodeScan = (barcode: string) => {
-    console.log('Barcode scanned:', barcode);
-    setIsScannerOpen(false);
-    
-    const product = findProductByBarcode(barcode);
-    if (product) {
-      // Check if we have enough stock
-      if (product.quantity <= 0) {
-        toast({
-          title: t('out_of_stock'),
-          description: t('product_out_of_stock', { name: product.name }),
-          variant: 'destructive'
-        });
-        return;
-      }
-      
-      // Check if product already exists in the invoice
-      const existingProductIndex = products.findIndex(p => p.id === product.id);
-      
-      if (existingProductIndex !== -1) {
-        // Product already exists, update quantity
-        const updatedProducts = [...products];
-        const currentQuantity = updatedProducts[existingProductIndex].quantity;
-        
-        // Check if we have enough stock to add one more
-        if (currentQuantity >= product.quantity) {
-          toast({
-            title: t('insufficient_stock'),
-            description: t('cannot_add_more_than_available', { 
-              name: product.name, 
-              available: product.quantity 
-            }),
-            variant: 'destructive'
-          });
-          return;
-        }
-        
-        updatedProducts[existingProductIndex].quantity += 1;
-        setProducts(updatedProducts);
-        
-        toast({
-          title: t('product_quantity_updated'),
-          description: t('product_quantity_increased', { name: product.name }),
-        });
-      } else {
-        // Add new product
-        setProducts([...products, {
-          id: product.id,
-          name: product.name,
-          barcode: product.barcode,
-          price: product.sellingPrice || product.price,
-          purchasePrice: product.purchasePrice || 0,
-          quantity: 1,
-          discount: 0,
-          total: product.sellingPrice || product.price
-        }]);
-        
-        toast({
-          title: t('product_added'),
-          description: t('product_added_to_invoice', { name: product.name }),
-        });
-      }
-    } else {
-      toast({
-        title: t('product_not_found'),
-        description: t('no_product_with_barcode', { barcode }),
-        variant: 'destructive'
-      });
-    }
-  };
+  // قمنا بإزالة دالة handleBarcodeScan لأننا نستخدم الآن مكون BarcodeScanner مباشرة مع onProductScanned
 
   // Handle product search
   const handleProductSearch = () => {
@@ -749,7 +679,42 @@ export default function EditInvoiceDialog({
             <DialogTitle>{t('scan_barcode')}</DialogTitle>
           </DialogHeader>
           <div className="flex justify-center py-4">
-            <BarcodeScanner onDetected={(result) => handleBarcodeScan(result)} />
+            <BarcodeScanner onProductScanned={(product) => {
+              setIsScannerOpen(false);
+              
+              console.log('Product scanned in barcode scanner:', product);
+              // إضافة المنتج إلى الفاتورة
+              const existingIndex = products.findIndex(p => p.id === product.id);
+              
+              if (existingIndex !== -1) {
+                // المنتج موجود بالفعل، قم بزيادة الكمية
+                const updatedProducts = [...products];
+                updatedProducts[existingIndex].quantity += 1;
+                setProducts(updatedProducts);
+                
+                toast({
+                  title: t('product_quantity_updated'),
+                  description: t('product_quantity_increased', { name: product.name }),
+                });
+              } else {
+                // إضافة منتج جديد
+                setProducts([...products, {
+                  id: product.id,
+                  name: product.name,
+                  barcode: product.barcode,
+                  price: product.sellingPrice,
+                  purchasePrice: product.purchasePrice || 0,
+                  quantity: 1,
+                  discount: 0,
+                  total: product.sellingPrice
+                }]);
+                
+                toast({
+                  title: t('product_added'),
+                  description: t('product_added_to_invoice', { name: product.name }),
+                });
+              }
+            }} />
           </div>
           <DialogFooter>
             <Button 
