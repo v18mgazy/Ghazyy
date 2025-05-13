@@ -94,14 +94,33 @@ export async function calculateProfitFromProductsData(invoice: any, reportType =
                 console.log(`[${reportType}] حساب السعر النهائي: ${sellingPrice} × (1 - ${discount}/100) × (1 - ${(invoiceDiscountRate*100).toFixed(1)}%) = ${finalSellingPrice}`);
             }
             
-            // حساب الربح النهائي بعد تأثير جميع الخصومات
-            const productProfit = (finalSellingPrice - purchasePrice) * quantity;
-            
             // حساب قيمة الخصم الإجمالية
             const totalDiscount = (sellingPrice - finalSellingPrice) * quantity;
             
             // حساب الربح الأصلي قبل تطبيق الخصومات
             const originalProfit = (sellingPrice - purchasePrice) * quantity;
+            
+            // حساب الربح النهائي - طريقة تتعامل مع الخصم كقيمة ثابتة وليست نسبة
+            // طريقة أفضل: تقسيم الخصم الإجمالي بين الربح والتكلفة بنسبة توزيع عادلة
+            const profitMargin = Math.max(0, Math.min((sellingPrice - purchasePrice) / sellingPrice, 1));
+            
+            // نحسب مقدار الخصم الذي سيطبق على الربح فقط
+            const discountOnProfit = totalDiscount * profitMargin;
+            
+            // الربح النهائي هو الربح الأصلي ناقص الخصم المطبق على الربح
+            // حد أدنى صفر لضمان عدم وجود ربح سالب
+            const productProfit = Math.max(0, originalProfit - discountOnProfit);
+            
+            // تسجيل معلومات إضافية للتشخيص
+            console.log(`[حساب الربح - تحسين] [${reportType}] طريقة حساب الخصم المعدلة:`);
+            console.log(`  - الخصم الإجمالي: ${totalDiscount}`);
+            console.log(`  - نسبة الربح إلى سعر البيع: ${(profitMargin * 100).toFixed(1)}%`);
+            console.log(`  - مقدار الخصم المطبق على الربح: ${discountOnProfit.toFixed(2)}`);
+            
+            // إضافة تحذير إذا كان الربح النهائي سالبًا
+            if (productProfit < 0) {
+              console.warn(`[تحذير] الربح النهائي سالب (${productProfit.toFixed(2)}) - تم تطبيق خصم أكبر من الربح الأصلي!`);
+            }
             
             // حساب نسبة تأثير الخصم على الربح
             const profitReductionPercentage = originalProfit > 0 ? ((originalProfit - productProfit) / originalProfit * 100) : 0;
