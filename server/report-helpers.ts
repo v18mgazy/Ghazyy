@@ -31,28 +31,40 @@ export async function calculateProfitFromProductsData(invoice: any, reportType =
             // حساب الربح مع الأخذ في الاعتبار نسبة الخصم
             // الخصم يؤثر على المبيعات والأرباح معاً
             
-            // أولاً - خصم المنتج نفسه
-            const productDiscountedPrice = sellingPrice * (1 - (discount / 100));
+            // البدء بحساب السعر النهائي بعد الخصم
+            let finalSellingPrice = sellingPrice;
             
-            // ثانياً - نطبق خصم الفاتورة إذا وجد
-            // إذا كان لدينا خصم للفاتورة كاملة نحسب تأثيره على هذا المنتج
-            let invoiceDiscountRate = 0;
-            if (product.invoiceDiscountShare !== undefined) {
-                // إذا كان لدينا قيمة من حصة المنتج من خصم الفاتورة
-                invoiceDiscountRate = product.invoiceDiscountShare / (productDiscountedPrice * quantity);
-            } else if (invoice.discountPercentage && invoice.discountPercentage > 0) {
-                // استخدام نسبة الخصم من الفاتورة إذا كانت متوفرة
-                invoiceDiscountRate = invoice.discountPercentage / 100;
-            } else if (invoice.invoiceDiscount && invoice.subtotal && invoice.subtotal > 0) {
-                // حساب نسبة الخصم من قيمة الخصم والإجمالي قبل الخصم
-                invoiceDiscountRate = invoice.invoiceDiscount / invoice.subtotal;
+            // إذا كان لدينا السعر النهائي بعد الخصم مباشرة (الأدق)
+            if (product.total !== undefined && product.total !== null && quantity > 0) {
+                finalSellingPrice = Number(product.total) / quantity;
+                console.log(`[${reportType}] استخدام السعر النهائي المخزن: ${finalSellingPrice} (من قيمة المنتج الإجمالية: ${product.total})`);
+            } 
+            // وإلا نحسب الخصم بناءً على المعلومات المتوفرة
+            else {
+                // أولاً - خصم المنتج نفسه
+                const productDiscountedPrice = sellingPrice * (1 - (discount / 100));
+                
+                // ثانياً - نطبق خصم الفاتورة إذا وجد
+                // إذا كان لدينا خصم للفاتورة كاملة نحسب تأثيره على هذا المنتج
+                let invoiceDiscountRate = 0;
+                if (product.invoiceDiscountShare !== undefined) {
+                    // إذا كان لدينا قيمة من حصة المنتج من خصم الفاتورة
+                    invoiceDiscountRate = product.invoiceDiscountShare / (productDiscountedPrice * quantity);
+                } else if (invoice.discountPercentage && invoice.discountPercentage > 0) {
+                    // استخدام نسبة الخصم من الفاتورة إذا كانت متوفرة
+                    invoiceDiscountRate = invoice.discountPercentage / 100;
+                } else if (invoice.invoiceDiscount && invoice.subtotal && invoice.subtotal > 0) {
+                    // حساب نسبة الخصم من قيمة الخصم والإجمالي قبل الخصم
+                    invoiceDiscountRate = invoice.invoiceDiscount / invoice.subtotal;
+                }
+                
+                // التأكد من أن نسبة الخصم منطقية
+                invoiceDiscountRate = Math.min(invoiceDiscountRate, 0.99); // الحد الأقصى 99%
+                
+                // حساب السعر النهائي بعد جميع الخصومات
+                finalSellingPrice = productDiscountedPrice * (1 - invoiceDiscountRate);
+                console.log(`[${reportType}] حساب السعر النهائي: ${sellingPrice} × (1 - ${discount}/100) × (1 - ${(invoiceDiscountRate*100).toFixed(1)}%) = ${finalSellingPrice}`);
             }
-            
-            // التأكد من أن نسبة الخصم منطقية
-            invoiceDiscountRate = Math.min(invoiceDiscountRate, 0.99); // الحد الأقصى 99%
-            
-            // حساب السعر النهائي بعد جميع الخصومات
-            const finalSellingPrice = productDiscountedPrice * (1 - invoiceDiscountRate);
             
             // حساب الربح النهائي بعد تأثير جميع الخصومات
             const productProfit = (finalSellingPrice - purchasePrice) * quantity;
@@ -329,44 +341,91 @@ export async function generateReport(params: ReportParams): Promise<any> {
       for (const invoice of filteredInvoices) {
         try {
           if (invoice.productsData) {
-            const products = JSON.parse(invoice.productsData);
-            if (Array.isArray(products)) {
-              for (const product of products) {
+            const productsInInvoice = JSON.parse(invoice.productsData);
+            if (Array.isArray(productsInInvoice)) {
+              // معالجة كل منتج في الفاتورة
+              for (const product of productsInInvoice) {
                 const productId = product.productId;
+                
+                // للتأكد من وجود المنتج في قائمة المنتجات
                 if (productId && productSalesMap.has(productId)) {
+                  // الحصول على بيانات المنتج من الخريطة
                   const productData = productSalesMap.get(productId);
                   
-                  // تحديث البيانات
-                  productData.soldQuantity += Number(product.quantity) || 0;
-                  productData.revenue += (product.sellingPrice || product.price || 0) * (Number(product.quantity) || 0);
+                  // تحديث البيانات الأساسية
+                  const quantity = Number(product.quantity) || 0;
+                  let sellingPrice = product.sellingPrice || product.price || 0;
                   
-                  // حساب الربح باستخدام سعر الشراء الفعلي فقط
+                  // حساب قيمة المبيعات الإجمالية مع الخصم
+                  let totalSales = sellingPrice * quantity;
+                  
+                  // استخدام القيمة النهائية للمنتج إذا كانت متوفرة (بعد الخصم)
+                  if (product.total !== undefined && product.total !== null) {
+                    totalSales = Number(product.total);
+                  }
+                  
+                  // إضافة الكمية المباعة إلى المجموع
+                  productData.soldQuantity += quantity;
+                  
+                  // إضافة المبيعات بعد الخصم
+                  productData.revenue += totalSales;
+                  
+                  // حساب الربح مع الأخذ بالاعتبار الخصومات
+                  let itemProfit = 0;
+                  
+                  // إذا كان الربح محسوب مسبقاً في بيانات المنتج
                   if (product.profit !== undefined && product.profit !== null) {
-                    // استخدام الربح المحسوب مسبقاً إذا كان متوفراً
-                    productData.profit += Number(product.profit);
-                  } else if (product.purchasePrice !== undefined && (product.sellingPrice || product.price)) {
-                    // حساب الربح من سعر الشراء والبيع
-                    const sellingPrice = product.sellingPrice || product.price || 0;
+                    itemProfit = Number(product.profit);
+                    console.log(`[أفضل المنتجات - محسّن] استخدام الربح المحسوب مسبقاً للمنتج ${product.productName || product.name}: ${itemProfit}`);
+                  } 
+                  // إذا كان سعر الشراء متوفر في بيانات المنتج
+                  else if (product.purchasePrice !== undefined && (product.sellingPrice || product.price)) {
                     const purchasePrice = Number(product.purchasePrice) || 0;
-                    const quantity = Number(product.quantity) || 1;
-                    productData.profit += (sellingPrice - purchasePrice) * quantity;
-                  } else {
-                    // إذا لم يتوفر سعر الشراء، نبحث عنه في بيانات المنتج الأصلية
-                    const sellingPrice = product.sellingPrice || product.price || 0;
-                    const quantity = Number(product.quantity) || 1;
                     
-                    // البحث عن المنتج في قائمة المنتجات بواسطة رقم التعريف أو الباركود
+                    // حساب سعر البيع النهائي (بعد الخصم)
+                    let finalSellingPrice = sellingPrice;
+                    
+                    // التحقق من خصم المنتج نفسه
+                    const productDiscount = Number(product.discount) || 0;
+                    if (productDiscount > 0) {
+                      // تطبيق خصم المنتج
+                      finalSellingPrice = finalSellingPrice * (1 - (productDiscount / 100));
+                    }
+                    
+                    // استخدام السعر النهائي إذا كان متوفراً (بما في ذلك خصم الفاتورة)
+                    if (product.total !== undefined && product.total !== null && quantity > 0) {
+                      finalSellingPrice = Number(product.total) / quantity;
+                    }
+                    
+                    // حساب الربح النهائي
+                    itemProfit = (finalSellingPrice - purchasePrice) * quantity;
+                    console.log(`[أفضل المنتجات - محسّن] حساب ربح المنتج ${product.productName || product.name} مع الخصم: (${finalSellingPrice} - ${purchasePrice}) × ${quantity} = ${itemProfit}`);
+                  } 
+                  // البحث عن سعر الشراء في قائمة المنتجات الأصلية
+                  else {
+                    // البحث عن المنتج في قائمة المنتجات الرئيسية
                     const originalProduct = products.find(p => p.id == productId || p.barcode === product.barcode);
                     if (originalProduct && originalProduct.purchasePrice && Number(originalProduct.purchasePrice) > 0) {
                       const purchasePrice = Number(originalProduct.purchasePrice);
-                      const itemProfit = (sellingPrice - purchasePrice) * quantity;
-                      productData.profit += itemProfit;
-                      console.log(`Found purchase price ${purchasePrice} in product catalog for product ID: ${productId}, profit: ${itemProfit}`);
+                      
+                      // حساب سعر البيع النهائي بعد الخصم
+                      let finalSellingPrice = sellingPrice;
+                      if (product.total !== undefined && product.total !== null && quantity > 0) {
+                        finalSellingPrice = Number(product.total) / quantity;
+                      }
+                      
+                      // حساب الربح
+                      itemProfit = (finalSellingPrice - purchasePrice) * quantity;
+                      console.log(`[أفضل المنتجات - محسّن] العثور على سعر الشراء ${purchasePrice} في قائمة المنتجات، الربح = ${itemProfit}`);
                     } else {
-                      console.warn(`No purchase price found for product ID: ${productId} in invoice or catalog - using zero for profit calculation`);
+                      console.warn(`لم يتم العثور على سعر الشراء للمنتج رقم: ${productId} - استخدام صفر في حساب الربح`);
                     }
                   }
                   
+                  // إضافة الربح إلى إجمالي ربح المنتج
+                  productData.profit += itemProfit;
+                  
+                  // تحديث بيانات المنتج في الخريطة
                   productSalesMap.set(productId, productData);
                 }
               }
