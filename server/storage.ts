@@ -53,6 +53,7 @@ export interface IStorage {
   getInvoice(id: number): Promise<Invoice | undefined>;
   getAllInvoices(): Promise<Invoice[]>;
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  createInvoiceWithId(id: number, invoiceData: any): Promise<Invoice>;
   updateInvoice(id: number, invoiceData: Partial<Invoice>): Promise<Invoice | undefined>;
   deleteInvoice(id: number): Promise<void>;
   
@@ -649,6 +650,56 @@ export class FirebaseStorage implements IStorage {
     }
   }
   
+  /**
+   * إنشاء فاتورة جديدة بمعرف محدد للاستخدام في تحديث الفواتير عن طريق إعادة إنشائها
+   * 
+   * @param id معرف الفاتورة المراد إنشاؤها
+   * @param invoiceData بيانات الفاتورة بالكامل
+   * @returns الفاتورة الجديدة
+   */
+  async createInvoiceWithId(id: number, invoiceData: any): Promise<Invoice> {
+    try {
+      console.log(`FirebaseStorage: Creating invoice with specific ID ${id}`);
+      console.log('Invoice data received:', JSON.stringify(invoiceData, null, 2));
+      console.log('invoiceDiscount value:', invoiceData.invoiceDiscount);
+      
+      // تأكد من أن المعرف صحيح
+      if (isNaN(id) || id <= 0) {
+        throw new Error(`Invalid invoice ID: ${id}`);
+      }
+      
+      // تحويل التواريخ
+      const now = serverTimestamp();
+      const createdAt = invoiceData.createdAt ? Timestamp.fromDate(new Date(invoiceData.createdAt)) : now;
+      const date = invoiceData.date ? Timestamp.fromDate(new Date(invoiceData.date)) : createdAt;
+      
+      // تحضير البيانات
+      const processedInvoiceData = {
+        ...invoiceData,
+        date: date,
+        createdAt: createdAt,
+        updatedAt: now
+      };
+      
+      console.log('Final invoice data to be stored:', JSON.stringify(processedInvoiceData, null, 2));
+      
+      // حفظ الفاتورة بالمعرف المحدد
+      await setDoc(doc(db, 'invoices', id.toString()), processedInvoiceData);
+      
+      // إرجاع الفاتورة مع تحويل التواريخ إلى كائنات Date
+      return {
+        ...invoiceData,
+        id: id,
+        date: date instanceof Timestamp ? date.toDate() : new Date(),
+        createdAt: createdAt instanceof Timestamp ? createdAt.toDate() : new Date(),
+        updatedAt: new Date()
+      };
+    } catch (error) {
+      console.error('Error creating invoice with specific ID:', error);
+      throw error;
+    }
+  }
+  
   async updateInvoice(id: number, invoiceData: Partial<Invoice>): Promise<Invoice | undefined> {
     try {
       const invoiceDoc = await getDoc(doc(db, 'invoices', id.toString()));
@@ -677,6 +728,21 @@ export class FirebaseStorage implements IStorage {
     } catch (error) {
       console.error('Error updating invoice:', error);
       return undefined;
+    }
+  }
+  
+  /**
+   * حذف فاتورة من قاعدة البيانات
+   * @param id معرف الفاتورة المراد حذفها
+   */
+  async deleteInvoice(id: number): Promise<void> {
+    try {
+      console.log(`FirebaseStorage: Deleting invoice with ID ${id}`);
+      await deleteDoc(doc(db, 'invoices', id.toString()));
+      console.log(`FirebaseStorage: Successfully deleted invoice with ID ${id}`);
+    } catch (error) {
+      console.error(`FirebaseStorage: Error deleting invoice with ID ${id}:`, error);
+      throw error;
     }
   }
   
@@ -1188,6 +1254,21 @@ export class FirebaseStorage implements IStorage {
       };
     } catch (error) {
       console.error('Error creating report data:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * حذف بيانات التقرير من قاعدة البيانات
+   * @param id معرف التقرير المراد حذفه
+   */
+  async deleteReportData(id: number): Promise<void> {
+    try {
+      console.log(`FirebaseStorage: Deleting report data with ID ${id}`);
+      await deleteDoc(doc(db, 'report_data', id.toString()));
+      console.log(`FirebaseStorage: Successfully deleted report data with ID ${id}`);
+    } catch (error) {
+      console.error(`FirebaseStorage: Error deleting report data with ID ${id}:`, error);
       throw error;
     }
   }
