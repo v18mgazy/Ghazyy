@@ -1654,10 +1654,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentMethod: req.body.paymentMethod,
         paymentStatus: req.body.paymentStatus,
         notes: customerInfo.notes || req.body.notes,
-        // استخدام تاريخ الجهاز المحلي مباشرة والاحتفاظ به كتوقيت محلي
+        // استخدام تاريخ الجهاز المحلي بصيغة ISO ولكن بدون حرف Z في النهاية
         date: req.body.date || (() => {
           const now = new Date();
-          return now.toLocaleString(); // استخدام التنسيق المحلي للتاريخ والوقت
+          return now.toISOString().replace('Z', ''); // ISO بالتوقيت المحلي بدون Z
         })(),
         // تخزين بيانات المنتجات بالطريقتين للتوافق مع الإصدارات السابقة
         productsData: JSON.stringify(productsDataArray),
@@ -1672,14 +1672,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         productProfits: productProfits.join(','),
         userId: userId,
         isDeleted: false,
-        // استخدام تاريخ الجهاز المحلي مباشرة والاحتفاظ به كتوقيت محلي
+        // استخدام تاريخ الجهاز المحلي بصيغة ISO ولكن بدون حرف Z في النهاية
         createdAt: (() => {
           const now = new Date();
-          return now.toLocaleString(); // استخدام التنسيق المحلي للتاريخ والوقت
+          return now.toISOString().replace('Z', ''); // ISO بالتوقيت المحلي بدون Z
         })(),
         updatedAt: (() => {
           const now = new Date();
-          return now.toLocaleString(); // استخدام التنسيق المحلي للتاريخ والوقت
+          return now.toISOString().replace('Z', ''); // ISO بالتوقيت المحلي بدون Z
         })()
       };
       
