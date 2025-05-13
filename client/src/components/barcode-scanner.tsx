@@ -164,7 +164,8 @@ export default function BarcodeScanner({
         const product = await response.json();
         
         // التحقق من المخزون إذا كان مطلوبًا
-        if (checkInventory && (!product.quantity || product.quantity <= 0)) {
+        // نتحقق فقط إذا كانت الكمية صفر بشكل صريح، وليس إذا كانت غير محددة
+        if (checkInventory && product.quantity !== undefined && product.quantity <= 0) {
           setError(t('out_of_stock'));
           toast({
             title: t('error'),
