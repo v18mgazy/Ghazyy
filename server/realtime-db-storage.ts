@@ -400,7 +400,7 @@ export class RealtimeDBStorage implements IStorage {
       const newInvoice: Invoice = {
         id,
         ...invoice,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date().toISOString().replace('Z', ''),
         // التأكد من تضمين حقول المنتجات المنفصلة
         productIds: invoice.productIds || '',
         productNames: invoice.productNames || '',

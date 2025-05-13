@@ -219,7 +219,7 @@ export default function InvoiceManagementPage() {
         total,
         paymentMethod: data.paymentMethod,
         notes: data.notes,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString().replace('Z', ''),
         productsData,
         productIds,
         productNames,
