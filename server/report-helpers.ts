@@ -30,13 +30,39 @@ export async function calculateProfitFromProductsData(invoice: any, reportType =
             
             // حساب الربح مع الأخذ في الاعتبار نسبة الخصم
             // الخصم يؤثر على المبيعات والأرباح معاً
-            const discountedSellingPrice = sellingPrice * (1 - (discount / 100));
-            const productProfit = (discountedSellingPrice - purchasePrice) * quantity;
+            
+            // أولاً - خصم المنتج نفسه
+            const productDiscountedPrice = sellingPrice * (1 - (discount / 100));
+            
+            // ثانياً - نطبق خصم الفاتورة إذا وجد
+            // إذا كان لدينا خصم للفاتورة كاملة نحسب تأثيره على هذا المنتج
+            let invoiceDiscountRate = 0;
+            if (product.invoiceDiscountShare !== undefined) {
+                // إذا كان لدينا قيمة من حصة المنتج من خصم الفاتورة
+                invoiceDiscountRate = product.invoiceDiscountShare / (productDiscountedPrice * quantity);
+            } else if (invoice.discountPercentage && invoice.discountPercentage > 0) {
+                // استخدام نسبة الخصم من الفاتورة إذا كانت متوفرة
+                invoiceDiscountRate = invoice.discountPercentage / 100;
+            } else if (invoice.invoiceDiscount && invoice.subtotal && invoice.subtotal > 0) {
+                // حساب نسبة الخصم من قيمة الخصم والإجمالي قبل الخصم
+                invoiceDiscountRate = invoice.invoiceDiscount / invoice.subtotal;
+            }
+            
+            // التأكد من أن نسبة الخصم منطقية
+            invoiceDiscountRate = Math.min(invoiceDiscountRate, 0.99); // الحد الأقصى 99%
+            
+            // حساب السعر النهائي بعد جميع الخصومات
+            const finalSellingPrice = productDiscountedPrice * (1 - invoiceDiscountRate);
+            
+            // حساب الربح النهائي
+            const productProfit = (finalSellingPrice - purchasePrice) * quantity;
+            
+            console.log(`[${reportType}] [تفاصيل تأثير الخصم] سعر المنتج: ${sellingPrice}، بعد خصم المنتج (${discount}%): ${productDiscountedPrice}، بعد خصم الفاتورة (${(invoiceDiscountRate*100).toFixed(1)}%): ${finalSellingPrice}، الربح النهائي: ${productProfit}`);
             calculatedProfit += productProfit;
             
             console.log(`[${reportType}] بيانات المنتج الأصلية:`, JSON.stringify(product));
             console.log(`[${reportType}] معالجة منتج "${product.productName || product.name || 'Unknown'}": سعر البيع=${sellingPrice}, سعر الشراء=${purchasePrice}, كمية=${quantity}${discount > 0 ? `, خصم=${discount}%` : ''}`);
-            console.log(`[${reportType}] حساب ربح المنتج: (${sellingPrice}${discount > 0 ? ` × (1 - ${discount}/100)` : ''} - ${purchasePrice}) × ${quantity} = ${productProfit}`);
+            console.log(`[${reportType}] حساب ربح المنتج بعد كل الخصومات: (${finalSellingPrice} - ${purchasePrice}) × ${quantity} = ${productProfit}`);
           } else {
             // إذا لم تتوفر بيانات سعر الشراء، نسجل ملاحظة ونستخدم صفر للربح
             const sellingPrice = product.sellingPrice || product.price || 0;
