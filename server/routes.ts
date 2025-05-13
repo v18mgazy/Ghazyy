@@ -1654,10 +1654,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentMethod: req.body.paymentMethod,
         paymentStatus: req.body.paymentStatus,
         notes: customerInfo.notes || req.body.notes,
-        // نضبط التاريخ بدقة مع الحفاظ على التوقيت المحلي
+        // استخدام تاريخ الجهاز المحلي مباشرة دون أي تعديلات على التوقيت
         date: req.body.date || (() => {
           const now = new Date();
-          now.setHours(now.getHours() + 3); // تعديل للتوقيت المحلي
           return now.toISOString();
         })(),
         // تخزين بيانات المنتجات بالطريقتين للتوافق مع الإصدارات السابقة
