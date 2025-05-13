@@ -2,15 +2,32 @@
 // @ts-nocheck
 
 /**
- * حساب الربح من بيانات المنتجات في الفاتورة
+ * حساب الربح وتأثير الخصم من بيانات المنتجات في الفاتورة
  * @param invoice - الفاتورة التي نحسب ربحها
  * @param reportType - نوع التقرير (daily, weekly, monthly, yearly)
- * @returns إجمالي الربح المحسوب
+ * @returns كائن يحتوي على إجمالي الربح المحسوب وتفاصيل تأثير الخصم
  */
-export async function calculateProfitFromProductsData(invoice: any, reportType = 'unknown'): Promise<number> {
+export async function calculateProfitFromProductsData(invoice: any, reportType = 'unknown'): Promise<any> {
   let calculatedProfit = 0;
+  let profitWithoutDiscount = 0;  // الربح قبل تطبيق الخصومات
+  let profitReduction = 0;        // مقدار الانخفاض في الربح بسبب الخصومات
+  let totalDiscountAmount = 0;    // إجمالي قيمة الخصومات
+  let discountBreakdown = {       // تفصيل الخصومات
+    itemsDiscount: 0,             // خصم المنتجات
+    invoiceDiscount: 0,           // خصم الفاتورة
+  };
   
   try {
+    // استخراج قيم الخصم من الفاتورة
+    const invoiceDiscount = Number(invoice.invoiceDiscount) || 0;
+    const itemsDiscount = Number(invoice.itemsDiscount) || 0;
+    const discountPercentage = Number(invoice.discountPercentage) || 0;
+    
+    discountBreakdown.itemsDiscount = itemsDiscount;
+    discountBreakdown.invoiceDiscount = invoiceDiscount;
+    totalDiscountAmount = invoiceDiscount + itemsDiscount;
+    
+    console.log(`[${reportType}] معلومات الخصم: خصم الفاتورة=${invoiceDiscount}, خصم المنتجات=${itemsDiscount}, نسبة الخصم=${discountPercentage}%`);
     if (invoice.productsData) {
       const products = JSON.parse(invoice.productsData);
       if (Array.isArray(products)) {
