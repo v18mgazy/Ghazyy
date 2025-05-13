@@ -194,10 +194,12 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
 
   // حساب المجاميع
   const calculateTotals = useCallback((products: any[]) => {
+    // حساب المجموع الفرعي (subtotal): إجمالي أسعار المنتجات قبل أي خصم
     const newSubtotal = products.reduce((sum, product) => {
       return sum + (product.sellingPrice * product.quantity);
     }, 0);
     
+    // حساب إجمالي الخصم على مستوى المنتج
     const newTotalDiscount = products.reduce((sum, product) => {
       const discount = product.discount 
         ? (product.sellingPrice * product.quantity * (product.discount / 100)) 
@@ -205,12 +207,22 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       return sum + discount;
     }, 0);
     
-    const invoiceDiscountAmount = invoiceDiscount > 0 ? (newSubtotal * (invoiceDiscount / 100)) : 0;
-    const newTotal = newSubtotal - newTotalDiscount - invoiceDiscountAmount;
+    // حساب قيمة الخصم على مستوى الفاتورة
+    // يتم تطبيق خصم الفاتورة على المبلغ بعد خصم المنتجات
+    const subtotalAfterProductDiscount = newSubtotal - newTotalDiscount;
+    const invoiceDiscountAmount = invoiceDiscount > 0 
+      ? (subtotalAfterProductDiscount * (invoiceDiscount / 100)) 
+      : 0;
+      
+    // حساب المجموع النهائي بعد جميع الخصومات
+    const newTotal = subtotalAfterProductDiscount - invoiceDiscountAmount;
     
+    // تحديث حالة المكون
     setSubtotal(newSubtotal);
     setTotalDiscount(newTotalDiscount);
     setTotal(newTotal);
+    
+    console.log(`حساب المجاميع: ${newSubtotal} - ${newTotalDiscount} (خصم منتج) - ${invoiceDiscountAmount} (خصم فاتورة ${invoiceDiscount}%) = ${newTotal}`);
   }, [invoiceDiscount]);
 
   // إضافة منتج للفاتورة
@@ -395,6 +407,13 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
     // إنشاء رقم فاتورة عشوائي
     const randomInvoiceNumber = `INV-${Math.floor(Math.random() * 900000) + 100000}`;
     
+    // حساب قيمة خصم الفاتورة
+    const subtotalAfterProductDiscount = subtotal - totalDiscount;
+    const invoiceDiscountAmount = invoiceDiscount > 0 
+      ? (subtotalAfterProductDiscount * (invoiceDiscount / 100)) 
+      : 0;
+    
+    // إنشاء كائن الفاتورة للإرسال
     const invoice = {
       invoiceNumber: randomInvoiceNumber,
       customerId: selectedCustomer.id,
@@ -406,12 +425,21 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       paymentStatus,
       subtotal,
       itemsDiscount: totalDiscount,
-      invoiceDiscount: invoiceDiscount > 0 ? (subtotal * (invoiceDiscount / 100)) : 0,
+      invoiceDiscount: invoiceDiscountAmount,
       discountPercentage: invoiceDiscount,
       total: total,
       notes: invoiceNotes,
       products: invoiceItems
     };
+    
+    console.log("إعداد بيانات الفاتورة للإرسال:", {
+      subtotal,
+      totalDiscount,
+      invoiceDiscount,
+      invoiceDiscountAmount,
+      total,
+      itemsCount: invoiceItems.length
+    });
     
     createInvoiceMutation.mutate(invoice);
   };
@@ -828,15 +856,23 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                           {invoiceDiscount > 0 && (
                             <div className="flex justify-between text-base">
                               <span className="text-muted-foreground font-medium">{t('invoice_discount')} ({invoiceDiscount}%):</span>
-                              <span className="text-destructive/90 font-medium">- {formatCurrency(subtotal * (invoiceDiscount / 100))}</span>
+                              {/* تطبيق الخصم على المبلغ بعد خصم المنتجات بشكل صحيح */}
+                              <span className="text-destructive/90 font-medium">- {formatCurrency((subtotal - totalDiscount) * (invoiceDiscount / 100))}</span>
                             </div>
                           )}
                           
                           <Separator className="my-2" />
                           <div className="flex justify-between font-bold text-lg pt-1">
                             <span>{t('total')}:</span>
-                            <span className="text-primary">{formatCurrency(total - (subtotal * (invoiceDiscount / 100)))}</span>
+                            <span className="text-primary">{formatCurrency(total)}</span>
                           </div>
+                          
+                          {/* تظهر فقط عند وجود خصومات */}
+                          {(totalDiscount > 0 || invoiceDiscount > 0) && (
+                            <div className="mt-1 text-xs text-muted-foreground italic">
+                              {t('total_after_all_discounts')}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

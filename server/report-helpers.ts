@@ -26,9 +26,18 @@ export async function calculateProfitFromProductsData(invoice: any, reportType =
             const sellingPrice = product.sellingPrice || product.price || 0;
             const purchasePrice = Number(product.purchasePrice) || 0;
             const quantity = Number(product.quantity) || 1;
-            const productProfit = (sellingPrice - purchasePrice) * quantity;
+            const discount = Number(product.discount) || 0;
+            
+            // حساب سعر البيع بعد الخصم
+            const discountedSellingPrice = sellingPrice * (1 - (discount / 100));
+            
+            // حساب الربح مع الأخذ في الاعتبار نسبة الخصم
+            const productProfit = (discountedSellingPrice - purchasePrice) * quantity;
             calculatedProfit += productProfit;
-            console.log(`Calculated profit for product '${product.productName || product.name || 'Unknown'}': (${sellingPrice} - ${purchasePrice}) * ${quantity} = ${productProfit}`);
+            
+            console.log(`[${reportType}] بيانات المنتج الأصلية:`, JSON.stringify(product));
+            console.log(`[${reportType}] معالجة منتج "${product.productName || product.name || 'Unknown'}": سعر البيع=${sellingPrice}, سعر الشراء=${purchasePrice}, كمية=${quantity}${discount > 0 ? `, خصم=${discount}%` : ''}`);
+            console.log(`[${reportType}] حساب ربح المنتج: (${sellingPrice}${discount > 0 ? ` × (1 - ${discount}/100)` : ''} - ${purchasePrice}) × ${quantity} = ${productProfit}`);
           } else {
             // إذا لم تتوفر بيانات سعر الشراء، نسجل ملاحظة ونستخدم صفر للربح
             const sellingPrice = product.sellingPrice || product.price || 0;
@@ -44,6 +53,17 @@ export async function calculateProfitFromProductsData(invoice: any, reportType =
       // في حالة عدم وجود بيانات للمنتجات، نستخدم صفر للربح
       calculatedProfit = 0;
       console.warn(`No products data found for invoice ID: ${invoice.id}, unable to calculate profit - using zero`);
+    }
+    
+    // خصم نسبة من الربح إذا كان هناك خصم إجمالي على الفاتورة
+    if (invoice.discountPercentage && Number(invoice.discountPercentage) > 0) {
+      const invoiceDiscountPercentage = Number(invoice.discountPercentage);
+      const originalProfit = calculatedProfit;
+      
+      // تطبيق خصم الفاتورة الإجمالي على الربح
+      calculatedProfit = calculatedProfit * (1 - (invoiceDiscountPercentage / 100));
+      
+      console.log(`Applied invoice discount ${invoiceDiscountPercentage}% to profit: ${originalProfit} → ${calculatedProfit}`);
     }
     
     console.log(`Total profit calculated for ${reportType} report, invoice ID: ${invoice.id}: ${calculatedProfit}`);
