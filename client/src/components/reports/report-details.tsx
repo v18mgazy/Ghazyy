@@ -627,6 +627,7 @@ export default function ReportDetails({
                           <TableHead className="font-medium text-primary-dark dark:text-primary-light py-3">{t('customer')}</TableHead>
                           <TableHead className="font-medium text-primary-dark dark:text-primary-light py-3">{t('details')}</TableHead>
                           <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('amount')}</TableHead>
+                          <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('discount')}</TableHead>
                           <TableHead className="font-medium text-primary-dark dark:text-primary-light py-3">{t('status')}</TableHead>
                           <TableHead className="font-medium text-right text-primary-dark dark:text-primary-light py-3">{t('profit')}</TableHead>
                         </TableRow>
@@ -657,8 +658,33 @@ export default function ReportDetails({
                             </TableCell>
                             <TableCell className="font-bold text-right text-slate-700 dark:text-slate-200">
                               <div className="bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-900/5 py-1 px-2 rounded-md inline-block">
-                                {formatCurrency(report.amount)}
+                                {report.subtotal && report.subtotal !== report.amount ? (
+                                  <div className="flex flex-col">
+                                    <span className="line-through text-muted-foreground text-xs">
+                                      {formatCurrency(report.subtotal)}
+                                    </span>
+                                    <span>{formatCurrency(report.amount)}</span>
+                                  </div>
+                                ) : (
+                                  formatCurrency(report.amount)
+                                )}
                               </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {report.discount && report.discount > 0 ? (
+                                <span className="text-primary bg-primary/10 px-2 py-1 rounded-md inline-flex justify-center items-center">
+                                  <span className="text-primary font-medium mr-1">
+                                    {formatCurrency(report.discount)}
+                                  </span>
+                                  {report.discountPercentage && (
+                                    <span className="text-xs text-muted-foreground">
+                                      ({report.discountPercentage}%)
+                                    </span>
+                                  )}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
                             </TableCell>
                             <TableCell>
                               <Badge 
