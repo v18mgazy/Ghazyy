@@ -2102,13 +2102,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let totalProfit = 0;
       for (const product of productData) {
-        // التحقق من وجود سعر البيع وسعر الشراء وكمية صالحة
+        console.log(`[${reportType}] بيانات المنتج الأصلية: ${JSON.stringify(product)}`);
+        
+        // التحقق من وجود سعر البيع وسعر الشراء وكمية صالحة - معالجة مختلف تنسيقات الأسماء
         let purchasePrice = parseFloat(product.purchasePrice) || 0;
-        const sellingPrice = parseFloat(product.price) || 0;
+        // استخراج سعر البيع من مختلف الحقول المحتملة
+        const sellingPrice = parseFloat(product.price || product.sellingPrice || '0') || 0;
         const quantity = parseInt(product.quantity) || 0;
         const productId = product.productId || product.id;
         const barcode = product.barcode;
         const productName = product.productName || product.name || 'غير معروف';
+        
+        console.log(`[${reportType}] معالجة منتج "${productName}": سعر البيع=${sellingPrice}, سعر الشراء=${purchasePrice}, كمية=${quantity}`);
         
         // إذا كان سعر البيع صفر أو كمية صفر، نتخطى هذا المنتج
         if (sellingPrice <= 0 || quantity <= 0) {
