@@ -412,11 +412,14 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
     // إنشاء رقم فاتورة عشوائي
     const randomInvoiceNumber = `INV-${Math.floor(Math.random() * 900000) + 100000}`;
     
-    // حساب قيمة خصم الفاتورة
+    // حساب قيمة خصم الفاتورة بشكل صحيح
     const subtotalAfterProductDiscount = subtotal - totalDiscount;
     const invoiceDiscountAmount = invoiceDiscount > 0 
       ? (subtotalAfterProductDiscount * (invoiceDiscount / 100)) 
       : 0;
+    
+    // حساب الإجمالي النهائي مع مراعاة جميع الخصومات
+    const finalTotal = Number((subtotalAfterProductDiscount - invoiceDiscountAmount).toFixed(2));
     
     // إنشاء كائن الفاتورة للإرسال
     const invoice = {
@@ -432,7 +435,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       itemsDiscount: totalDiscount,
       invoiceDiscount: invoiceDiscountAmount,
       discountPercentage: invoiceDiscount,
-      total: total,
+      total: finalTotal, // استخدام الإجمالي المحسوب بدقة بعد تطبيق جميع الخصومات
       notes: invoiceNotes,
       products: invoiceItems
     };
