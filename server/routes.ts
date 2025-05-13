@@ -2348,19 +2348,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[حساب الربح - تحسين] [${reportType}] تحويل نسبة الخصم ${invoiceDiscountPercentage}% إلى قيمة: ${totalInvoiceDiscount}`);
       }
       
-      // 3. تطبيق الخصم على الربح بشكل متناسب
+      // 3. لا نعدل الربح بناءً على النسب المئوية بعد الآن - نستخدم قيمة الربح المحسوبة مباشرة من المنتجات
       const originalProfit = totalProfit;
-      if (totalInvoiceDiscount > 0 && subtotal > 0) {
-        // نسبة الربح إلى إجمالي الفاتورة
-        const profitRatio = originalProfit / subtotal;
-        
-        // حصة الربح من الخصم
-        const discountOnProfit = totalInvoiceDiscount * profitRatio;
-        
-        // تطبيق الخصم على الربح
-        totalProfit = Math.max(0, originalProfit - discountOnProfit);
-        
-        console.log(`[حساب الربح - تحسين] [${reportType}] تطبيق خصم الفاتورة (${totalInvoiceDiscount}) على الربح بنسبة ${(profitRatio * 100).toFixed(1)}%: ${originalProfit} → ${totalProfit}`);
+      
+      // تسجيل الربح النهائي بدون أي تعديلات إضافية
+      console.log(`[حساب الربح - تحسين] [${reportType}] الربح النهائي بعد حساب تأثير الخصم: ${originalProfit}`);
+      
+      // التأكد من أن الربح لا يمكن أن يكون سالباً
+      if (totalProfit < 0) {
+        totalProfit = 0;
+        console.log(`[حساب الربح - تحسين] [${reportType}] تعديل الربح السالب إلى صفر`);
       }
       
       // 4. تحضير معلومات إضافية للتقارير
