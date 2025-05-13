@@ -223,14 +223,34 @@ export default function BarcodeScanner({ onProductScanned, continueScanning = fa
       </CardHeader>
       
       <CardContent className="p-3">
-        {/* Mensaje de éxito - Visible solo en modo continuo */}
-        {continueScanning && successMessage && (
-          <div className="mb-3 bg-green-50 border border-green-200 rounded-lg p-2.5 flex items-center animate-in fade-in slide-in-from-top-5 duration-300">
-            <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-            <div>
-              <p className="text-green-800 font-medium text-sm">{t('product_added')}</p>
-              <p className="text-green-700 text-xs">{successMessage}</p>
-            </div>
+        {/* Mensaje de éxito y contador - Visible solo en modo continuo */}
+        {continueScanning && (
+          <div className="mb-3">
+            {/* Mensaje de éxito cuando se agrega un producto */}
+            {successMessage && (
+              <div className="mb-2 bg-green-50 border border-green-200 rounded-lg p-2.5 flex items-center animate-in fade-in slide-in-from-top-5 duration-300">
+                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                <div>
+                  <p className="text-green-800 font-medium text-sm">{t('product_added')}</p>
+                  <p className="text-green-700 text-xs">{successMessage}</p>
+                </div>
+              </div>
+            )}
+            
+            {/* Mostrar botón de reset si ya se han escaneado productos */}
+            {scannedCount > 0 && (
+              <div className="flex justify-end">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setScannedCount(0)}
+                  className="text-xs px-2 py-1 h-7"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  {t('reset_counter')}
+                </Button>
+              </div>
+            )}
           </div>
         )}
         
