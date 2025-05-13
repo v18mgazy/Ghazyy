@@ -388,10 +388,11 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
     // إنشاء البيانات اللازمة للفاتورة
     // حساب قيمة خصم الفاتورة أولاً
     const subtotalBeforeInvoiceDiscount = invoiceProducts.reduce((sum, product) => {
-      const productDiscount = product.discount || 0;
+      const productDiscount = product.discount || 0; // هنا الخصم يمثل قيمة مباشرة وليس نسبة مئوية
       const productPrice = product.sellingPrice;
       const productQuantity = product.quantity;
-      return sum + (productPrice * productQuantity * (1 - (productDiscount / 100)));
+      // حساب سعر المنتج بعد الخصم المباشر ثم ضربه في الكمية
+      return sum + ((productPrice - productDiscount) * productQuantity);
     }, 0);
     
     // تحضير خصم الفاتورة مع التأكد من أنه لا يتجاوز إجمالي الفاتورة
@@ -407,8 +408,8 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       const productPrice = product.sellingPrice;
       const productQuantity = product.quantity;
       
-      // حساب إجمالي سعر المنتج بعد خصم المنتج
-      const productTotalAfterProductDiscount = productPrice * productQuantity * (1 - (productDiscount / 100));
+      // حساب إجمالي سعر المنتج بعد خصم المنتج - اعتبار الخصم قيمة مباشرة وليس نسبة مئوية
+      const productTotalAfterProductDiscount = (productPrice - productDiscount) * productQuantity;
       
       // حساب نسبة هذا المنتج من إجمالي الفاتورة (بعد الخصومات على مستوى المنتج)
       const productRatioOfInvoice = productTotalAfterProductDiscount / subtotalBeforeInvoiceDiscount;
@@ -422,12 +423,12 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       // حساب الربح مع مراعاة خصم المنتج وخصم الفاتورة
       const purchasePrice = product.purchasePrice || 0;
       
-      // الربح الأساسي بعد خصم المنتج وقبل خصم الفاتورة
-      const basicProfit = (productPrice * (1 - (productDiscount / 100)) - purchasePrice) * productQuantity;
+      // الربح الأساسي بعد خصم المنتج وقبل خصم الفاتورة - استخدام الخصم كقيمة مباشرة
+      const basicProfit = ((productPrice - productDiscount) - purchasePrice) * productQuantity;
       
       // حساب الربح النهائي بالمعادلة المطلوبة: اجمالي الارباح = سعر البيع - سعر الشراء - الخصم
       // 1. حساب قيمة الخصم الإجمالية للمنتج (خصم المنتج + نصيبه من خصم الفاتورة)
-      const priceAfterProductDiscount = productPrice * (1 - (productDiscount / 100));
+      const priceAfterProductDiscount = productPrice - productDiscount;
       const productDiscountAmount = (productPrice - priceAfterProductDiscount) * productQuantity;
       const totalDiscount = productDiscountAmount + productShareOfInvoiceDiscount;
       

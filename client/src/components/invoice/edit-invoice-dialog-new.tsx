@@ -27,7 +27,8 @@ function calculateProductProfit(product: any, invoiceDiscount: number, subtotal:
   }
   
   // إجمالي الخصم على المنتج (خصم المنتج + حصته من خصم الفاتورة)
-  const totalDiscount = (price - priceAfterProductDiscount) * quantity + productShareOfInvoiceDiscount;
+  const productDiscountTotal = productDiscount * quantity; // خصم المنتج
+  const totalDiscount = productDiscountTotal + productShareOfInvoiceDiscount;
   
   // تطبيق المعادلة المطلوبة: اجمالي الارباح = سعر البيع - سعر الشراء - الخصم
   const totalProfit = (price * quantity) - (purchasePrice * quantity) - totalDiscount;
