@@ -556,7 +556,8 @@ export class RealtimeDBStorage implements IStorage {
         const updatedInvoice = {
           ...currentInvoice,
           ...invoiceData,
-          updatedAt: new Date().toISOString().replace('Z', '')
+          // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+          updatedAt: new Date().toLocaleString('sv-SE').replace(' ', 'T')
         };
         
         console.log('Final updated invoice data:', updatedInvoice);
@@ -887,10 +888,14 @@ export class RealtimeDBStorage implements IStorage {
   async createPaymentApproval(approval: InsertPaymentApproval): Promise<PaymentApproval> {
     try {
       const id = this.generateId('paymentApprovals');
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const now = new Date();
+      const localDateString = now.toLocaleString('sv-SE').replace(' ', 'T');
+      
       const newApproval: PaymentApproval = {
         id,
         ...approval,
-        createdAt: new Date().toISOString()
+        createdAt: localDateString
       };
       
       await set(ref(database, `paymentApprovals/${id}`), newApproval);
@@ -1579,11 +1584,15 @@ export class RealtimeDBStorage implements IStorage {
   async createNotification(notification: InsertNotification): Promise<Notification> {
     try {
       const id = this.generateId('notifications');
+      // استخدام التوقيت المحلي بدلاً من التوقيت العالمي
+      const now = new Date();
+      const localDateString = now.toLocaleString('sv-SE').replace(' ', 'T');
+      
       const newNotification: Notification = {
         id,
         ...notification,
         isRead: false,
-        createdAt: new Date().toISOString()
+        createdAt: localDateString
       };
       
       await set(ref(database, `notifications/${id}`), newNotification);
