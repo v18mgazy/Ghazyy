@@ -201,7 +201,7 @@ export default function ReportDetails({
             </CardTitle>
           </CardHeader>
           <CardContent className="relative">
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
                   <TrendingUp className="h-4 w-4 text-primary/70" />
@@ -223,18 +223,106 @@ export default function ReportDetails({
                       if (sale.profit === undefined || sale.profit === null || sale.profit === 0) {
                         // إذا كان الربح غير موجود، نحسبه تقديريًا كنسبة 30% من قيمة البيع
                         const estimatedProfit = sale.amount * 0.3;
-                        console.log(`Using estimated profit (30%) for sale ${sale.id}: ${estimatedProfit}`);
                         return sum + estimatedProfit;
                       }
-                      console.log(`Using actual profit for sale ${sale.id}: ${sale.profit}`);
                       return sum + sale.profit;
                     }, 0);
-                    console.log(`Final calculated profit: ${totalProfit}`);
                     return formatCurrency(totalProfit);
                   })()}
                 </p>
               </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500/70">
+                    <line x1="19" y1="5" x2="5" y2="19"></line>
+                    <circle cx="6.5" cy="6.5" r="2.5"></circle>
+                    <circle cx="17.5" cy="17.5" r="2.5"></circle>
+                  </svg>
+                  {t('total_discounts')}
+                </p>
+                <p className="text-xl font-bold text-amber-600 dark:text-amber-400 flex items-baseline gap-2">
+                  {(() => {
+                    // حساب إجمالي الخصومات المطبقة
+                    const totalDiscounts = summaryGroups.sales.reduce((sum, sale) => {
+                      return sum + (sale.discount || 0);
+                    }, 0);
+                    
+                    // إذا كانت هناك خصومات، نعرض تأثيرها على الربح
+                    if (totalDiscounts > 0) {
+                      // حساب السعر الإجمالي قبل الخصم
+                      const totalBeforeDiscount = summaryGroups.sales.reduce((sum, sale) => {
+                        const subtotal = sale.subtotal || (sale.amount + (sale.discount || 0));
+                        return sum + subtotal;
+                      }, 0);
+                      
+                      // حساب النسبة المئوية للخصم
+                      const discountPercentage = ((totalDiscounts / totalBeforeDiscount) * 100).toFixed(1);
+                      
+                      return (
+                        <>
+                          {formatCurrency(totalDiscounts)}
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">({discountPercentage}%)</span>
+                        </>
+                      );
+                    }
+                    
+                    return formatCurrency(totalDiscounts);
+                  })()}
+                </p>
+              </div>
             </div>
+            
+            {/* قسم تحليل تأثير الخصم على الربح */}
+            {(() => {
+              // حساب إجمالي الخصومات المطبقة
+              const totalDiscounts = summaryGroups.sales.reduce((sum, sale) => {
+                return sum + (sale.discount || 0);
+              }, 0);
+              
+              // إذا كانت هناك خصومات، نعرض تحليل تأثيرها على الربح
+              if (totalDiscounts > 0) {
+                // حساب الربح الفعلي
+                const actualProfit = summaryGroups.sales.reduce((sum, sale) => {
+                  if (sale.profit === undefined || sale.profit === null || sale.profit === 0) {
+                    const estimatedProfit = sale.amount * 0.3;
+                    return sum + estimatedProfit;
+                  }
+                  return sum + sale.profit;
+                }, 0);
+                
+                // حساب الربح المقدر بدون خصم
+                const totalWithoutDiscount = summaryGroups.sales.reduce((sum, sale) => {
+                  const subtotal = sale.subtotal || (sale.amount + (sale.discount || 0));
+                  return sum + subtotal;
+                }, 0);
+                
+                // تقدير الربح بدون خصم باستخدام نفس نسبة الربح إلى المبيعات
+                const totalSales = summaryGroups.sales.reduce((sum, sale) => sum + sale.amount, 0);
+                const profitRatio = actualProfit / totalSales;
+                const estimatedProfitWithoutDiscount = totalWithoutDiscount * profitRatio;
+                
+                // حساب نسبة تقليل الربح بسبب الخصم
+                const profitReduction = estimatedProfitWithoutDiscount - actualProfit;
+                const profitReductionPercentage = ((profitReduction / estimatedProfitWithoutDiscount) * 100).toFixed(1);
+                
+                return (
+                  <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-800">
+                    <div className="flex gap-2 text-sm text-gray-600 dark:text-gray-300 items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500/70"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                      <span className="font-medium">{t('discount_impact_analysis')}:</span> 
+                      <span className="text-amber-600 dark:text-amber-400 font-medium">
+                        {formatCurrency(profitReduction)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        ({profitReductionPercentage}% {t('profit_reduction')})
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+              
+              return null;
+            })()}
           </CardContent>
         </Card>
 

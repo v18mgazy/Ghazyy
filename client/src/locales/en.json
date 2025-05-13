@@ -1,4 +1,8 @@
 {
+  "discount_impact": "Discount Impact",
+  "discount_impact_analysis": "Discount Impact Analysis",
+  "profit_reduction": "profit reduction",
+  "total_discounts": "Total Discounts",
   "change_password": "Change Password",
   "change_password_description": "Enter your current password and a new password to update your account.",
   "current_password": "Current Password",

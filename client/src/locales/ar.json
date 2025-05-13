@@ -1,4 +1,8 @@
 {
+  "discount_impact": "تأثير الخصم",
+  "discount_impact_analysis": "تحليل تأثير الخصم",
+  "profit_reduction": "نقص في الربح",
+  "total_discounts": "إجمالي الخصومات",
   "change_password": "تغيير كلمة المرور",
   "change_password_description": "أدخل كلمة المرور الحالية وكلمة المرور الجديدة لتحديث حسابك.",
   "current_password": "كلمة المرور الحالية",
