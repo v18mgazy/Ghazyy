@@ -54,8 +54,11 @@ export async function calculateProfitFromProductsData(invoice: any, reportType =
             // حساب السعر النهائي بعد جميع الخصومات
             const finalSellingPrice = productDiscountedPrice * (1 - invoiceDiscountRate);
             
-            // حساب الربح النهائي
+            // حساب الربح النهائي بعد تأثير جميع الخصومات
             const productProfit = (finalSellingPrice - purchasePrice) * quantity;
+            
+            // تأكيد أن الخصم أثر على الربح بشكل واضح
+            console.log(`[${reportType}] خصم المنتج ${discount}% وخصم الفاتورة ${(invoiceDiscountRate*100).toFixed(1)}% أدى إلى تقليل الربح من ${((sellingPrice - purchasePrice) * quantity).toFixed(2)} إلى ${productProfit.toFixed(2)}`);
             
             console.log(`[${reportType}] [تفاصيل تأثير الخصم] سعر المنتج: ${sellingPrice}، بعد خصم المنتج (${discount}%): ${productDiscountedPrice}، بعد خصم الفاتورة (${(invoiceDiscountRate*100).toFixed(1)}%): ${finalSellingPrice}، الربح النهائي: ${productProfit}`);
             calculatedProfit += productProfit;
