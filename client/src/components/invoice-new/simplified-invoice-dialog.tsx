@@ -349,13 +349,15 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       const foundProduct = products.find((p: any) => p.barcode === result.barcode);
       
       if (foundProduct) {
+        // إضافة المنتج
         handleAddProduct(foundProduct);
-        // لا نغلق نافذة الماسح الضوئي للسماح بمسح منتجات متعددة متتالية
-        toast({
-          title: t('success'),
-          description: t('product_found_and_added'),
-        });
+        
+        // إغلاق نافذة الماسح الضوئي فوراً
+        setShowBarcodeScanner(false);
+        
+        // بدون إشعار
       } else {
+        // في حالة عدم العثور على المنتج، نعرض إشعار خطأ
         toast({
           title: t('error'),
           description: t('product_not_found'),
@@ -736,7 +738,8 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                             <div className="my-1">
                               <BarcodeScanner 
                                 onProductScanned={handleBarcodeScanned} 
-                                continueScanning={true} 
+                                continueScanning={false} 
+                                checkInventory={true} 
                               />
                             </div>
                             

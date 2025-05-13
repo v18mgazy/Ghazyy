@@ -4,7 +4,6 @@ import { useLocale } from '@/hooks/use-locale';
 import { Button } from '@/components/ui/button';
 import { ReceiptText, Plus, ArrowRight, Loader2, ShoppingCart } from 'lucide-react';
 import BarcodeScanner from '@/components/barcode-scanner';
-import ActiveInvoice from '@/components/invoice/active-invoice';
 // استيراد مكون إنشاء الفاتورة المبسط
 import SimplifiedInvoiceDialog from '@/components/invoice-new/simplified-invoice-dialog';
 import { useQuery } from '@tanstack/react-query';
@@ -21,7 +20,7 @@ export default function SalesPage() {
   
   const [activeCustomer, setActiveCustomer] = useState<Customer | null>(null);
   const [showScanner, setShowScanner] = useState(false);
-  const [lastScannedProduct, setLastScannedProduct] = useState<Product | null>(null);
+  const [lastScannedProduct, setLastScannedProduct] = useState<any | null>(null);
   
   // حالة النافذة المنبثقة لإنشاء الفاتورة
   const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
@@ -31,15 +30,7 @@ export default function SalesPage() {
     queryKey: ['/api/products'],
     refetchInterval: 30 * 1000,     // تحديث البيانات كل 30 ثانية
     refetchOnWindowFocus: true,     // تحديث البيانات عند العودة للصفحة
-    staleTime: 20 * 1000,           // اعتبار البيانات قديمة بعد 20 ثانية
-    onError: (error) => {
-      toast({
-        title: t('error'),
-        description: t('products_fetch_error'),
-        variant: 'destructive'
-      });
-      console.error('Failed to fetch products:', error);
-    }
+    staleTime: 20 * 1000            // اعتبار البيانات قديمة بعد 20 ثانية
   });
   
   // استعلام للعملاء
@@ -47,15 +38,7 @@ export default function SalesPage() {
     queryKey: ['/api/customers'],
     refetchInterval: 45 * 1000,     // تحديث البيانات كل 45 ثانية
     refetchOnWindowFocus: true,     // تحديث البيانات عند العودة للصفحة
-    staleTime: 30 * 1000,           // اعتبار البيانات قديمة بعد 30 ثانية
-    onError: (error) => {
-      toast({
-        title: t('error'),
-        description: t('customers_fetch_error'),
-        variant: 'destructive'
-      });
-      console.error('Failed to fetch customers:', error);
-    }
+    staleTime: 30 * 1000            // اعتبار البيانات قديمة بعد 30 ثانية
   });
   
   const handleCustomerSelected = (customer: Customer) => {
@@ -63,14 +46,12 @@ export default function SalesPage() {
     setIsCreateInvoiceOpen(false);
   };
   
-  const handleProductScanned = (product: Product) => {
+  const handleProductScanned = (product: any) => {
     setLastScannedProduct(product);
     setShowScanner(false);
     
-    // إرسال المنتج المفحوص إلى الفاتورة النشطة (إذا كانت موجودة)
-    if (document.getElementById('add-scanned-product-to-invoice')) {
-      document.getElementById('add-scanned-product-to-invoice')?.click();
-    }
+    // نفتح نافذة إنشاء الفاتورة مباشرة بعد المسح
+    setIsCreateInvoiceOpen(true);
   };
   
   const handleCloseInvoice = () => {
@@ -118,7 +99,7 @@ export default function SalesPage() {
           </div>
           
           {/* قسم ماسح الباركود */}
-          <BarcodeScanner onProductScanned={handleProductScanned} />
+          <BarcodeScanner onProductScanned={(product: any) => handleProductScanned(product)} />
           
           {/* تمت إزالة قسم المنتجات الأخيرة بناءً على طلب العميل */}
           
@@ -137,20 +118,27 @@ export default function SalesPage() {
           </div>
         </div>
       ) : (
-        /* فاتورة نشطة */
-        <>
-          {showScanner && (
-            <div className="mb-6">
-              <BarcodeScanner onProductScanned={handleProductScanned} />
-            </div>
-          )}
-          <ActiveInvoice 
-            customer={activeCustomer} 
-            onClose={handleCloseInvoice}
-            onAddProduct={handleActivateScanner}
-            products={products || []}
-          />
-        </>
+        /* نافذة مؤقتة بدلا من فاتورة نشطة */
+        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-border">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">
+              {t('invoice_for')} {activeCustomer.name}
+            </h2>
+            <Button variant="outline" size="sm" onClick={handleCloseInvoice}>
+              {t('close')}
+            </Button>
+          </div>
+          
+          <div className="text-center py-8">
+            <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+            <p className="text-muted-foreground mb-4">
+              {t('invoice_component_removed')}
+            </p>
+            <Button onClick={() => setIsCreateInvoiceOpen(true)}>
+              {t('create_invoice_new_dialog')}
+            </Button>
+          </div>
+        </div>
       )}
       
       {/* نافذة إنشاء الفاتورة المنبثقة المبسطة والمحسنة */}

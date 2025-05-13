@@ -182,16 +182,12 @@ export default function BarcodeScanner({
         // إضافة المنتج مباشرة إلى الفاتورة بدون تأكيد
         onProductScanned(product);
         
-        // إغلاق نافذة الماسح
+        // إغلاق نافذة الماسح بشكل كامل وفوري
         stopScanner();
+        setCameraStatus('idle');
         
-        // إضافة إشعار بنجاح الإضافة
-        toast({
-          title: t('product_added'),
-          description: `${product.name} - ${formatCurrency(product.sellingPrice)}`,
-          variant: 'default',
-          duration: 2000
-        });
+        // التأكد من إزالة أي آثار لحالة المسح
+        setIsScanning(false);
         
         // زيادة عدد المنتجات الممسوحة
         setScannedCount(prev => prev + 1);
