@@ -118,44 +118,213 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
     }
   };
   
-  // طباعة الفاتورة
+  // طباعة الفاتورة بتنسيق محسن
   const handlePrint = async () => {
     if (!invoiceRef.current) return;
     
     setIsPrinting(true);
     
     try {
-      const originalTransform = invoiceRef.current.style.transform;
-      invoiceRef.current.style.transform = 'scale(1)';
+      // إنشاء عنصر HTML لتعيين الفاتورة بتنسيق محسن
+      const invoiceElement = document.createElement('div');
       
-      const canvas = await html2canvas(invoiceRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
+      // استخراج البيانات اللازمة
+      const products = invoiceProducts || [];
+      
+      // إنشاء HTML للفاتورة بتنسيق محسن (باللغة الإنجليزية فقط للتوافق)
+      invoiceElement.innerHTML = `
+        <div style="font-family: Arial, sans-serif; width: 700px; padding: 20px; box-sizing: border-box; margin: 0 auto;">
+          <!-- Header -->
+          <div style="background-color: #2980b9; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">${storeInfo.name || 'Sales Ghazy'}</h1>
+            <p style="margin: 5px 0; font-size: 14px;">${storeInfo.address || ''}</p>
+            <p style="margin: 5px 0; font-size: 14px;">${storeInfo.phone || ''}</p>
+          </div>
+          
+          <!-- Invoice Information -->
+          <div style="margin: 20px 0; overflow: hidden;">
+            <div style="float: left; text-align: left; width: 50%;">
+              <h3 style="margin: 0 0 10px; color: #333; font-size: 16px; font-weight: bold;">
+                Invoice Information:
+              </h3>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Invoice Number:</strong> ${invoiceData.invoiceNumber}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Date:</strong> ${formatDate(invoiceData.date)}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Payment Method:</strong> ${getPaymentMethodName(invoiceData.paymentMethod)}
+              </p>
+            </div>
+            
+            <div style="float: right; text-align: right; width: 50%;">
+              <h3 style="margin: 0 0 10px; color: #333; font-size: 16px; font-weight: bold;">
+                Customer Information:
+              </h3>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Name:</strong> ${invoiceData.customerName}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Phone:</strong> ${invoiceData.customerPhone || 'N/A'}
+              </p>
+              <p style="margin: 5px 0; font-size: 14px; color: #555;">
+                <strong>Address:</strong> ${invoiceData.customerAddress || 'N/A'}
+              </p>
+            </div>
+          </div>
+          
+          <!-- Products Table -->
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #ddd;">
+            <thead>
+              <tr style="background-color: #f2f2f2;">
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Product</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Price</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Quantity</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${products.map((item, index) => {
+                const productTotal = item.sellingPrice * item.quantity;
+                const discountAmount = item.discount ? (productTotal * (item.discount / 100)) : 0;
+                const finalTotal = productTotal - discountAmount;
+                
+                return `
+                <tr>
+                  <td style="padding: 10px; border: 1px solid #ddd;">
+                    <div style="font-weight: 500;">${item.productName}</div>
+                    ${item.discount > 0 ? `<div style="font-size: 12px; color: #777;">${item.discount}% discount</div>` : ''}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">
+                    ${formatCurrency(item.sellingPrice)}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                    ${item.quantity}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">
+                    ${formatCurrency(finalTotal)}
+                  </td>
+                </tr>
+              `}).join('')}
+            </tbody>
+          </table>
+          
+          <!-- Payment Summary -->
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: right; width: 300px; margin-left: auto;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span style="font-weight: bold; color: #555;">Subtotal:</span>
+              <span>${formatCurrency(invoiceData.subtotal)}</span>
+            </div>
+            
+            ${(invoiceData.itemsDiscount && invoiceData.itemsDiscount > 0) ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #555;">Items Discount:</span>
+                <span>${formatCurrency(invoiceData.itemsDiscount)}</span>
+              </div>
+            ` : ''}
+            
+            ${(invoiceData.invoiceDiscount && invoiceData.invoiceDiscount > 0) ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #555;">Invoice Discount:</span>
+                <span>${formatCurrency(invoiceData.invoiceDiscount)}</span>
+              </div>
+            ` : ''}
+            
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 16px; border-top: 1px solid #ddd; padding-top: 10px;">
+              <span style="font-weight: bold; color: #333;">Total:</span>
+              <span style="font-weight: bold; color: #2980b9;">${formatCurrency(invoiceData.total)}</span>
+            </div>
+          </div>
+          
+          <!-- Thank You Message -->
+          <div style="text-align: center; margin-top: 30px; color: #2980b9; font-style: italic;">
+            <p>Thank you for your business! We look forward to serving you again.</p>
+          </div>
+          
+          <!-- Footer -->
+          <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #999;">
+            <p>© ${new Date().getFullYear()} Sales Ghazy - ${new Date().toLocaleDateString('en-US')}</p>
+          </div>
+        </div>
+      `;
+      
+      // إضافة CSS للطباعة
+      const printStyles = `
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #printable-invoice, #printable-invoice * {
+            visibility: visible;
+          }
+          #printable-invoice {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+        }
+      `;
+      
+      // إضافة عنصر الفاتورة مؤقتًا للصفحة
+      Object.assign(invoiceElement.style, {
+        position: 'absolute',
+        left: '-9999px',
+        top: '-9999px',
+        zIndex: '-9999'
       });
+      document.body.appendChild(invoiceElement);
       
-      invoiceRef.current.style.transform = originalTransform;
-      
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`invoice-${invoiceData.invoiceNumber}.pdf`);
-      
-      toast({
-        title: t('success'),
-        description: t('invoice_printed_successfully'),
-      });
+      try {
+        // التقاط الفاتورة كصورة باستخدام html2canvas
+        const canvas = await html2canvas(invoiceElement, {
+          scale: 2, // زيادة الدقة للحصول على جودة أفضل
+          logging: false,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+        });
+        
+        // إزالة عنصر الفاتورة المؤقت
+        document.body.removeChild(invoiceElement);
+        
+        // تحويل الصورة إلى PDF
+        const imgData = canvas.toDataURL('image/png');
+        
+        // إنشاء PDF بنفس أبعاد الصورة
+        const pdfWidth = 210; // حجم A4 بالملم
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        const pdf = new jsPDF({
+          orientation: pdfHeight > pdfWidth ? 'portrait' : 'landscape',
+          unit: 'mm',
+          format: [pdfWidth, pdfHeight]
+        });
+        
+        // إضافة الصورة إلى PDF
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        
+        // حفظ ملف PDF
+        pdf.save(`invoice-${invoiceData.invoiceNumber}.pdf`);
+        
+        toast({
+          title: t('success'),
+          description: t('invoice_printed_successfully'),
+        });
+      } catch (error) {
+        console.error('Error printing invoice:', error);
+        if (document.body.contains(invoiceElement)) {
+          document.body.removeChild(invoiceElement);
+        }
+        toast({
+          title: t('error'),
+          description: t('error_printing_invoice'),
+          variant: 'destructive',
+        });
+      }
     } catch (error) {
-      console.error('Error printing invoice:', error);
+      console.error('Error creating PDF:', error);
       toast({
         title: t('error'),
         description: t('error_printing_invoice'),
