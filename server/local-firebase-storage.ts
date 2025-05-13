@@ -399,7 +399,8 @@ export class LocalFirebaseStorage implements IStorage {
     const newInvoice: Invoice = {
       id: invoiceId,
       ...invoice,
-      createdAt: invoice.createdAt || new Date() // استخدام التاريخ المقدم أو إنشاء تاريخ جديد
+      // استخدام التاريخ المقدم أو إنشاء تاريخ جديد بالتنسيق المحلي كنص
+      createdAt: invoice.createdAt || new Date().toLocaleString()
     };
     
     this.invoices.set(newInvoice.id, newInvoice);
@@ -425,9 +426,9 @@ export class LocalFirebaseStorage implements IStorage {
     const newInvoice: Invoice = {
       id,
       ...invoiceData,
-      // استخدام التاريخ المقدم أو إنشاء تاريخ جديد
-      createdAt: invoiceData.createdAt || new Date(),
-      date: invoiceData.date || invoiceData.createdAt || new Date()
+      // استخدام التاريخ المقدم أو إنشاء تاريخ جديد بالتنسيق المحلي كنص
+      createdAt: invoiceData.createdAt || new Date().toLocaleString(),
+      date: invoiceData.date || invoiceData.createdAt || new Date().toLocaleString()
     };
     
     this.invoices.set(newInvoice.id, newInvoice);
