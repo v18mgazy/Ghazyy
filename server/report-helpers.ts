@@ -7,7 +7,7 @@
  * @param reportType - نوع التقرير (daily, weekly, monthly, yearly)
  * @returns إجمالي الربح المحسوب
  */
-export function calculateProfitFromProductsData(invoice: any, reportType = 'unknown'): number {
+export async function calculateProfitFromProductsData(invoice: any, reportType = 'unknown'): Promise<number> {
   let calculatedProfit = 0;
   
   try {
@@ -30,29 +30,28 @@ export function calculateProfitFromProductsData(invoice: any, reportType = 'unkn
             calculatedProfit += productProfit;
             console.log(`Calculated profit for product '${product.productName || product.name || 'Unknown'}': (${sellingPrice} - ${purchasePrice}) * ${quantity} = ${productProfit}`);
           } else {
-            // استخدام هامش ربح تقديري 30% فقط إذا لم تتوفر البيانات
+            // إذا لم تتوفر بيانات سعر الشراء، نسجل ملاحظة ونستخدم صفر للربح
             const sellingPrice = product.sellingPrice || product.price || 0;
             const quantity = Number(product.quantity) || 1;
-            const productProfit = (sellingPrice * quantity) * 0.3;
-            calculatedProfit += productProfit;
-            console.log(`Using estimated profit (30%) for product '${product.productName || product.name || 'Unknown'}': ${sellingPrice} * ${quantity} * 0.3 = ${productProfit}`);
+            console.warn(`No purchase price found for product '${product.productName || product.name || 'Unknown'}' - using zero profit`);
+            console.log(`Product '${product.productName || product.name || 'Unknown'}' has selling price: ${sellingPrice}, quantity: ${quantity}, but no purchase price`);
           }
         }
       } else {
         console.warn(`Products data is not an array for invoice ID: ${invoice.id}`);
       }
     } else {
-      // استخدام هامش ربح تقديري 30% فقط إذا لم تتوفر بيانات المنتجات
-      calculatedProfit = (invoice.total || 0) * 0.3;
-      console.log(`No products data found for invoice ID: ${invoice.id}, using estimated profit (30%): ${invoice.total} * 0.3 = ${calculatedProfit}`);
+      // في حالة عدم وجود بيانات للمنتجات، نستخدم صفر للربح
+      calculatedProfit = 0;
+      console.warn(`No products data found for invoice ID: ${invoice.id}, unable to calculate profit - using zero`);
     }
     
     console.log(`Total profit calculated for ${reportType} report, invoice ID: ${invoice.id}: ${calculatedProfit}`);
   } catch (err) {
     console.error(`Error calculating profit for ${reportType} report:`, err);
-    // في حالة فشل حساب الربح، نستخدم هامش الربح التقديري
-    calculatedProfit = (invoice.total || 0) * 0.3;
-    console.log(`Using fallback profit calculation due to error: ${invoice.total} * 0.3 = ${calculatedProfit}`);
+    // في حالة فشل حساب الربح، نعيد صفراً
+    calculatedProfit = 0;
+    console.warn(`Error calculating profit for invoice ID: ${invoice.id}, using zero profit`);
   }
   
   // تأكد من أن القيمة المُرجعة ليست NaN
@@ -183,7 +182,7 @@ export async function generateReport(params: ReportParams): Promise<any> {
     // حساب الإجماليات
     for (const invoice of filteredInvoices) {
       summary.totalSales += invoice.total || 0;
-      summary.totalProfit += calculateProfitFromProductsData(invoice, type);
+      summary.totalProfit += await calculateProfitFromProductsData(invoice, type);
     }
     
     for (const item of filteredDamagedItems) {
@@ -203,7 +202,7 @@ export async function generateReport(params: ReportParams): Promise<any> {
       for (const invoice of filteredInvoices) {
         const hour = new Date(invoice.date).getHours();
         chartData[hour].revenue += invoice.total || 0;
-        chartData[hour].profit += calculateProfitFromProductsData(invoice, 'daily');
+        chartData[hour].profit += await calculateProfitFromProductsData(invoice, 'daily');
       }
     } else if (type === 'weekly') {
       // 7 أيام في الأسبوع
@@ -213,7 +212,7 @@ export async function generateReport(params: ReportParams): Promise<any> {
       for (const invoice of filteredInvoices) {
         const dayIndex = new Date(invoice.date).getDay();
         chartData[dayIndex].revenue += invoice.total || 0;
-        chartData[dayIndex].profit += calculateProfitFromProductsData(invoice, 'weekly');
+        chartData[dayIndex].profit += await calculateProfitFromProductsData(invoice, 'weekly');
       }
     } else if (type === 'monthly') {
       // أيام الشهر (31 أقصى)
@@ -228,7 +227,7 @@ export async function generateReport(params: ReportParams): Promise<any> {
         const day = new Date(invoice.date).getDate();
         if (day >= 1 && day <= daysInMonth) {
           chartData[day - 1].revenue += invoice.total || 0;
-          chartData[day - 1].profit += calculateProfitFromProductsData(invoice, 'monthly');
+          chartData[day - 1].profit += await calculateProfitFromProductsData(invoice, 'monthly');
         }
       }
     } else if (type === 'yearly') {
@@ -239,7 +238,7 @@ export async function generateReport(params: ReportParams): Promise<any> {
       for (const invoice of filteredInvoices) {
         const monthIndex = new Date(invoice.date).getMonth();
         chartData[monthIndex].revenue += invoice.total || 0;
-        chartData[monthIndex].profit += calculateProfitFromProductsData(invoice, 'yearly');
+        chartData[monthIndex].profit += await calculateProfitFromProductsData(invoice, 'yearly');
       }
     }
     
@@ -276,18 +275,31 @@ export async function generateReport(params: ReportParams): Promise<any> {
                   productData.soldQuantity += Number(product.quantity) || 0;
                   productData.revenue += (product.sellingPrice || product.price || 0) * (Number(product.quantity) || 0);
                   
-                  // حساب الربح
+                  // حساب الربح باستخدام سعر الشراء الفعلي فقط
                   if (product.profit !== undefined && product.profit !== null) {
+                    // استخدام الربح المحسوب مسبقاً إذا كان متوفراً
                     productData.profit += Number(product.profit);
                   } else if (product.purchasePrice !== undefined && (product.sellingPrice || product.price)) {
+                    // حساب الربح من سعر الشراء والبيع
                     const sellingPrice = product.sellingPrice || product.price || 0;
                     const purchasePrice = Number(product.purchasePrice) || 0;
                     const quantity = Number(product.quantity) || 1;
                     productData.profit += (sellingPrice - purchasePrice) * quantity;
                   } else {
+                    // إذا لم يتوفر سعر الشراء، نبحث عنه في بيانات المنتج الأصلية
                     const sellingPrice = product.sellingPrice || product.price || 0;
                     const quantity = Number(product.quantity) || 1;
-                    productData.profit += (sellingPrice * quantity) * 0.3;
+                    
+                    // البحث عن المنتج في قائمة المنتجات بواسطة رقم التعريف أو الباركود
+                    const originalProduct = products.find(p => p.id == productId || p.barcode === product.barcode);
+                    if (originalProduct && originalProduct.purchasePrice && Number(originalProduct.purchasePrice) > 0) {
+                      const purchasePrice = Number(originalProduct.purchasePrice);
+                      const itemProfit = (sellingPrice - purchasePrice) * quantity;
+                      productData.profit += itemProfit;
+                      console.log(`Found purchase price ${purchasePrice} in product catalog for product ID: ${productId}, profit: ${itemProfit}`);
+                    } else {
+                      console.warn(`No purchase price found for product ID: ${productId} in invoice or catalog - using zero for profit calculation`);
+                    }
                   }
                   
                   productSalesMap.set(productId, productData);
@@ -312,7 +324,7 @@ export async function generateReport(params: ReportParams): Promise<any> {
     if (includeDetailedReports) {
       // إضافة الفواتير
       for (const invoice of filteredInvoices) {
-        const calculatedProfit = calculateProfitFromProductsData(invoice, 'detailed');
+        const calculatedProfit = await calculateProfitFromProductsData(invoice, 'detailed');
         
         detailedReports.push({
           id: invoice.id,
