@@ -140,10 +140,7 @@ export default function EditInvoiceDialog({
     return [];
   };
   
-  // Products in invoice
-  const [products, setProducts] = useState<any[]>(extractProducts(invoice));
-  
-  // استخراج قيمة الخصم من بيانات الفاتورة
+  // استخراج قيمة الخصم من بيانات الفاتورة - يجب أن يتم تعريف هذه الدالة قبل استخدامها
   const getInvoiceDiscount = (invoiceData: any): number => {
     console.log('Extracting discount from invoice data:', invoiceData);
     
@@ -189,6 +186,9 @@ export default function EditInvoiceDialog({
     queryKey: ['/api/products'],
     staleTime: 30000,
   });
+  
+  // تعريف حالة المنتجات بعد تعريف دالة استخراج المنتجات واستخراج الخصم
+  const [products, setProducts] = useState<any[]>(extractProducts(invoice));
   
   // نستخدم useEffect فقط للتسجيل في وحدة التحكم للتنقيح
   useEffect(() => {
