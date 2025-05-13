@@ -486,7 +486,8 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       customerName: selectedCustomer.name,
       customerPhone: selectedCustomer.phone,
       customerAddress: selectedCustomer.address,
-      date: invoiceDate.toISOString(), // استخدام التاريخ المختار من قبل المستخدم
+      // استخدام التاريخ والوقت الحالي من جهاز المستخدم بدلاً من التاريخ المختار
+      date: new Date().toISOString(),
       paymentMethod,
       paymentStatus,
       subtotal,
