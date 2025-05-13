@@ -93,8 +93,55 @@ export default function EditInvoiceDialog({
     address: invoice?.customerAddress || ''
   });
   
+  // استخراج المنتجات من البيانات المشفرة في الفاتورة
+  const extractProducts = (invoiceData: any): any[] => {
+    if (!invoiceData) return [];
+    
+    try {
+      // محاولة استخراج المنتجات من حقل productsData
+      if (invoiceData.productsData) {
+        const parsedProducts = JSON.parse(invoiceData.productsData);
+        console.log('Successfully parsed products from JSON:', parsedProducts);
+        return Array.isArray(parsedProducts) ? parsedProducts : [];
+      }
+      
+      // إذا كان هناك products موجود بالفعل، استخدمه
+      if (invoiceData.products && Array.isArray(invoiceData.products)) {
+        return invoiceData.products;
+      }
+      
+      // حالة بديلة: استخراج من الحقول المنفصلة
+      if (invoiceData.productIds && invoiceData.productNames && 
+          invoiceData.productQuantities && invoiceData.productPrices) {
+        
+        const productIds = invoiceData.productIds.split(',');
+        const productNames = invoiceData.productNames.split(',');
+        const productQuantities = invoiceData.productQuantities.split(',').map(Number);
+        const productPrices = invoiceData.productPrices.split(',').map(Number);
+        const productDiscounts = invoiceData.productDiscounts?.split(',').map(Number) || productIds.map(() => 0);
+        const productPurchasePrices = invoiceData.productPurchasePrices?.split(',').map(Number) || productIds.map(() => 0);
+        
+        return productIds.map((id: string, index: number) => ({
+          id: parseInt(id),
+          productId: parseInt(id),
+          name: productNames[index] || 'منتج غير معروف',
+          productName: productNames[index] || 'منتج غير معروف',
+          price: productPrices[index] || 0,
+          quantity: productQuantities[index] || 1,
+          discount: productDiscounts[index] || 0,
+          purchasePrice: productPurchasePrices[index] || 0,
+          barcode: '' // قد تكون غير متوفرة في الحقول المنفصلة
+        }));
+      }
+    } catch (error) {
+      console.error('Error extracting products from invoice:', error);
+    }
+    
+    return [];
+  };
+  
   // Products in invoice
-  const [products, setProducts] = useState<any[]>(invoice?.products || []);
+  const [products, setProducts] = useState<any[]>(extractProducts(invoice));
   
   // Invoice details
   const [invoiceDiscount, setInvoiceDiscount] = useState(0);
@@ -622,7 +669,7 @@ export default function EditInvoiceDialog({
                       inputMode="numeric"
                       min="0"
                       className="w-24 h-8 text-right"
-                      defaultValue="500"
+                      value={invoiceDiscount}
                       key={`invoice-discount-fixed`}
                       onChange={(e) => {
                         try {
