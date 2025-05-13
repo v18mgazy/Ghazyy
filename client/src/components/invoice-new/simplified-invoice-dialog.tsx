@@ -404,13 +404,14 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       // إجمالي سعر المنتج النهائي بعد جميع الخصومات
       const finalProductTotal = Number((productTotalAfterProductDiscount - productShareOfInvoiceDiscount).toFixed(2));
       
-      // حساب الربح - هام: لا يتأثر الربح بخصم الفاتورة، فقط بخصم المنتج إن وجد
+      // حساب الربح مع مراعاة خصم المنتج وخصم الفاتورة
       const purchasePrice = product.purchasePrice || 0;
       
-      // حساب الربح بدون تأثير خصم الفاتورة - الخصم يؤثر فقط على المبيعات وليس الأرباح
-      // نحسب خصم المنتج فقط إذا كان الخصم يؤثر على الربح (اختياري حسب سياسة المتجر)
-      // في هذه الحالة - نفترض أن خصم المنتج لا يؤثر على الربح أيضاً (حسب طلب المستخدم)
-      const finalProfit = Number(((productPrice - purchasePrice) * productQuantity).toFixed(2));
+      // الربح الأساسي بعد خصم المنتج وقبل خصم الفاتورة
+      const basicProfit = (productPrice * (1 - (productDiscount / 100)) - purchasePrice) * productQuantity;
+      
+      // الربح النهائي بعد تطبيق جميع الخصومات (يتأثر بخصم الفاتورة والمنتج)
+      const finalProfit = Number((basicProfit * (1 - invoiceDiscountRate)).toFixed(2));
       
       console.log(`منتج ${product.name}: سعر=${productPrice}, خصم المنتج=${productDiscount}%, سعر الشراء=${purchasePrice}, إجمالي بعد خصم المنتج=${productTotalAfterProductDiscount}, حصة خصم الفاتورة=${productShareOfInvoiceDiscount}, ربح=${finalProfit}`);
       
