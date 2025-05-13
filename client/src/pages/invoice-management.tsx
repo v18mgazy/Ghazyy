@@ -12,128 +12,58 @@ import { formatDate, formatCurrency } from '@/lib/utils';
 import { useAuthContext } from '@/context/auth-context';
 import { useLocale } from '@/hooks/use-locale';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-
-// استيراد أنواع البيانات
-import { Invoice, InvoiceProduct, Customer, Product } from "@shared/schema";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 
 // UI Components
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
-} from '@/components/ui/table';
-import { 
-  Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
-} from '@/components/ui/dialog';
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu';
-import {
-  Badge
-} from '@/components/ui/badge';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-
-// بيانات احتياطية تستخدم فقط في حالة عدم وجود بيانات في قاعدة البيانات
-const mockInvoices = [
-  {
-    id: 'INV-2025-1001',
-    date: new Date(2025, 4, 10),
-    customer: {
-      id: '1',
-      name: 'Ahmed Mohamed',
-      phone: '+20 123 456 7890',
-      address: '123 El-Nasr St., Cairo'
-    },
-    total: 159.99,
-    status: 'completed',
-    paymentMethod: 'cash',
-    items: [
-      {
-        id: 'item-1',
-        product: {
-          id: 'prod-1',
-          name: 'Samsung Galaxy S21',
-          barcode: '8590123456789',
-          code: 'SG-021',
-          purchasePrice: 100,
-          sellingPrice: 159.99
-        },
-        quantity: 1,
-        price: 159.99,
-        total: 159.99
-      }
-    ]
-  },
-  {
-    id: 'INV-2025-1002',
-    date: new Date(2025, 4, 9),
-    customer: {
-      id: '2',
-      name: 'Fatima Ali',
-      phone: '+20 111 222 3333',
-      address: '45 El-Tahrir St., Alexandria'
-    },
-    total: 49.98,
-    status: 'completed',
-    paymentMethod: 'visa',
-    items: [
-      {
-        id: 'item-2',
-        product: {
-          id: 'prod-2',
-          name: 'Wireless Headphones',
-          barcode: '7891234567890',
-          code: 'WH-101',
-          purchasePrice: 20,
-          sellingPrice: 49.99
-        },
-        quantity: 1,
-        price: 49.99,
-        total: 49.99
-      }
-    ]
-  },
-  {
-    id: 'INV-2025-1003',
-    date: new Date(2025, 4, 8),
-    customer: {
-      id: '3',
-      name: 'Youssef Hassan',
-      phone: '+20 100 200 3000',
-      address: '78 Al-Haram St., Giza'
-    },
-    total: 299.97,
-    status: 'pending',
-    paymentMethod: 'deferred',
-    items: [
-      {
-        id: 'item-3',
-        product: {
-          id: 'prod-3',
-          name: 'Laptop Backpack',
-          barcode: '6789012345678',
-          code: 'LB-201',
-          purchasePrice: 60,
-          sellingPrice: 99.99
-        },
-        quantity: 3,
-        price: 99.99,
-        total: 299.97
-      }
-    ]
-  }
-];
+  Input,
+  Button,
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+  Badge,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Separator,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  Switch,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui';
 
 export default function InvoiceManagement() {
   const { t } = useTranslation();
   const { language } = useLocale();
+  const isRTL = language === 'ar';
   const { user } = useAuthContext();
   const { toast } = useToast();
   const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
@@ -142,320 +72,246 @@ export default function InvoiceManagement() {
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
   const [isInvoiceDetailsOpen, setIsInvoiceDetailsOpen] = useState(false);
   const [detailsInvoice, setDetailsInvoice] = useState<any>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   
   // استخدام useQuery لجلب البيانات من الخادم
   const { data: dbInvoices, isLoading: isLoadingInvoices, error: invoicesError } = useQuery({
     queryKey: ['/api/invoices'],
-    staleTime: 30000,
+    refetchInterval: 30000,  // تحديث كل 30 ثانية
   });
   
-  // استعراض أي خطأ حدث أثناء جلب البيانات
-  React.useEffect(() => {
-    if (invoicesError) {
+  // عرض معلومات العملاء (لعرض اسم العميل في تفاصيل الفاتورة)
+  const { data: customers } = useQuery({
+    queryKey: ['/api/customers'],
+    refetchInterval: 30000,
+  });
+
+  // حالة تصفية وترتيب البيانات
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  
+  // عمليل QueryClient للتعامل مع المُخزن المؤقت
+  const queryClient = useQueryClient();
+  
+  // حذف الفاتورة
+  const deleteMutation = useMutation({
+    mutationFn: async (invoiceId: number) => {
+      const response = await axios.delete(`/api/invoices/${invoiceId}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      // تحديث المُخزن المؤقت بعد الحذف
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      
+      toast({
+        title: t('success'),
+        description: t('invoice_deleted_successfully'),
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting invoice:', error);
+      
       toast({
         title: t('error'),
-        description: t('invoices_fetch_error'),
+        description: t('error_deleting_invoice'),
         variant: 'destructive'
       });
     }
-  }, [invoicesError, toast, t]);
-  
-  // نستخدم بيانات العملاء المخزنة مع كل فاتورة
-  // نحن لا نحتاج إلى جلب بيانات العملاء مرة ثانية من قاعدة البيانات
-  // لأن معلومات العميل اللازمة متوفرة بالفعل في الفاتورة
-  
-  // معالجة وتحويل بيانات الفواتير القادمة من قاعدة البيانات
-  const processedInvoices = React.useMemo(() => {
-    // التأكد من أن الفواتير متاحة كمصفوفة
-    const invoices = Array.isArray(dbInvoices) ? dbInvoices : [];
-    
-    if (invoices.length === 0) {
-      console.log('No invoices available from database');
-      return []; // لا نستخدم بيانات مزيفة
-    }
-    
-    console.log('Processing invoices:', invoices);
-    
-    return invoices.map((invoice: any) => {
-      if (!invoice) {
-        console.warn('Found null invoice in data');
-        return null;
-      }
-      
-      // استخدام معلومات العميل المخزنة في الفاتورة مباشرة
-      console.log('Processing invoice:', invoice);
-      
-      // جلب المنتجات من الفاتورة إذا كانت متوفرة
-      let products = [];
-      
-      // محاولة استخدام الحقول المنفصلة أولاً (الطريقة الجديدة)
-      if (invoice.productIds && invoice.productNames && invoice.productQuantities && invoice.productPrices) {
-        try {
-          // تقسيم البيانات إلى مصفوفات
-          const productIds = invoice.productIds.split(',').map(id => parseInt(id));
-          const productNames = invoice.productNames.split('|');
-          const productQuantities = invoice.productQuantities.split(',').map(qty => parseFloat(qty));
-          const productPrices = invoice.productPrices.split(',').map(price => parseFloat(price));
-          const productDiscounts = invoice.productDiscounts ? 
-            invoice.productDiscounts.split(',').map(discount => parseFloat(discount)) : 
-            productIds.map(() => 0);
-          const productTotals = invoice.productTotals ? 
-            invoice.productTotals.split(',').map(total => parseFloat(total)) : 
-            productIds.map((_, index) => productQuantities[index] * productPrices[index]);
-          
-          // تجميع بيانات كل منتج
-          products = productIds.map((id, index) => {
-            return {
-              productId: id,
-              productName: productNames[index] || t('unknown_product'),
-              quantity: productQuantities[index] || 0,
-              price: productPrices[index] || 0,
-              discount: productDiscounts[index] || 0,
-              total: productTotals[index] || 0
-            };
-          });
-          
-          console.log(`Successfully built products data from separate fields for invoice ${invoice.id}:`, products);
-        } catch (error) {
-          console.error(`Error processing separated product data for invoice ${invoice.id}:`, error);
-          // في حالة فشل الحقول المنفصلة، نحاول استخدام productsData
-          if (invoice.productsData) {
-            try {
-              products = JSON.parse(invoice.productsData);
-              console.log(`Falling back to JSON productsData for invoice ${invoice.id}:`, products);
-            } catch (jsonError) {
-              console.error(`Error parsing productsData JSON for invoice ${invoice.id}:`, jsonError);
-            }
-          }
-        }
-      } 
-      // إذا فشلت الطريقة الجديدة أو لم تكن متوفرة، نحاول الطريقة القديمة (productsData)
-      else if (invoice.productsData) {
-        try {
-          products = JSON.parse(invoice.productsData);
-          console.log(`Using JSON productsData for invoice ${invoice.id}:`, products);
-        } catch (error) {
-          console.error(`Error parsing productsData JSON for invoice ${invoice.id}:`, error);
-        }
-      }
-      
-      // تنسيق المنتجات للعرض
-      const formattedItems = Array.isArray(products) ? products.map((product: any) => {
-        if (!product) return null;
-        
-        const productId = product.productId || 0;
-        const productName = product.productName || t('unknown_product');
-        const productPrice = product.price || 0;
-        const quantity = product.quantity || 1;
-        const total = product.total || (quantity * productPrice);
-        
-        return {
-          id: `item-${productId}-${Math.random().toString(36).substring(2, 7)}`,
-          product: {
-            id: productId,
-            name: productName,
-            code: product.barcode || '',
-            price: productPrice
-          },
-          quantity: quantity,
-          price: productPrice,
-          total: total
-        };
-      }).filter(Boolean) : [];
-      
-      return {
-        id: invoice.invoiceNumber || `INV-${invoice.id}`,
-        dbId: invoice.id,
-        date: new Date(invoice.date || Date.now()),
-        customer: {
-          id: invoice.customerId?.toString() || 'unknown',
-          name: invoice.customerName || t('unknown_customer'),
-          phone: invoice.customerPhone || '',
-          address: invoice.customerAddress || ''
-        },
-        total: invoice.total || 0,
-        status: invoice.paymentStatus || 'unknown',
-        paymentMethod: invoice.paymentMethod || 'unknown',
-        // إضافة المنتجات مباشرة بدلاً من جلبها لاحقًا
-        items: formattedItems,
-        // نحتفظ بنسخة من بيانات المنتجات الأصلية أيضًا
-        productsData: invoice.productsData
-      }
-    }).filter(Boolean); // إزالة القيم الفارغة
-  }, [dbInvoices, t]);
-  
-  // استخدام البيانات المعالجة أو البيانات المزيفة في حالة عدم وجود بيانات
-  const [invoices, setInvoices] = useState<any[]>([]);
-  
-  // تحديث حالة الفواتير عندما تتغير البيانات المعالجة
-  useEffect(() => {
-    if (processedInvoices && processedInvoices.length > 0) {
-      setInvoices(processedInvoices);
-    }
-  }, [processedInvoices]);
-  
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterPayment, setFilterPayment] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [invoicesPerPage] = useState(10);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
-  const [invoiceToDeleteDbId, setInvoiceToDeleteDbId] = useState<number | undefined>();
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  // استخدام queryClient من ملف استيراد بدلا من useQueryClient
-  
-  // Filter invoices based on search term and filters
-  const filteredInvoices = invoices.filter(invoice => {
-    const matchesSearch = 
-      invoice.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.customer.phone.includes(searchTerm);
-      
-    const matchesStatus = filterStatus === 'all' || invoice.status === filterStatus;
-    const matchesPayment = filterPayment === 'all' || invoice.paymentMethod === filterPayment;
-    
-    return matchesSearch && matchesStatus && matchesPayment;
   });
   
-  // Pagination
-  const indexOfLastInvoice = currentPage * invoicesPerPage;
-  const indexOfFirstInvoice = indexOfLastInvoice - invoicesPerPage;
-  const currentInvoices = filteredInvoices.slice(indexOfFirstInvoice, indexOfLastInvoice);
-  const totalPages = Math.ceil(filteredInvoices.length / invoicesPerPage);
-  
-  const changePage = (page: number) => {
-    setCurrentPage(page);
-  };
-  
-  // Function to get invoice products from the invoice object itself
-  const getInvoiceProducts = (invoice: any) => {
-    try {
-      // Method 1: نحاول استخراج بيانات المنتجات من حقل productsData
-      if (invoice && invoice.productsData) {
-        try {
-          // طباعة البيانات للتصحيح
-          console.log('Found productsData in invoice:', invoice.productsData);
-          
-          // تحويل سلسلة JSON إلى كائن جافاسكريبت
-          const parsedProducts = JSON.parse(invoice.productsData);
-          
-          // التأكد من أنها مصفوفة وتحتوي على عناصر
-          if (Array.isArray(parsedProducts) && parsedProducts.length > 0) {
-            console.log('Successfully parsed productsData with', parsedProducts.length, 'products:', parsedProducts);
-            return parsedProducts;
-          } else {
-            console.warn('productsData exists but is empty or not an array');
-          }
-        } catch (parseError) {
-          console.error('Error parsing productsData:', parseError);
-        }
-      } else {
-        console.log('No productsData field in invoice:', invoice);
-      }
-      
-      // Method 2: محاولة استخدام الحقول المنفصلة productIds, productNames, إلخ
-      console.log('Checking for separate product fields in invoice:', {
-        productIds: invoice?.productIds, 
-        productNames: invoice?.productNames,
-        productQuantities: invoice?.productQuantities,
-        productPrices: invoice?.productPrices
-      });
-      
-      if (invoice && invoice.productIds && invoice.productNames && 
-          invoice.productQuantities && invoice.productPrices) {
-        try {
-          console.log('Found separate product fields in invoice, attempting to reconstruct products');
-          
-          // تقسيم البيانات من السلاسل النصية إلى مصفوفات
-          const productIds = invoice.productIds.split(',').map((id: string) => parseInt(id.trim()));
-          const productNames = invoice.productNames.split('|');
-          const productQuantities = invoice.productQuantities.split(',').map((qty: string) => parseInt(qty.trim()));
-          const productPrices = invoice.productPrices.split(',').map((price: string) => parseFloat(price.trim()));
-          
-          // أرقام إضافية اختيارية
-          let productDiscounts: number[] = [];
-          let productTotals: number[] = [];
-          
-          if (invoice.productDiscounts) {
-            productDiscounts = invoice.productDiscounts.split(',').map((disc: string) => parseFloat(disc.trim() || '0'));
-          }
-          
-          if (invoice.productTotals) {
-            productTotals = invoice.productTotals.split(',').map((total: string) => parseFloat(total.trim() || '0'));
-          }
-          
-          console.log('Reconstructed arrays from separate fields:', {
-            productIds,
-            productNames,
-            productPrices,
-            productQuantities,
-            productDiscounts,
-            productTotals
-          });
-          
-          // التأكد من أن جميع المصفوفات لها نفس الطول
-          if (productIds.length === productNames.length && 
-              productIds.length === productPrices.length && 
-              productIds.length === productQuantities.length) {
-            
-            // إنشاء مصفوفة من كائنات المنتجات
-            const reconstructedProducts = productIds.map((id: number, index: number) => {
-              // حساب السعر الإجمالي إذا لم يكن متوفرًا
-              const total = index < productTotals.length && productTotals[index] 
-                ? productTotals[index] 
-                : (productPrices[index] * productQuantities[index]);
-                
-              // الخصم إذا كان متوفرًا
-              const discount = index < productDiscounts.length ? productDiscounts[index] : 0;
-              
-              return {
-                productId: id,
-                productName: productNames[index] || t('unknown_product'),
-                quantity: productQuantities[index] || 0,
-                price: productPrices[index] || 0,
-                total: total,
-                discount: discount
-              };
-            });
-            
-            console.log('Successfully reconstructed products from separate fields:', reconstructedProducts);
-            return reconstructedProducts;
-          } else {
-            console.warn('Separate product fields have inconsistent lengths');
-          }
-        } catch (reconstructError) {
-          console.error('Error reconstructing products from separate fields:', reconstructError);
-        }
-      }
-      
-      // Method 3: للتوافق مع الإصدارات السابقة - البحث عن حقل products
-      if (invoice && invoice.products && Array.isArray(invoice.products)) {
-        console.log('Using products array from invoice:', invoice.products);
-        return invoice.products;
-      }
-      
-      // Method 4: في حالة عدم وجود بيانات منتجات، نعرض إجمالي الفاتورة فقط
-      console.log('No products data found in invoice, creating placeholder from total:', invoice?.total);
-      return [
-        {
-          id: `item-${invoice?.id || 'unknown'}-1`,
-          productId: 0,
-          productName: t('products_total'),
-          quantity: 1,
-          price: invoice?.total || 0,
-          total: invoice?.total || 0,
-          discount: invoice?.discount || 0
-        }
-      ];
-    } catch (error) {
-      console.error('Error processing invoice products:', error);
-      return [];
+  // مسح الفاتورة
+  const handleDeleteInvoice = (invoiceId: number) => {
+    if (window.confirm(t('confirm_delete_invoice'))) {
+      deleteMutation.mutate(invoiceId);
     }
   };
-
-  // Open invoice details dialog with items
+  
+  // تحويل حالة الفاتورة إلى شارة ملونة
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge className="bg-green-500">{t('completed')}</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-500">{t('pending')}</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-red-500">{t('cancelled')}</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
+  
+  // تحويل طريقة الدفع إلى شارة ملونة
+  const getPaymentBadge = (method: string) => {
+    switch (method) {
+      case 'cash':
+        return <Badge className="bg-green-500">{t('cash')}</Badge>;
+      case 'card':
+        return <Badge className="bg-blue-500">{t('card')}</Badge>;
+      case 'deferred':
+        return <Badge className="bg-yellow-500">{t('deferred')}</Badge>;
+      default:
+        return <Badge>{method}</Badge>;
+    }
+  };
+  
+  // تصفية الفواتير حسب معايير البحث والفلترة
+  const filteredInvoices = React.useMemo(() => {
+    if (!dbInvoices) return [];
+    
+    return dbInvoices
+      .filter((invoice: any) => {
+        // تطبيق فلتر البحث
+        const searchLower = searchQuery.toLowerCase();
+        
+        const productNamesMatch = invoice.productNames 
+          ? invoice.productNames.toLowerCase().includes(searchLower)
+          : false;
+          
+        const customerNameMatch = invoice.customerName 
+          ? invoice.customerName.toLowerCase().includes(searchLower)
+          : false;
+          
+        const invoiceNumberMatch = invoice.invoiceNumber 
+          ? invoice.invoiceNumber.toLowerCase().includes(searchLower)
+          : false;
+        
+        const matchesSearch = 
+          !searchQuery || 
+          productNamesMatch || 
+          customerNameMatch || 
+          invoiceNumberMatch;
+        
+        // تطبيق الفلترة حسب الحالة والدفع
+        const matchesStatusFilter = statusFilter === 'all' || invoice.status === statusFilter;
+        const matchesPaymentFilter = paymentFilter === 'all' || invoice.paymentMethod === paymentFilter;
+        
+        // تطبيق فلتر نوع الفاتورة (جميع، اليوم، الأسبوع، الشهر)
+        const today = new Date();
+        const invoiceDate = new Date(invoice.createdAt);
+        
+        let matchesDateFilter = true;
+        if (filter === 'today') {
+          matchesDateFilter = (
+            invoiceDate.getDate() === today.getDate() &&
+            invoiceDate.getMonth() === today.getMonth() &&
+            invoiceDate.getFullYear() === today.getFullYear()
+          );
+        } else if (filter === 'week') {
+          const weekAgo = new Date();
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          matchesDateFilter = invoiceDate >= weekAgo;
+        } else if (filter === 'month') {
+          const monthAgo = new Date();
+          monthAgo.setMonth(monthAgo.getMonth() - 1);
+          matchesDateFilter = invoiceDate >= monthAgo;
+        }
+        
+        return matchesSearch && matchesStatusFilter && matchesPaymentFilter && matchesDateFilter;
+      })
+      .sort((a: any, b: any) => {
+        // تطبيق الترتيب
+        if (sortField === 'date' || sortField === 'createdAt') {
+          const dateA = new Date(a.createdAt);
+          const dateB = new Date(b.createdAt);
+          return sortDirection === 'asc' ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime();
+        }
+        
+        if (sortField === 'invoiceNumber') {
+          return sortDirection === 'asc' 
+            ? a.invoiceNumber.localeCompare(b.invoiceNumber) 
+            : b.invoiceNumber.localeCompare(a.invoiceNumber);
+        }
+        
+        if (sortField === 'total') {
+          return sortDirection === 'asc' ? a.total - b.total : b.total - a.total;
+        }
+        
+        // الترتيب الافتراضي حسب التاريخ (الأحدث أولاً)
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        return dateB.getTime() - dateA.getTime();
+      });
+  }, [dbInvoices, searchQuery, filter, statusFilter, paymentFilter, sortField, sortDirection, t]);
+  
+  // توزيع الفواتير على صفحات
+  const paginatedInvoices = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredInvoices.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredInvoices, currentPage, itemsPerPage]);
+  
+  // عدد الصفحات الكلي
+  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
+  
+  // تغيير الصفحة
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+  
+  // تغيير الترتيب
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+  
+  // احصل على رمز الترتيب
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown size={16} />;
+    }
+    
+    return sortDirection === 'asc' 
+      ? <ChevronUp size={16} /> 
+      : <ChevronDown size={16} />;
+  };
+  
+  // تحميل تفاصيل الفاتورة للتعديل
+  const handleEditInvoice = (invoice: any) => {
+    setEditingInvoice(invoice);
+    setIsEditInvoiceDialogOpen(true);
+  };
+  
+  // استخدام البارکود لإيجاد المنتج
+  const handleBarcodeDetected = (barcode: string) => {
+    setIsBarcodeDialogOpen(false);
+    
+    // البحث عن المنتج باستخدام الباركود
+    fetch(`/api/products/barcode/${barcode}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Product not found');
+        }
+        return response.json();
+      })
+      .then(product => {
+        console.log('Found product:', product);
+        setScannedProduct(product);
+        
+        toast({
+          title: t('product_found'),
+          description: `${product.name} - ${formatCurrency(product.price)}`,
+        });
+      })
+      .catch(error => {
+        console.error('Error finding product:', error);
+        
+        toast({
+          title: t('error'),
+          description: t('no_product_found_with_barcode'),
+          variant: 'destructive',
+        });
+      });
+  };
+  
   // Open invoice details dialog with items - استخدام مكون عرض تفاصيل الفاتورة الجديد
   const openInvoiceDetails = (invoice: any) => {
     console.log('Opening invoice details with new dialog:', invoice);
@@ -525,7 +381,6 @@ export default function InvoiceManagement() {
       const processedInvoice = processFinalInvoice(invoice);
       setDetailsInvoice(processedInvoice);
       setIsInvoiceDetailsOpen(true);
-      
     } catch (error) {
       console.error('Error opening invoice details:', error);
       
@@ -536,980 +391,507 @@ export default function InvoiceManagement() {
       });
     }
   };
-      try {
-        // محاولة قراءة البيانات من الحقول المنفصلة أولاً
-        let formattedItems: any[] = [];
-        
-        // تحقق من توفر البيانات في الحقول المنفصلة
-        if (invoice.productIds && invoice.productNames && invoice.productQuantities && 
-            invoice.productPrices && invoice.productPurchasePrices && invoice.productDiscounts && 
-            invoice.productTotals && invoice.productProfits) {
-              
-          console.log('Found separate product fields, using these for display');
-          
-          // تحويل السلاسل النصية إلى مصفوفات
-          const productIdsArray = invoice.productIds.split(',');
-          const productNamesArray = invoice.productNames.split(',');
-          const productQuantitiesArray = invoice.productQuantities.split(',').map(Number);
-          const productPricesArray = invoice.productPrices.split(',').map(Number);
-          // الحقول الإضافية متوفرة أيضًا
-          const productDiscountsArray = invoice.productDiscounts.split(',').map(Number);
-          const productTotalsArray = invoice.productTotals.split(',').map(Number);
-          
-          // تحويل البيانات إلى تنسيق المنتجات
-          formattedItems = productIdsArray.map((productId, index) => {
-            const productName = productNamesArray[index] || t('unknown_product');
-            const quantity = productQuantitiesArray[index] || 1;
-            const price = productPricesArray[index] || 0;
-            const total = productTotalsArray[index] || (quantity * price);
-            
-            return {
-              id: `item-${productId}-${Math.random().toString(36).substring(2, 7)}`,
-              product: {
-                id: productId,
-                name: productName,
-                code: '', // لا توجد بيانات الباركود في الحقول المنفصلة
-                price: price
-              },
-              quantity: quantity,
-              price: price,
-              total: total
-            };
-          });
-          
-          console.log('Created items from separate fields:', formattedItems);
-        } 
-        // في حالة عدم توفر الحقول المنفصلة، نستخدم حقل productsData
-        else if (invoice.productsData) {
-          console.log('Using productsData JSON field');
-          const products = Array.isArray(invoice.productsData) 
-            ? invoice.productsData 
-            : (typeof invoice.productsData === 'string' 
-                ? JSON.parse(invoice.productsData) 
-                : []);
-          
-          console.log('Extracted products from invoice.productsData:', products);
-          
-          if (!products || products.length === 0) {
-            console.warn('No products found in invoice data');
-          }
-          
-          // تنسيق المنتجات للعرض
-          formattedItems = Array.isArray(products) ? products.map((product: any) => {
-            if (!product) {
-              console.warn('Null or undefined product in results');
-              return null;
-            }
-            
-            console.log('Processing product for display:', product);
-            
-            // التحقق من حقول المنتج
-            const productId = product.productId || 0;
-            const productName = product.productName || t('unknown_product');
-            const productPrice = product.price || 0;
-            const quantity = product.quantity || 1;
-            const total = product.total || (quantity * productPrice);
-            
-            return {
-              id: `item-${productId}-${Math.random().toString(36).substring(2, 7)}`,
-              product: {
-                id: productId,
-                name: productName,
-                code: product.barcode || '',
-                price: productPrice
-              },
-              quantity: quantity,
-              price: productPrice,
-              total: total
-            };
-          }).filter(Boolean) : []; // إزالة العناصر null
-        }
-        else {
-          console.warn('No product data available in invoice');
-        }
-        
-        console.log('Formatted items for display:', formattedItems);
-        
-        // تحديث الفاتورة المحددة مع العناصر
-        setSelectedInvoice({
-          ...invoice,
-          items: formattedItems,
-          isLoadingItems: false,
-          loadError: false,
-          // التأكد من وجود بيانات العميل بشكل صحيح
-          customer: {
-            name: invoice.customerName || 'Unknown',
-            phone: invoice.customerPhone || '',
-            address: invoice.customerAddress || ''
-          }
-        });
-      } catch (error) {
-        console.error('Error parsing products data from invoice:', error);
-        
-        // في حالة الفشل، نطلب البيانات من الخادم
-        console.log('Falling back to server request for invoice:', invoice.dbId || invoice.id);
-        
-        fetch(`/api/invoices/${invoice.dbId || invoice.id}`)
-          .then(response => {
-            if (!response.ok) {
-              throw new Error('Failed to fetch invoice details');
-            }
-            return response.json();
-          })
-          .then(latestInvoiceData => {
-            console.log('Got latest invoice data from server:', latestInvoiceData);
-            
-            // استخراج بيانات المنتجات من استجابة الخادم
-            const products = getInvoiceProducts(latestInvoiceData);
-            
-            // تنسيق المنتجات للعرض
-            const formattedItems = Array.isArray(products) ? products.map((product: any) => {
-              if (!product) return null;
-              
-              const productId = product.productId || 0;
-              const productName = product.productName || t('unknown_product');
-              const productPrice = product.price || 0;
-              const quantity = product.quantity || 1;
-              const total = product.total || (quantity * productPrice);
-              
-              return {
-                id: `item-${productId}-${Math.random().toString(36).substring(2, 7)}`,
-                product: {
-                  id: productId,
-                  name: productName,
-                  code: product.barcode || '',
-                  price: productPrice
-                },
-                quantity: quantity,
-                price: productPrice,
-                total: total
-              };
-            }).filter(Boolean) : [];
-            
-            // تحديث الفاتورة المحددة مع العناصر
-            setSelectedInvoice({
-              ...invoice,
-              ...latestInvoiceData,
-              items: formattedItems,
-              isLoadingItems: false,
-              loadError: false
-            });
-          })
-          .catch(error => {
-            console.error('Error fetching invoice details from server:', error);
-            setSelectedInvoice({
-              ...invoice,
-              items: [],
-              isLoadingItems: false,
-              loadError: true
-            });
-          });
-      }
-    } catch (error) {
-      console.error('Error processing invoice details:', error);
-      setSelectedInvoice({
-        ...invoice,
-        items: [],
-        isLoadingItems: false,
-        loadError: true
-      });
-    }
-  };
   
-  // Handle printing invoice
-  const handlePrintInvoice = (invoice: any) => {
-    // In a real app, this would generate a printable invoice
-    console.log('Printing invoice:', invoice.id);
-    toast({
-      title: t('print_started'),
-      description: t('invoice_sent_to_printer'),
-    });
-  };
+  // تحديث إعدادات الفرز والترتيب عند تغيير اللغة
+  useEffect(() => {
+    // إعادة ضبط الصفحة الحالية إلى الصفحة الأولى
+    setCurrentPage(1);
+  }, [language, filter, statusFilter, paymentFilter, searchQuery]);
   
-  // تنفيذ تعديل الفاتورة
-  const handleEditInvoice = async (invoice: any) => {
-    console.log('Editing invoice:', invoice);
-    
-    try {
-      // 1. جلب أحدث بيانات الفاتورة من الخادم
-      console.log('Fetching latest invoice data for ID:', invoice.dbId || invoice.id);
-      
-      const response = await fetch(`/api/invoices/${invoice.dbId || invoice.id}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch invoice data');
-      }
-      
-      const latestInvoiceData = await response.json();
-      console.log('Latest invoice data:', latestInvoiceData);
-      
-      // 2. استخراج المنتجات من productsData في الفاتورة
-      const products = getInvoiceProducts(latestInvoiceData);
-      console.log('Extracted products for edit:', products);
-      
-      // 3. إنشاء كائن المنتجات المنسق للتعديل
-      const formattedProducts = products.map((product: any) => {
-        const productId = product.productId || 0;
-        const productName = product.productName || t('unknown_product');
-        const productPrice = product.price || 0;
-        const quantity = product.quantity || 1;
-        const total = product.total || (quantity * productPrice);
-        
-        return {
-          id: productId,
-          name: productName,
-          barcode: product.barcode || '',
-          price: productPrice,
-          purchasePrice: product.purchasePrice || 0,
-          quantity: quantity,
-          total: total,
-          discount: product.discount || 0,
-        };
-      });
-      
-      // 4. تحضير بيانات الفاتورة للتعديل
-      
-      // إعداد قيمة الخصم بشكل صحيح
-      let invoiceDiscountValue = 0;
-      try {
-        if (latestInvoiceData.invoiceDiscount !== undefined && latestInvoiceData.invoiceDiscount !== null) {
-          invoiceDiscountValue = Number(latestInvoiceData.invoiceDiscount);
-          if (isNaN(invoiceDiscountValue)) {
-            // إذا فشل التحويل، نحاول بطريقة أخرى
-            const strValue = String(latestInvoiceData.invoiceDiscount).trim();
-            invoiceDiscountValue = parseFloat(strValue);
-            if (isNaN(invoiceDiscountValue)) {
-              invoiceDiscountValue = 0;
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error converting invoice discount:', error);
-        invoiceDiscountValue = 0;
-      }
-      
-      console.log('Original invoice discount:', latestInvoiceData.invoiceDiscount);
-      console.log('Type of invoice discount:', typeof latestInvoiceData.invoiceDiscount);
-      console.log('Processed invoice discount value:', invoiceDiscountValue);
-      
-      const invoiceToEdit = {
-        id: latestInvoiceData.id,
-        invoiceNumber: latestInvoiceData.invoiceNumber,
-        customerId: latestInvoiceData.customerId,
-        customerName: latestInvoiceData.customerName || '',
-        customerPhone: latestInvoiceData.customerPhone || '',
-        customerAddress: latestInvoiceData.customerAddress || '',
-        subtotal: latestInvoiceData.subtotal || 0,
-        discount: latestInvoiceData.discount || 0,
-        itemsDiscount: latestInvoiceData.itemsDiscount || 0,
-        invoiceDiscount: invoiceDiscountValue,
-        total: latestInvoiceData.total || 0,
-        paymentMethod: latestInvoiceData.paymentMethod || 'cash',
-        paymentStatus: latestInvoiceData.paymentStatus || 'completed',
-        notes: latestInvoiceData.notes || '',
-        products: formattedProducts,
-        date: new Date(latestInvoiceData.date || Date.now()).toISOString()
-      };
-      
-      console.log('Prepared invoice for edit:', invoiceToEdit);
-      
-      // 5. تعيين البيانات المطلوبة للتعديل وفتح النافذة المنبثقة
-      setEditingInvoice(invoiceToEdit);
-      setIsEditInvoiceDialogOpen(true);
-      
-      toast({
-        title: t('edit_invoice'),
-        description: t('edit_invoice_success'),
-      });
-      
-      // TODO: إضافة رابط إلى مكون تعديل الفاتورة بشكل كامل هنا
-      // يمكن تنفيذ ذلك باستخدام نافذة منبثقة أو إعادة توجيه إلى صفحة الإنشاء مع تمرير بيانات التعديل
-      
-    } catch (error) {
-      console.error('Error editing invoice:', error);
-      toast({
-        title: t('error'),
-        description: typeof error === 'string' ? error : t('invoice_edit_error'),
-        variant: 'destructive',
-      });
-    }
-  };
-  
-  // تأكيد حذف الفاتورة
-  const confirmDeleteInvoice = (invoiceId: string, dbId?: number) => {
-    console.log('Opening delete confirmation dialog for invoice:', invoiceId, 'with DB ID:', dbId);
-    setInvoiceToDelete(invoiceId);
-    setInvoiceToDeleteDbId(dbId);
-    setIsDeleteDialogOpen(true);
-  };
-  
-  // تنفيذ حذف الفاتورة
-  const deleteInvoice = async () => {
-    if (invoiceToDelete) {
-      try {
-        console.log('Deleting invoice:', invoiceToDelete, 'with DB ID:', invoiceToDeleteDbId);
-        
-        // إرسال طلب إلى API لحذف الفاتورة من قاعدة البيانات
-        // يمكن استخدام معرف الفاتورة الأساسي أو معرف قاعدة البيانات
-        const idToUse = invoiceToDeleteDbId || invoiceToDelete;
-        console.log('Using ID for deletion:', idToUse);
-        
-        const response = await fetch(`/api/invoices/${idToUse}`, {
-          method: 'DELETE',
-        });
-        
-        console.log('Delete response status:', response.status);
-        
-        if (!response.ok) {
-          let errorMessage = t('failed_to_delete_invoice');
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorMessage;
-          } catch (e) {
-            // إذا لم نتمكن من قراءة رسالة الخطأ، نستخدم الرسالة الافتراضية
-          }
-          throw new Error(errorMessage);
-        }
-        
-        // محاولة الحصول على جميع الفواتير المحدّثة من الخادم
-        try {
-          const freshInvoices = await fetch('/api/invoices').then(res => res.json());
-          
-          // تحديث القائمة المحلية بالبيانات الجديدة (الفواتير التي ليست محذوفة)
-          const nonDeletedInvoices = freshInvoices.filter((inv: any) => !inv.isDeleted);
-          
-          console.log('Refreshed invoices from server:', nonDeletedInvoices.length);
-          setInvoices(nonDeletedInvoices);
-        } catch (refreshError) {
-          console.error('Error refreshing invoices:', refreshError);
-          
-          // تحديث الواجهة وإزالة الفاتورة من القائمة المحلية كخطة بديلة
-          const updatedInvoices = invoices.filter(inv => inv.id !== invoiceToDelete);
-          console.log('Fallback: Updating local invoices list, removing:', invoiceToDelete);
-          console.log('Invoices before:', invoices.length, 'After:', updatedInvoices.length);
-          
-          setInvoices(updatedInvoices);
-        }
-        
-        // إغلاق مربع الحوار وإعادة تعيين الحالة
-        setIsDeleteDialogOpen(false);
-        setInvoiceToDelete(null);
-        setInvoiceToDeleteDbId(undefined);
-        
-        // إعادة تحميل البيانات من قاعدة البيانات عن طريق إلغاء صلاحية ذاكرة التخزين المؤقت
-        console.log('Invalidating invoices query cache to refresh data');
-        queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
-        
-        // إظهار رسالة نجاح للمستخدم
-        toast({
-          title: t('invoice_deleted'),
-          description: t('invoice_deleted_successfully'),
-        });
-      } catch (error) {
-        console.error('Error deleting invoice:', error);
-        // إظهار رسالة خطأ للمستخدم
-        toast({
-          variant: 'destructive',
-          title: t('error'),
-          description: error instanceof Error ? error.message : t('failed_to_delete_invoice'),
-        });
-      }
-    }
-  };
-  
-  // Format status badge
-  const getStatusBadge = (status: string) => {
-    switch(status) {
-      case 'completed':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">{t('completed')}</Badge>;
-      case 'pending':
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">{t('pending')}</Badge>;
-      case 'cancelled':
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">{t('cancelled')}</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-  
-  // Format payment method badge
-  const getPaymentBadge = (method: string) => {
-    switch(method) {
-      case 'cash':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{t('cash')}</Badge>;
-      case 'visa':
-        return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">{t('visa')}</Badge>;
-      case 'deferred':
-        return <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">{t('deferred')}</Badge>;
-      case 'ewallet':
-        return <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">{t('e_wallet')}</Badge>;
-      default:
-        return <Badge variant="outline">{method}</Badge>;
-    }
-  };
-  
-  // مشاركة الفاتورة عبر WhatsApp
-  const shareInvoiceViaWhatsApp = (invoice: any) => {
-    console.log('Sharing invoice via WhatsApp:', invoice);
-    
-    // نتأكد من وجود رقم هاتف العميل (قد يكون في كائن customer أو مباشرة في الفاتورة)
-    const customerPhone = invoice.customer?.phone || invoice.customerPhone;
-    
-    console.log('Customer phone for WhatsApp:', customerPhone);
-    
-    if (!customerPhone) {
-      toast({
-        title: t('share_error'),
-        description: t('customer_phone_missing'),
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // تنظيف رقم الهاتف من أي رموز إضافية
-    let phoneNumber = customerPhone.replace(/\s+/g, '').replace(/\+/g, '');
-    
-    // التأكد من عدم وجود صفر في بداية الرقم (بالنسبة لمصر)
-    if (phoneNumber.startsWith('0')) {
-      phoneNumber = phoneNumber.substring(1);
-    }
-    
-    // إضافة كود الدولة إذا لم يكن موجودًا (مصر 20)
-    if (!phoneNumber.startsWith('20')) {
-      phoneNumber = '20' + phoneNumber;
-    }
-    
-    console.log('تنسيق رقم الهاتف للواتساب:', phoneNumber);
-    
-    // اسم العميل (قد يكون في كائن customer أو مباشرة في الفاتورة)
-    const customerName = invoice.customer?.name || invoice.customerName;
-    
-    // إنشاء نص الرسالة
-    const invoiceDate = formatDate(invoice.date, 'PPP', language);
-    let message = `*${t('invoice')}* #${invoice.invoiceNumber || invoice.id}\n`;
-    if (customerName) {
-      message += `*${t('customer')}:* ${customerName}\n`;
-    }
-    message += `*${t('date')}:* ${invoiceDate}\n`;
-    message += `*${t('total')}:* ${formatCurrency(invoice.total)}\n\n`;
-    
-    message += `*${t('items')}:*\n`;
-    
-    // إضافة تفاصيل المنتجات
-    if (invoice.items && invoice.items.length > 0) {
-      invoice.items.forEach((item: any, index: number) => {
-        message += `${index + 1}. ${item.product.name} x${item.quantity} = ${formatCurrency(item.total)}\n`;
-      });
-    }
-    // إذا لم تكن المنتجات متوفرة، نحاول استخدام حقول المنتجات المنفصلة
-    else if (invoice.productNames && invoice.productQuantities && invoice.productTotals) {
-      try {
-        const productNames = invoice.productNames.split(',');
-        const productQuantities = invoice.productQuantities.split(',').map(Number);
-        const productTotals = invoice.productTotals.split(',').map(Number);
-        
-        productNames.forEach((name: string, index: number) => {
-          const quantity = productQuantities[index] || 1;
-          const total = productTotals[index] || 0;
-          message += `${index + 1}. ${name} x${quantity} = ${formatCurrency(total)}\n`;
-        });
-      } catch (error) {
-        console.error('Error formatting product data for message:', error);
-      }
-    }
-    
-    message += `\n*${t('thank_you_for_your_business')}*`;
-    
-    // إنشاء رابط WhatsApp
-    const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-    
-    // فتح الرابط في نافذة جديدة
-    window.open(whatsappURL, '_blank');
-  };
-  
-  // فتح نافذة مسح الباركود
-  const openBarcodeScanner = () => {
-    setIsBarcodeDialogOpen(true);
-    setScannedProduct(null);
-  };
-  
-  // معالجة المنتج الذي تم مسحه
-  const handleProductScanned = async (product: any) => {
-    console.log('Product scanned:', product);
-    try {
-      // البحث عن المعلومات الكاملة للمنتج من قاعدة البيانات
-      const response = await fetch(`/api/products/${product.id}`);
-      if (response.ok) {
-        const fullProductData = await response.json();
-        setScannedProduct(fullProductData);
-      } else {
-        setScannedProduct(product);
-      }
-    } catch (error) {
-      console.error('Error fetching product details:', error);
-      setScannedProduct(product);
-    }
-  };
-
-  const renderInvoiceDetails = () => {
-    if (!selectedInvoice) return null;
-    
+  // إظهار رسالة التحميل أثناء جلب البيانات
+  if (isLoadingInvoices) {
     return (
-      <Dialog open={!!selectedInvoice} onOpenChange={() => setSelectedInvoice(null)}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center text-xl">
-              <FileText className="mr-2 h-5 w-5" />
-              {t('invoice_details')}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedInvoice.id} - {formatDate(selectedInvoice.date, 'PPP', language)}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary" />
+        <p className="text-lg font-medium">{t('loading_invoices')}</p>
+      </div>
+    );
+  }
+  
+  // إظهار رسالة الخطأ في حالة فشل جلب البيانات
+  if (invoicesError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <XCircle className="w-10 h-10 mb-4 text-red-500" />
+        <p className="text-lg font-medium text-red-500">{t('error_loading_invoices')}</p>
+        <p className="text-sm text-muted-foreground mt-2">{(invoicesError as Error).message}</p>
+        <Button 
+          variant="outline" 
+          className="mt-4"
+          onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/invoices'] })}
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          {t('try_again')}
+        </Button>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="container px-4 pb-8 pt-4 mx-auto" dir={isRTL ? 'rtl' : 'ltr'}>
+      <div className="flex flex-col space-y-1.5 mb-6">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          {t('invoices_management')}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {t('invoices_management_description')}
+        </p>
+      </div>
+      
+      {/* قسم أدوات التصفية والبحث */}
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <h4 className="text-sm font-medium text-neutral-500">{t('customer_details')}</h4>
-              <p className="text-base font-medium">{selectedInvoice.customer.name}</p>
-              <p className="text-sm">{selectedInvoice.customer.phone}</p>
-              <p className="text-sm">{selectedInvoice.customer.address}</p>
+              <div className="mb-1 text-sm font-medium">{t('search')}</div>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder={t('search_invoices')}
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="text-right">
-              <h4 className="text-sm font-medium text-neutral-500">{t('invoice_info')}</h4>
-              <p className="text-base font-medium">{t('status')}: {getStatusBadge(selectedInvoice.status)}</p>
-              <p className="text-sm">{t('payment_method')}: {getPaymentBadge(selectedInvoice.paymentMethod)}</p>
-              <p className="text-sm">{t('total')}: {formatCurrency(selectedInvoice.total)}</p>
+            
+            <div>
+              <div className="mb-1 text-sm font-medium">{t('date_range')}</div>
+              <Select
+                value={filter}
+                onValueChange={(value) => setFilter(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('select_date_range')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('all_dates')}</SelectItem>
+                  <SelectItem value="today">{t('today')}</SelectItem>
+                  <SelectItem value="week">{t('this_week')}</SelectItem>
+                  <SelectItem value="month">{t('this_month')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <div className="mb-1 text-sm font-medium">{t('status')}</div>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('select_status')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('all_statuses')}</SelectItem>
+                  <SelectItem value="completed">{t('completed')}</SelectItem>
+                  <SelectItem value="pending">{t('pending')}</SelectItem>
+                  <SelectItem value="cancelled">{t('cancelled')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <div className="mb-1 text-sm font-medium">{t('payment_method')}</div>
+              <Select
+                value={paymentFilter}
+                onValueChange={(value) => setPaymentFilter(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('select_payment_method')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('all_payment_methods')}</SelectItem>
+                  <SelectItem value="cash">{t('cash')}</SelectItem>
+                  <SelectItem value="card">{t('card')}</SelectItem>
+                  <SelectItem value="deferred">{t('deferred')}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           
-          <Separator className="my-4" />
-          
-          <div>
-            <h4 className="text-sm font-medium mb-2">{t('invoice_items')}</h4>
+          <div className="flex justify-between items-center mt-4">
+            <div className="text-sm text-muted-foreground">
+              {filteredInvoices.length === 0 
+                ? t('no_invoices_found') 
+                : t('showing_x_of_y_invoices', {
+                    displayed: Math.min(paginatedInvoices.length, itemsPerPage),
+                    total: filteredInvoices.length
+                  })
+              }
+            </div>
+            
+            <div className="flex gap-2">
+              {/* زر مسح الفلتر */}
+              {(searchQuery || filter !== 'all' || statusFilter !== 'all' || paymentFilter !== 'all') && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setFilter('all');
+                    setStatusFilter('all');
+                    setPaymentFilter('all');
+                  }}
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  {t('clear_filters')}
+                </Button>
+              )}
+              
+              {/* زر فحص باركود */}
+              <Button 
+                variant="outline"
+                size="sm" 
+                onClick={() => setIsBarcodeDialogOpen(true)}
+              >
+                <Scan className="w-4 h-4 mr-1" />
+                {t('scan_barcode')}
+              </Button>
+              
+              {/* زر تحديث البيانات */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/invoices'] })}
+              >
+                <RefreshCw className="w-4 h-4 mr-1" />
+                {t('refresh')}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* جدول الفواتير */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>{t('product_name')}</TableHead>
-                  <TableHead className="text-center">{t('quantity')}</TableHead>
-                  <TableHead className="text-right">{t('price')}</TableHead>
-                  <TableHead className="text-right">{t('total')}</TableHead>
+                <TableRow className="hover:bg-muted/50">
+                  <TableHead className="w-10 text-center">
+                    #
+                  </TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => handleSort('invoiceNumber')}>
+                    <div className="flex items-center">
+                      {t('invoice_number')}
+                      <span className="ml-1">{getSortIcon('invoiceNumber')}</span>
+                    </div>
+                  </TableHead>
+                  <TableHead>{t('customer')}</TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => handleSort('date')}>
+                    <div className="flex items-center">
+                      {t('date')}
+                      <span className="ml-1">{getSortIcon('date')}</span>
+                    </div>
+                  </TableHead>
+                  <TableHead>{t('status')}</TableHead>
+                  <TableHead>{t('payment')}</TableHead>
+                  <TableHead className="cursor-pointer text-right" onClick={() => handleSort('total')}>
+                    <div className="flex items-center justify-end">
+                      {t('total')}
+                      <span className="ml-1">{getSortIcon('total')}</span>
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-center">{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
+              
               <TableBody>
-                {selectedInvoice.isLoadingItems ? (
-                  // Loading state
+                {paginatedInvoices.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6">
-                      <div className="flex flex-col items-center justify-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                        <p>{t('loading_invoice_items')}</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : selectedInvoice.loadError ? (
-                  // Error state
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6 text-destructive">
-                      <p>{t('invoice_items_load_error')}</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => openInvoiceDetails(selectedInvoice)}
-                        className="mt-2"
-                      >
-                        {t('retry')}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ) : selectedInvoice.items.length === 0 ? (
-                  // Empty state
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
-                      <p>{t('no_invoice_items')}</p>
+                    <TableCell colSpan={8} className="h-24 text-center">
+                      {searchQuery || filter !== 'all' || statusFilter !== 'all' || paymentFilter !== 'all'
+                        ? t('no_invoices_match_filters')
+                        : t('no_invoices_found')
+                      }
                     </TableCell>
                   </TableRow>
                 ) : (
-                  // Items list
-                  selectedInvoice.items.map((item: any) => (
-                    <TableRow key={item.id}>
+                  paginatedInvoices.map((invoice: any, index: number) => (
+                    <TableRow key={invoice.id}>
+                      <TableCell className="text-center font-medium">
+                        {(currentPage - 1) * itemsPerPage + index + 1}
+                      </TableCell>
                       <TableCell>
-                        <div>
-                          <p className="font-medium">{item.product.name}</p>
-                          <p className="text-xs text-neutral-500">{item.product.code}</p>
+                        <div className="font-medium text-primary">
+                          {invoice.invoiceNumber}
                         </div>
                       </TableCell>
-                      <TableCell className="text-center">{item.quantity}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.price)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.total)}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          
-          <Separator className="my-4" />
-          
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-sm">{t('subtotal')}: {formatCurrency(selectedInvoice.total)}</p>
-              <p className="text-sm">{t('discount')}: {formatCurrency(0)}</p>
-              <p className="text-base font-bold mt-2">{t('total')}: {formatCurrency(selectedInvoice.total)}</p>
-            </div>
-            <div className="space-x-2">
-              <Button variant="outline" size="sm" className="flex items-center">
-                <Printer className="mr-1 h-4 w-4" /> {t('print')}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center"
-                onClick={() => shareInvoiceViaWhatsApp(selectedInvoice)}
-              >
-                <Share className="mr-1 h-4 w-4" /> {t('share')}
-              </Button>
-              <Button variant="outline" size="sm" className="flex items-center">
-                <Download className="mr-1 h-4 w-4" /> {t('export')}
-              </Button>
-              {user?.role === 'admin' && selectedInvoice.status !== 'cancelled' && (
-                <Button variant="outline" size="sm" className="flex items-center text-red-600 hover:text-red-700 hover:bg-red-50">
-                  <XCircle className="mr-1 h-4 w-4" /> {t('cancel_invoice')}
-                </Button>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  };
-  
-  // إضافة نافذة مسح الباركود
-  const renderBarcodeDialog = () => {
-    return (
-      <Dialog open={isBarcodeDialogOpen} onOpenChange={setIsBarcodeDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center text-xl">
-              <Scan className="mr-2 h-5 w-5" />
-              {t('scan_barcode')}
-            </DialogTitle>
-            <DialogDescription>
-              {t('scan_barcode_description')}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            {!scannedProduct ? (
-              <div className="bg-muted/30 p-4 rounded-lg border">
-                <BarcodeScanner onProductScanned={handleProductScanned} />
-              </div>
-            ) : (
-              <div className="bg-card rounded-lg border p-4 space-y-3">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-semibold text-lg">{t('product_details')}</h3>
-                  <Button variant="ghost" size="icon" onClick={() => setScannedProduct(null)}>
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="grid gap-2">
-                  <div className="flex justify-between border-b pb-2">
-                    <span className="text-muted-foreground">{t('product_name')}:</span>
-                    <span className="font-medium">{scannedProduct.name}</span>
-                  </div>
-                  <div className="flex justify-between border-b pb-2">
-                    <span className="text-muted-foreground">{t('barcode')}:</span>
-                    <span className="font-medium">{scannedProduct.barcode}</span>
-                  </div>
-                  <div className="flex justify-between border-b pb-2">
-                    <span className="text-muted-foreground">{t('price')}:</span>
-                    <span className="font-medium">{formatCurrency(scannedProduct.sellingPrice)}</span>
-                  </div>
-                  <div className="flex justify-between border-b pb-2">
-                    <span className="text-muted-foreground">{t('available_stock')}:</span>
-                    <span className="font-medium">{scannedProduct.stock}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsBarcodeDialogOpen(false)}>
-              {t('close')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  };
-  
-  return (
-    <div className="container mx-auto p-4">
-      {renderBarcodeDialog()}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div>
-              <CardTitle className="text-2xl font-bold">{t('invoice_management')}</CardTitle>
-              <CardDescription>{t('view_edit_manage_invoices')}</CardDescription>
-            </div>
-            <div className="mt-4 md:mt-0">
-              <Button variant="outline" className="flex items-center">
-                <Download className="mr-1 h-4 w-4" /> {t('export_all')}
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t('search_invoices')}
-                className="pl-9"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <div className="w-40">
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('filter_by_status')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('all_statuses')}</SelectItem>
-                    <SelectItem value="completed">{t('completed')}</SelectItem>
-                    <SelectItem value="pending">{t('pending')}</SelectItem>
-                    <SelectItem value="cancelled">{t('cancelled')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="w-40">
-                <Select value={filterPayment} onValueChange={setFilterPayment}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('filter_by_payment')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('all_payment_methods')}</SelectItem>
-                    <SelectItem value="cash">{t('cash')}</SelectItem>
-                    <SelectItem value="visa">{t('visa')}</SelectItem>
-                    <SelectItem value="deferred">{t('deferred')}</SelectItem>
-                    <SelectItem value="ewallet">{t('e_wallet')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button variant="outline" size="icon" onClick={() => {
-                setSearchTerm('');
-                setFilterStatus('all');
-                setFilterPayment('all');
-              }}>
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" onClick={openBarcodeScanner} className="flex items-center gap-2">
-                <Scan className="h-4 w-4" />
-                {t('scan_barcode')}
-              </Button>
-            </div>
-          </div>
-          
-          <div className="rounded-lg border shadow-sm overflow-hidden bg-card">
-            <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow>
-                  <TableHead className="font-semibold text-primary-800 dark:text-primary-100 py-4">{t('invoice_number')}</TableHead>
-                  <TableHead className="font-semibold text-primary-800 dark:text-primary-100">{t('date')}</TableHead>
-                  <TableHead className="font-semibold text-primary-800 dark:text-primary-100">{t('customer')}</TableHead>
-                  <TableHead className="font-semibold text-primary-800 dark:text-primary-100">{t('status')}</TableHead>
-                  <TableHead className="font-semibold text-primary-800 dark:text-primary-100">{t('payment_method')}</TableHead>
-                  <TableHead className="font-semibold text-primary-800 dark:text-primary-100 text-right">{t('total')}</TableHead>
-                  <TableHead className="font-semibold text-primary-800 dark:text-primary-100 text-right">{t('actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentInvoices.length > 0 ? (
-                  currentInvoices.map((invoice, index) => (
-                    <TableRow 
-                      key={invoice.id} 
-                      className={`cursor-pointer transition-colors ${index % 2 === 0 ? 'bg-white dark:bg-gray-950' : 'bg-muted/20 dark:bg-gray-900'} hover:bg-primary-50 dark:hover:bg-primary-900/20`}
-                      onClick={() => openInvoiceDetails(invoice)}
-                    >
-                      <TableCell className="font-medium text-primary/90">{invoice.id}</TableCell>
-                      <TableCell>{formatDate(invoice.date, 'PP', language)}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                            {invoice.customer.name.charAt(0).toUpperCase()}
+                        <div className="font-medium">
+                          {invoice.customerName || t('unknown_customer')}
+                        </div>
+                        {invoice.customerPhone && (
+                          <div className="text-xs text-muted-foreground">
+                            {invoice.customerPhone}
                           </div>
-                          <div>
-                            <p className="font-medium">{invoice.customer.name}</p>
-                            <p className="text-xs text-muted-foreground">{invoice.customer.phone}</p>
-                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">
+                          {formatDate(invoice.createdAt, 'short', language)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDate(invoice.createdAt, 'time', language)}
                         </div>
                       </TableCell>
-                      <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                      <TableCell>{getPaymentBadge(invoice.paymentMethod)}</TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(invoice.total)}</TableCell>
+                      <TableCell>
+                        {getStatusBadge(invoice.status)}
+                      </TableCell>
+                      <TableCell>
+                        {getPaymentBadge(invoice.paymentMethod)}
+                      </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+                        <div className="font-medium">
+                          {formatCurrency(invoice.total)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center space-x-2">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="hover:bg-primary-50 focus-visible:ring-primary">
-                                <ChevronRight className="h-4 w-4" />
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <span className="sr-only">{t('open_menu')}</span>
+                                <EllipsisVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 shadow-lg">
-                              <DropdownMenuLabel className="text-primary font-semibold">{t('invoice_actions')}</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
+                            <DropdownMenuContent align="end">
                               <DropdownMenuItem className="focus:bg-primary-50 focus:text-primary-600" onClick={() => openInvoiceDetails(invoice)}>
-                                <ExternalLink className="mr-2 h-4 w-4" /> {t('view_details')}
+                                <FileText className="mr-2 h-4 w-4" />
+                                {t('view_details')}
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="focus:bg-primary-50 focus:text-primary-600" onClick={() => handlePrintInvoice(invoice)}>
-                                <Printer className="mr-2 h-4 w-4" /> {t('print_invoice')}
+                              <DropdownMenuItem className="focus:bg-primary-50 focus:text-primary-600" onClick={() => handleEditInvoice(invoice)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                {t('edit')}
                               </DropdownMenuItem>
-                              {user?.role === 'admin' && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="focus:bg-primary-50 focus:text-primary-600" onClick={() => handleEditInvoice(invoice)}>
-                                    <Pencil className="mr-2 h-4 w-4" /> {t('edit_invoice')}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 focus:bg-red-50"
-                                    onClick={() => confirmDeleteInvoice(invoice.id, invoice.dbId)}
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" /> {t('delete_invoice')}
-                                  </DropdownMenuItem>
-                                </>
-                              )}
+                              <DropdownMenuItem className="focus:bg-destructive-50 focus:text-destructive-600" onClick={() => handleDeleteInvoice(invoice.id)}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                {t('delete')}
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
                   ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-10">
-                      <div className="flex flex-col items-center">
-                        <FileText className="h-12 w-12 text-muted-foreground mb-3 opacity-20" />
-                        <p className="text-muted-foreground font-medium text-base">{t('no_invoices_found')}</p>
-                        <p className="text-muted-foreground text-sm mt-1">{t('try_different_filters')}</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
                 )}
               </TableBody>
             </Table>
           </div>
-          
-          {/* Pagination */}
-          {filteredInvoices.length > invoicesPerPage && (
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6 gap-4">
-              <p className="text-sm text-muted-foreground">
-                {t('showing')} <span className="font-medium text-foreground">{indexOfFirstInvoice + 1}-{Math.min(indexOfLastInvoice, filteredInvoices.length)}</span> {t('of')} <span className="font-medium text-foreground">{filteredInvoices.length}</span> {t('invoices')}
-              </p>
-              <div className="flex space-x-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 p-0 hover:bg-primary-50 focus-visible:ring-primary"
-                  onClick={() => changePage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                
-                {/* Dynamic page numbers with ellipsis */}
-                {Array.from({ length: totalPages }, (_, i) => {
-                  const pageNumber = i + 1;
-                  
-                  // Always show first, last, and pages around current page
-                  if (
-                    pageNumber === 1 ||
-                    pageNumber === totalPages ||
-                    (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                  ) {
-                    return (
-                      <Button
-                        key={i}
-                        variant={currentPage === pageNumber ? "default" : "outline"}
-                        size="sm"
-                        className={`h-8 w-8 p-0 ${currentPage === pageNumber ? 'bg-primary hover:bg-primary' : 'hover:bg-primary-50 focus-visible:ring-primary'}`}
-                        onClick={() => changePage(pageNumber)}
-                      >
-                        {pageNumber}
-                      </Button>
-                    );
-                  }
-                  
-                  // Show ellipsis for breaks in sequence
-                  if (
-                    pageNumber === 2 ||
-                    pageNumber === totalPages - 1
-                  ) {
-                    return (
-                      <Button
-                        key={i}
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0 cursor-default hover:bg-background"
-                        disabled
-                      >
-                        ...
-                      </Button>
-                    );
-                  }
-                  
-                  // Hide other pages
-                  return null;
-                })}
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 p-0 hover:bg-primary-50 focus-visible:ring-primary"
-                  onClick={() => changePage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
+        
+        {/* ترقيم الصفحات */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-end px-4 py-4">
+            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage === 1}
+              >
+                {isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                {isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                {isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              </Button>
+              
+              <span className="text-sm">
+                {t('page_x_of_y', { current: currentPage, total: totalPages })}
+              </span>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                {isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage === totalPages}
+              >
+                {isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                {isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
       
-      {/* Render invoice details dialog */}
-      {renderInvoiceDetails()}
-      
-      {/* Delete confirmation dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
+      {/* مربع حوار مسح الباركود */}
+      <Dialog
+        open={isBarcodeDialogOpen}
+        onOpenChange={setIsBarcodeDialogOpen}
+      >
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{t('confirm_delete')}</DialogTitle>
+            <DialogTitle>{t('scan_barcode')}</DialogTitle>
             <DialogDescription>
-              {t('delete_invoice_confirmation')}
+              {t('position_barcode_in_camera')}
             </DialogDescription>
           </DialogHeader>
+          
+          <div className="py-4">
+            <BarcodeScanner onDetected={handleBarcodeDetected} />
+          </div>
+          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsBarcodeDialogOpen(false)}>
               {t('cancel')}
-            </Button>
-            <Button variant="destructive" onClick={deleteInvoice}>
-              {t('delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
-      {/* نافذة تعديل الفاتورة */}
+      {/* مربع حوار معلومات المنتج الممسوح */}
+      <Dialog
+        open={!!scannedProduct}
+        onOpenChange={(open) => {
+          if (!open) setScannedProduct(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('scanned_product')}</DialogTitle>
+            <DialogDescription>
+              {t('product_details_found')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {scannedProduct && (
+            <div className="py-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-1">{t('product_name')}</h4>
+                  <p className="text-base">{scannedProduct.name}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium mb-1">{t('barcode')}</h4>
+                  <p className="text-base">{scannedProduct.barcode}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-1">{t('price')}</h4>
+                  <p className="text-base font-medium text-primary">
+                    {formatCurrency(scannedProduct.price)}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium mb-1">{t('available_quantity')}</h4>
+                  <p className="text-base">{scannedProduct.quantity || t('not_available')}</p>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium mb-1">{t('description')}</h4>
+                <p className="text-sm">{scannedProduct.description || t('no_description')}</p>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setScannedProduct(null)}>
+              {t('close')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* مربع حوار تعديل الفاتورة */}
       {editingInvoice && (
         <EditInvoiceDialog
           open={isEditInvoiceDialogOpen}
           onOpenChange={setIsEditInvoiceDialogOpen}
           invoice={editingInvoice}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+          }}
+        />
+      )}
+      
+      {/* مربع حوار تفاصيل الفاتورة */}
+      {detailsInvoice && (
+        <InvoiceDetailsDialog
+          open={isInvoiceDetailsOpen}
+          onOpenChange={setIsInvoiceDetailsOpen}
+          invoice={detailsInvoice}
         />
       )}
     </div>
+  );
+}
+
+// أيقونات إضافية
+function ChevronUp(props: any) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
+  );
+}
+
+function ChevronDown(props: any) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  );
+}
+
+function EllipsisVertical(props: any) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <circle cx="12" cy="12" r="1"></circle>
+      <circle cx="12" cy="5" r="1"></circle>
+      <circle cx="12" cy="19" r="1"></circle>
+    </svg>
   );
 }
