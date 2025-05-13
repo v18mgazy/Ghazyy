@@ -444,8 +444,8 @@ export class RealtimeDBStorage implements IStorage {
         id, // استخدام المعرف المحدد
         ...invoiceData,
         // استخدام تواريخ محددة إذا تم تقديمها، وإلا استخدام الوقت الحالي
-        createdAt: invoiceData.createdAt || new Date().toISOString(),
-        date: invoiceData.date || invoiceData.createdAt || new Date().toISOString(),
+        createdAt: invoiceData.createdAt || new Date().toISOString().replace('Z', ''),
+        date: invoiceData.date || invoiceData.createdAt || new Date().toISOString().replace('Z', ''),
         // التأكد من تضمين حقول المنتجات المنفصلة إذا لم تكن موجودة
         productIds: invoiceData.productIds || '',
         productNames: invoiceData.productNames || '',
