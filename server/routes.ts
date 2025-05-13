@@ -3291,36 +3291,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   function formatDateForReportType(dateInput: Date, type: string): string {
     // نتأكد من أن dateInput هو كائن Date صحيح
+    if (!dateInput) {
+      console.warn('Invalid date input to formatDateForReportType, using current date');
+      dateInput = new Date();
+    }
+    
+    // نسخ التاريخ لتجنب تعديل القيمة الأصلية
     const date = new Date(dateInput);
     
+    // ضبط الوقت إلى منتصف اليوم في التوقيت المحلي لتجنب مشاكل تغيير اليوم بسبب التوقيت
+    date.setHours(12, 0, 0, 0);
+    
     // طباعة التاريخ الذي يتم معالجته للتصحيح
-    console.log(`Formatting date: ${date.toISOString()} for type: ${type}`);
+    console.log(`Formatting date: ${date.toISOString()} (local: ${date.toString()}) for type: ${type}`);
+    
+    // استخراج السنة والشهر واليوم بالتوقيت المحلي
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1; // الشهور من 0-11 في JS
+    const day = date.getDate();
     
     if (type === 'daily') {
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      // تنسيق YYYY-MM-DD
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     } else if (type === 'weekly') {
-      // الحصول على رقم الأسبوع في السنة بطريقة أكثر دقة
-      const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+      // الحصول على رقم الأسبوع في السنة
+      // نستخدم خوارزمية محسنة للحصول على رقم الأسبوع المحلي
+      const firstDayOfYear = new Date(year, 0, 1);
+      // ضبط أيضًا إلى منتصف اليوم
+      firstDayOfYear.setHours(12, 0, 0, 0);
+      
       const dayOfWeek = firstDayOfYear.getDay(); // 0 = الأحد، 1 = الاثنين، ...
-      const days = Math.floor((date.getTime() - firstDayOfYear.getTime()) / (24 * 60 * 60 * 1000));
+      const daysFromFirstDay = Math.floor((date.getTime() - firstDayOfYear.getTime()) / (24 * 60 * 60 * 1000));
       
-      // حساب رقم الأسبوع ISO (يبدأ الأسبوع من يوم الإثنين)
-      // تعديل حساب الأسبوع ليتناسب مع المعيار الدولي ISO 8601
-      let weekNumber = Math.floor((days + dayOfWeek - 1) / 7) + 1;
+      // نحسب رقم الأسبوع مع تعديل لبداية الأسبوع (نفترض أن الأسبوع يبدأ من الإثنين)
+      let weekNumber = Math.floor((daysFromFirstDay + dayOfWeek) / 7) + 1;
       
-      // معالجة حالات خاصة
-      if (dayOfWeek === 0) { // إذا كان أول يوم في السنة هو الأحد
-        weekNumber = Math.floor((days) / 7) + 1;
-      }
+      console.log(`Week calculation (improved): year=${year}, dayOfWeek=${dayOfWeek}, days=${daysFromFirstDay}, weekNumber=${weekNumber}`);
       
-      // طباعة تفاصيل الحساب للتصحيح
-      console.log(`Week calculation: year=${date.getFullYear()}, dayOfWeek=${dayOfWeek}, days=${days}, weekNumber=${weekNumber}`);
-      
-      return `${date.getFullYear()}-W${String(weekNumber).padStart(2, '0')}`;
+      return `${year}-W${String(weekNumber).padStart(2, '0')}`;
     } else if (type === 'monthly') {
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      // تنسيق YYYY-MM
+      return `${year}-${String(month).padStart(2, '0')}`;
     } else {
-      return date.getFullYear().toString();
+      // تنسيق YYYY للتقارير السنوية
+      return year.toString();
     }
   }
   
