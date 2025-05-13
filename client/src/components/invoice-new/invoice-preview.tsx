@@ -91,19 +91,35 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
       // الحالة الأولى: إذا كانت المنتجات متوفرة مباشرة كمصفوفة (عند إنشاء فاتورة جديدة)
       if (Array.isArray(products) && products.length > 0) {
         console.log('Using direct products array:', products);
-        return products;
+        // التأكد من أن كل منتج يحتوي على الخصائص المطلوبة
+        return products.map(product => ({
+          ...product,
+          productName: product.productName || product.name || 'Unknown Product',
+        }));
       }
       
       // الحالة الثانية: إذا كانت بيانات المنتجات متوفرة كنص JSON (من قاعدة البيانات)
       if (typeof invoiceData.productsData === 'string' && invoiceData.productsData) {
         console.log('Parsing productsData from JSON:', invoiceData.productsData);
-        return JSON.parse(invoiceData.productsData);
+        try {
+          const parsedProducts = JSON.parse(invoiceData.productsData);
+          return parsedProducts.map(product => ({
+            ...product,
+            productName: product.productName || product.name || 'Unknown Product',
+          }));
+        } catch (parseError) {
+          console.error('Error parsing JSON:', parseError);
+          throw parseError;
+        }
       }
       
       // الحالة الثالثة: إذا كانت الفاتورة تحتوي على مصفوفة منتجات مباشرة
       if (invoiceData.products && Array.isArray(invoiceData.products)) {
         console.log('Using products array from invoiceData:', invoiceData.products);
-        return invoiceData.products;
+        return invoiceData.products.map(product => ({
+          ...product,
+          productName: product.productName || product.name || 'Unknown Product',
+        }));
       }
       
       // إذا لم تتوفر أي بيانات، نحاول تكوين بيانات المنتجات من حقول المنتجات المنفصلة
@@ -120,10 +136,10 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
         
         const reconstructedProducts = ids.map((id, index) => ({
           productId: id,
-          productName: names[index],
-          quantity: quantities[index],
-          sellingPrice: prices[index],
-          discount: discounts[index],
+          productName: names[index] || 'Unknown Product',
+          quantity: quantities[index] || 0,
+          sellingPrice: prices[index] || 0,
+          discount: discounts[index] || 0,
         }));
         
         console.log('Reconstructed products:', reconstructedProducts);
