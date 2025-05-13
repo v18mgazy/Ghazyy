@@ -6,6 +6,42 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { formatCurrency } from '@/lib/utils';
 
+// دالة لحساب الربح بطريقة دقيقة مع مراعاة الخصومات
+function calculateProductProfit(product: any, invoiceDiscount: number, subtotal: number) {
+  // الحصول على البيانات الأساسية للمنتج
+  const price = product.price;
+  const purchasePrice = product.purchasePrice || 0;
+  const quantity = product.quantity;
+  const productDiscount = product.discount || 0;
+  
+  // حساب سعر البيع بعد تطبيق خصم المنتج
+  const priceAfterProductDiscount = price * (1 - (productDiscount / 100));
+  const productTotal = priceAfterProductDiscount * quantity;
+  
+  // حساب الربح قبل تطبيق خصم الفاتورة
+  const basicProfit = (priceAfterProductDiscount - purchasePrice) * quantity;
+  
+  if (invoiceDiscount <= 0 || subtotal <= 0) {
+    return basicProfit;
+  }
+  
+  // حساب نسبة هذا المنتج من إجمالي الفاتورة (بعد خصومات المنتج)
+  const productRatio = productTotal / subtotal;
+  
+  // حصة المنتج من خصم الفاتورة
+  const productShareOfInvoiceDiscount = invoiceDiscount * productRatio;
+  
+  // حساب نسبة الربح إلى سعر البيع بعد خصم المنتج
+  const profitMargin = priceAfterProductDiscount > 0 ? 
+    (priceAfterProductDiscount - purchasePrice) / priceAfterProductDiscount : 0;
+  
+  // حساب مقدار الخصم الذي سيؤثر على الربح
+  const discountOnProfit = productShareOfInvoiceDiscount * profitMargin;
+  
+  // حساب الربح النهائي بعد تطبيق جميع الخصومات (مع ضمان عدم وجود ربح سالب)
+  return Math.max(0, basicProfit - discountOnProfit);
+}
+
 // Icons
 import {
   X, Trash2, Plus, Save, Scan, Receipt,
@@ -388,7 +424,7 @@ export default function EditInvoiceDialog({
         sellingPrice: product.price,
         discount: product.discount || 0,
         total: product.price * product.quantity * (1 - (product.discount || 0) / 100),
-        profit: (product.price - product.purchasePrice) * product.quantity
+        profit: calculateProductProfit(product, invoiceDiscount, subtotal)
       };
     });
     
