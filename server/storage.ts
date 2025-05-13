@@ -673,12 +673,13 @@ export class FirebaseStorage implements IStorage {
       const createdAt = invoiceData.createdAt ? Timestamp.fromDate(new Date(invoiceData.createdAt)) : now;
       const date = invoiceData.date ? Timestamp.fromDate(new Date(invoiceData.date)) : createdAt;
       
-      // تحضير البيانات
+      // تحضير البيانات - تأكد من وجود قيمة invoiceDiscount
       const processedInvoiceData = {
         ...invoiceData,
         date: date,
         createdAt: createdAt,
-        updatedAt: now
+        updatedAt: now,
+        invoiceDiscount: invoiceData.invoiceDiscount !== undefined ? invoiceData.invoiceDiscount : 0
       };
       
       console.log('Final invoice data to be stored:', JSON.stringify(processedInvoiceData, null, 2));
@@ -686,13 +687,46 @@ export class FirebaseStorage implements IStorage {
       // حفظ الفاتورة بالمعرف المحدد
       await setDoc(doc(db, 'invoices', id.toString()), processedInvoiceData);
       
-      // إرجاع الفاتورة مع تحويل التواريخ إلى كائنات Date
+      // استعادة الفاتورة من قاعدة البيانات للتأكد من صحة البيانات المخزنة
+      const savedInvoiceDoc = await getDoc(doc(db, 'invoices', id.toString()));
+      if (!savedInvoiceDoc.exists()) {
+        throw new Error(`Failed to retrieve saved invoice with ID ${id}`);
+      }
+      
+      const savedData = savedInvoiceDoc.data();
+      console.log('Retrieved saved invoice data:', JSON.stringify(savedData, null, 2));
+      
+      // إرجاع الفاتورة بالبيانات المسترجعة من قاعدة البيانات
       return {
-        ...invoiceData,
         id: id,
-        date: date instanceof Timestamp ? date.toDate() : new Date(),
-        createdAt: createdAt instanceof Timestamp ? createdAt.toDate() : new Date(),
-        updatedAt: new Date()
+        invoiceNumber: savedData.invoiceNumber,
+        customerId: savedData.customerId,
+        customerName: savedData.customerName,
+        customerPhone: savedData.customerPhone,
+        customerAddress: savedData.customerAddress,
+        date: savedData.date?.toDate() || new Date(),
+        subtotal: savedData.subtotal,
+        discount: savedData.discount || 0,
+        itemsDiscount: savedData.itemsDiscount || 0,
+        invoiceDiscount: savedData.invoiceDiscount || 0,
+        discountPercentage: savedData.discountPercentage || 0,
+        total: savedData.total,
+        paymentMethod: savedData.paymentMethod,
+        paymentStatus: savedData.paymentStatus,
+        notes: savedData.notes,
+        productsData: savedData.productsData,
+        productIds: savedData.productIds,
+        productNames: savedData.productNames,
+        productQuantities: savedData.productQuantities,
+        productPrices: savedData.productPrices,
+        productPurchasePrices: savedData.productPurchasePrices,
+        productDiscounts: savedData.productDiscounts,
+        productTotals: savedData.productTotals,
+        productProfits: savedData.productProfits,
+        isDeleted: savedData.isDeleted || false,
+        userId: savedData.userId,
+        createdAt: savedData.createdAt?.toDate() || new Date(),
+        updatedAt: savedData.updatedAt?.toDate() || new Date()
       };
     } catch (error) {
       console.error('Error creating invoice with specific ID:', error);

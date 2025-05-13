@@ -1772,10 +1772,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // إعادة إنشاء فاتورة كاملة بمعرف محدد (تستخدم عند تحديث الفواتير)
-  app.post('/api/invoices/recreate/:id', async (req, res) => {
+  // استخدام كلا من POST و PUT لنفس النهاية النهائية ولكن طريقة PUT ستقوم بالحذف ثم الإنشاء في معاملة واحدة
+  app.post('/api/invoices/recreate/:id', handleRecreateInvoice);
+  app.put('/api/invoices/recreate/:id', handleRecreateInvoice);
+  
+  // دالة معالجة إعادة إنشاء الفاتورة
+  async function handleRecreateInvoice(req, res) {
     try {
       const { id } = req.params;
-      console.log(`Request to recreate invoice with ID: ${id}`);
+      console.log(`Request to recreate invoice with ID: ${id} using ${req.method} method`);
       console.log('REQUEST BODY:', JSON.stringify(req.body, null, 2));
       
       const invoiceId = parseInt(id);
@@ -1789,10 +1794,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Customer ID is required' });
       }
       
+      // إذا كانت الطريقة هي PUT، تحقق من وجود الفاتورة أولاً
+      if (req.method === 'PUT') {
+        const existingInvoice = await storage.getInvoice(invoiceId);
+        if (!existingInvoice) {
+          return res.status(404).json({ message: `Invoice with ID ${invoiceId} not found` });
+        }
+      }
+      
       // إعداد بيانات الفاتورة الجديدة
       const newInvoiceData = {
         ...req.body,
-        // إنشاء فاتورة جديدة بتاريخ جديد
+        // إنشاء فاتورة جديدة بنفس تاريخ الإنشاء الأصلي أو تاريخ جديد
         createdAt: new Date(),
         date: new Date(),
         updatedAt: new Date(),
@@ -1800,6 +1813,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       console.log('Creating completely new invoice with data:', JSON.stringify(newInvoiceData, null, 2));
+      
+      // إذا كانت الطريقة هي PUT، احذف الفاتورة القديمة أولاً
+      if (req.method === 'PUT') {
+        try {
+          await storage.deleteInvoice(invoiceId);
+          console.log(`Deleted old invoice with ID ${invoiceId} before recreating it`);
+        } catch (deleteError) {
+          console.error(`Error deleting old invoice with ID ${invoiceId}:`, deleteError);
+          return res.status(500).json({ message: 'Error deleting old invoice before recreation', error: String(deleteError) });
+        }
+      }
       
       // إنشاء فاتورة جديدة بالمعرف المحدد
       const newInvoice = await storage.createInvoiceWithId(invoiceId, newInvoiceData);
@@ -1820,7 +1844,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error recreating invoice:', error);
       res.status(500).json({ message: 'Error recreating invoice', error: String(error) });
     }
-  });
+  }
   
   app.post('/api/invoices/:invoiceId/items', async (req, res) => {
     try {

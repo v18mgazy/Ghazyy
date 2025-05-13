@@ -234,15 +234,12 @@ export default function InvoiceManagementPage() {
       console.log('Sending invoice data to server:', invoiceData);
       
       try {
-        // نستخدم DELETE أولاً لحذف الفاتورة القديمة تماماً
+        // الرجوع للطريقة الأصلية التي كانت تعمل
         console.log(`Deleting old invoice with ID ${invoiceId} completely`);
         await apiRequest('DELETE', `/api/invoices/${invoiceId}`);
         
         // ثم نستخدم النقطة النهائية الجديدة لإنشاء فاتورة جديدة بالكامل بنفس المعرف
         console.log(`Creating brand new invoice with same ID ${invoiceId}`);
-        
-        // إرسال بيانات الفاتورة بدون أي علامات إضافية
-        // لقد أزلنا السطر المتعلق بـ isCompletelyNew لأنها ليست موجودة في نوع البيانات
         
         const res = await apiRequest('POST', `/api/invoices/recreate/${invoiceId}`, invoiceData);
         const responseData = await res.json();
