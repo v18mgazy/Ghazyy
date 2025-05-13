@@ -815,10 +815,13 @@ export class LocalFirebaseStorage implements IStorage {
   async createSupplierPayment(payment: InsertSupplierPayment): Promise<SupplierPayment> {
     const id = this.supplierPaymentIdCounter++;
     
+    const now = new Date();
+    const localDateString = now.toISOString().replace('Z', '');
+    
     const newPayment: SupplierPayment = {
       id,
       ...payment,
-      createdAt: new Date()
+      createdAt: new Date(localDateString)
     };
     
     this.supplierPayments.set(id, newPayment);

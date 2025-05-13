@@ -322,7 +322,7 @@ export class RealtimeDBStorage implements IStorage {
       const newCustomer: Customer = {
         id,
         ...customer,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString().replace('Z', '')
       };
       
       await set(ref(database, `customers/${id}`), newCustomer);
@@ -343,7 +343,7 @@ export class RealtimeDBStorage implements IStorage {
         const updatedCustomer = {
           ...currentCustomer,
           ...customerData,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString().replace('Z', '')
         };
         
         await update(ref(database, `customers/${id}`), updatedCustomer);
@@ -535,7 +535,7 @@ export class RealtimeDBStorage implements IStorage {
         const updatedInvoice = {
           ...currentInvoice,
           ...invoiceData,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString().replace('Z', '')
         };
         
         console.log('Final updated invoice data:', updatedInvoice);
