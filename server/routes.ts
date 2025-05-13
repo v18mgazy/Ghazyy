@@ -5,7 +5,8 @@ import {
   insertUserSchema, insertProductSchema, insertCustomerSchema, 
   insertInvoiceSchema, insertDamagedItemSchema,
   insertEmployeeSchema, insertPaymentApprovalSchema, insertReportDataSchema,
-  insertNotificationSchema, insertEmployeeDeductionSchema, insertStoreInfoSchema
+  insertNotificationSchema, insertEmployeeDeductionSchema, insertStoreInfoSchema,
+  insertCustomerDebtSchema, CustomerDebt, InsertCustomerDebt
 } from "@shared/schema";
 import { supplierRoutes } from "./supplier-routes";
 import { supplierInvoiceRoutes } from "./supplier-invoice-routes";
