@@ -28,16 +28,14 @@ export async function calculateProfitFromProductsData(invoice: any, reportType =
             const quantity = Number(product.quantity) || 1;
             const discount = Number(product.discount) || 0;
             
-            // حساب سعر البيع بعد الخصم
-            const discountedSellingPrice = sellingPrice * (1 - (discount / 100));
-            
-            // حساب الربح مع الأخذ في الاعتبار نسبة الخصم
-            const productProfit = (discountedSellingPrice - purchasePrice) * quantity;
+            // حساب الربح بدون تأثير للخصم (حسب متطلبات النظام)
+            // الخصم يؤثر على المبيعات فقط وليس على الأرباح
+            const productProfit = (sellingPrice - purchasePrice) * quantity;
             calculatedProfit += productProfit;
             
             console.log(`[${reportType}] بيانات المنتج الأصلية:`, JSON.stringify(product));
             console.log(`[${reportType}] معالجة منتج "${product.productName || product.name || 'Unknown'}": سعر البيع=${sellingPrice}, سعر الشراء=${purchasePrice}, كمية=${quantity}${discount > 0 ? `, خصم=${discount}%` : ''}`);
-            console.log(`[${reportType}] حساب ربح المنتج: (${sellingPrice}${discount > 0 ? ` × (1 - ${discount}/100)` : ''} - ${purchasePrice}) × ${quantity} = ${productProfit}`);
+            console.log(`[${reportType}] حساب ربح المنتج: (${sellingPrice} - ${purchasePrice}) × ${quantity} = ${productProfit}`);
           } else {
             // إذا لم تتوفر بيانات سعر الشراء، نسجل ملاحظة ونستخدم صفر للربح
             const sellingPrice = product.sellingPrice || product.price || 0;

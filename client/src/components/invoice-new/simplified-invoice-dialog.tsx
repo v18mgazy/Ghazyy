@@ -404,16 +404,15 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       // إجمالي سعر المنتج النهائي بعد جميع الخصومات
       const finalProductTotal = Number((productTotalAfterProductDiscount - productShareOfInvoiceDiscount).toFixed(2));
       
-      // حساب الربح مع مراعاة خصم المنتج وخصم الفاتورة
+      // حساب الربح - هام: لا يتأثر الربح بخصم الفاتورة، فقط بخصم المنتج إن وجد
       const purchasePrice = product.purchasePrice || 0;
       
-      // الربح الأساسي بعد خصم المنتج وقبل خصم الفاتورة
-      const basicProfit = (productPrice * (1 - (productDiscount / 100)) - purchasePrice) * productQuantity;
+      // حساب الربح بدون تأثير خصم الفاتورة - الخصم يؤثر فقط على المبيعات وليس الأرباح
+      // نحسب خصم المنتج فقط إذا كان الخصم يؤثر على الربح (اختياري حسب سياسة المتجر)
+      // في هذه الحالة - نفترض أن خصم المنتج لا يؤثر على الربح أيضاً (حسب طلب المستخدم)
+      const finalProfit = Number(((productPrice - purchasePrice) * productQuantity).toFixed(2));
       
-      // الربح النهائي بعد تطبيق جميع الخصومات
-      const finalProfit = Number((basicProfit * (1 - invoiceDiscountRate)).toFixed(2));
-      
-      console.log(`منتج ${product.name}: سعر=${productPrice}, خصم المنتج=${productDiscount}%, إجمالي بعد خصم المنتج=${productTotalAfterProductDiscount}, حصة خصم الفاتورة=${productShareOfInvoiceDiscount}, ربح نهائي=${finalProfit}`);
+      console.log(`منتج ${product.name}: سعر=${productPrice}, خصم المنتج=${productDiscount}%, سعر الشراء=${purchasePrice}, إجمالي بعد خصم المنتج=${productTotalAfterProductDiscount}, حصة خصم الفاتورة=${productShareOfInvoiceDiscount}, ربح=${finalProfit}`);
       
       return {
         productId: product.id,
@@ -426,7 +425,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
         discount: productDiscount,
         invoiceDiscountShare: productShareOfInvoiceDiscount, // حفظ حصة المنتج من خصم الفاتورة
         total: finalProductTotal, // الإجمالي النهائي بعد كل الخصومات
-        profit: finalProfit // الربح النهائي بعد كل الخصومات
+        profit: finalProfit // الربح النهائي (لا يتأثر بالخصومات)
       };
     });
     
