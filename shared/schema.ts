@@ -51,6 +51,8 @@ export const customers = pgTable("customers", {
   address: text("address"),
   notes: text("notes"),
   isPotential: boolean("is_potential").default(true),
+  oldDebt: real("old_debt").default(0), // المديونية القديمة
+  totalDebt: real("total_debt").default(0), // إجمالي المديونية الحالية
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -61,6 +63,28 @@ export const insertCustomerSchema = createInsertSchema(customers).pick({
   address: true,
   notes: true,
   isPotential: true,
+  oldDebt: true,
+});
+
+// سجلات المديونية
+export const customerDebts = pgTable("customer_debts", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").references(() => customers.id).notNull(),
+  amount: real("amount").notNull(), // المبلغ (موجب للمديونية، سالب للدفع)
+  reason: text("reason").notNull(), // سبب المديونية أو الدفع
+  date: timestamp("date").notNull().defaultNow(),
+  invoiceId: integer("invoice_id").references(() => invoices.id), // مرجع للفاتورة إذا كانت المديونية متعلقة بفاتورة
+  createdBy: integer("created_by").references(() => users.id).notNull(), // من قام بتسجيل المديونية
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCustomerDebtSchema = createInsertSchema(customerDebts).pick({
+  customerId: true,
+  amount: true,
+  reason: true,
+  date: true,
+  invoiceId: true,
+  createdBy: true,
 });
 
 // Invoices
@@ -473,3 +497,7 @@ export const insertSupplierPaymentSchema = createInsertSchema(supplierPayments)
 
 export type SupplierPayment = typeof supplierPayments.$inferSelect;
 export type InsertSupplierPayment = z.infer<typeof insertSupplierPaymentSchema>;
+
+// أنواع المديونية
+export type CustomerDebt = typeof customerDebts.$inferSelect;
+export type InsertCustomerDebt = z.infer<typeof insertCustomerDebtSchema>;

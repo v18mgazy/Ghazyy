@@ -22,6 +22,8 @@ interface CustomerResponse {
   address: string;
   notes: string;
   isPotential: boolean;
+  oldDebt: number;
+  totalDebt: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -34,7 +36,21 @@ interface Customer {
   address: string;
   notes: string;
   isPotential: boolean;
+  oldDebt: number;
+  totalDebt: number;
   totalPurchases: number;
+}
+
+// واجهة سجل المديونية
+interface CustomerDebt {
+  id: number;
+  customerId: number;
+  amount: number;
+  reason: string;
+  date: string;
+  createdAt: string;
+  invoiceId?: number;
+  createdBy: number;
 }
 
 export default function CustomersPage() {
