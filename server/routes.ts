@@ -2065,22 +2065,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // وظيفة محسنة لحساب الأرباح
   async function calculateProfitImproved(invoice: any, reportType: string = 'unknown'): Promise<number> {
     try {
-      if (!invoice || !invoice.productData) {
+      // نتحقق من وجود حقل productsData (مع s) أو productData (بدون s)
+      if (!invoice || (!invoice.productsData && !invoice.productData)) {
         console.warn(`[حساب الربح] بيانات فاتورة غير صالحة: ${JSON.stringify(invoice)}`);
         return 0;
       }
 
+      // تحديد الحقل المستخدم (إما productsData أو productData)
+      const dataField = invoice.productsData ? 'productsData' : 'productData';
+      
       // محاولة تحليل بيانات المنتج إذا كانت سلسلة نصية
       let productData;
-      if (typeof invoice.productData === 'string') {
+      if (typeof invoice[dataField] === 'string') {
         try {
-          productData = JSON.parse(invoice.productData);
+          productData = JSON.parse(invoice[dataField]);
         } catch (e) {
-          console.error(`[${reportType}] خطأ في تحليل بيانات المنتج: ${e.message}`);
+          console.error(`[${reportType}] خطأ في تحليل بيانات المنتج (${dataField}): ${e.message}`);
           return 0;
         }
       } else {
-        productData = invoice.productData;
+        productData = invoice[dataField];
       }
 
       if (!Array.isArray(productData)) {
