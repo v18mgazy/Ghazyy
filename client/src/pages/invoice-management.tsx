@@ -566,19 +566,30 @@ export default function InvoiceManagementPage() {
     const productsArray = Array.isArray(products) ? products : [];
     const inventoryProduct = productsArray.find((p: any) => p.id === productId);
     
-    if (inventoryProduct) {
-      const availableStock = inventoryProduct.stock || 0;
+    if (inventoryProduct && invoiceToEdit) {
+      // الاستوك الحالي
+      const currentStock = inventoryProduct.stock || 0;
+      
+      // استخراج منتجات الفاتورة الأصلية
+      const originalProducts = parseProducts(invoiceToEdit);
+      
+      // العثور على المنتج في الفاتورة الأصلية
+      const originalProduct = originalProducts.find(p => p.productId === productId);
+      const originalQuantity = originalProduct ? originalProduct.quantity : 0;
+      
+      // حساب الكمية المتاحة = الاستوك الحالي + الكمية الأصلية في الفاتورة
+      const totalAvailable = currentStock + originalQuantity;
       
       // إذا كانت الكمية المطلوبة أكبر من المتوفر
-      if (quantity > availableStock) {
+      if (quantity > totalAvailable) {
         toast({
           title: t('error'),
-          description: t('not_enough_stock', { available: availableStock }),
+          description: t('not_enough_stock', { available: totalAvailable }),
           variant: 'destructive',
         });
         
         // تعيين الكمية إلى الحد الأقصى المتوفر
-        quantity = availableStock;
+        quantity = totalAvailable;
       }
     }
     
@@ -663,17 +674,54 @@ export default function InvoiceManagementPage() {
       return;
     }
     
-    // التحقق من توفر المخزون قبل الحفظ
+    // التحقق من توفر المخزون قبل الحفظ - تجميع المنتجات حسب ال ID
     const productsArray = Array.isArray(products) ? products : [];
     
     // استخراج منتجات الفاتورة الأصلية من invoiceToEdit
     const originalProducts = parseProducts(invoiceToEdit);
     
+    // تجميع المنتجات حسب المعرف مع جمع الكميات
+    const groupedProducts = new Map<number, { 
+      productId: number, 
+      productName: string, 
+      quantity: number 
+    }>();
+    
+    // تجميع المنتجات المعدلة
+    editedProducts.forEach(product => {
+      if (groupedProducts.has(product.productId)) {
+        // إذا كان المنتج موجودًا، زيادة الكمية
+        const existing = groupedProducts.get(product.productId)!;
+        existing.quantity += product.quantity;
+      } else {
+        // إذا لم يكن موجوداً، إضافة منتج جديد
+        groupedProducts.set(product.productId, {
+          productId: product.productId,
+          productName: product.productName,
+          quantity: product.quantity
+        });
+      }
+    });
+    
+    // تجميع المنتجات الأصلية
+    const originalGrouped = new Map<number, number>();
+    originalProducts.forEach(product => {
+      if (originalGrouped.has(product.productId)) {
+        // إذا كان المنتج موجودًا، زيادة الكمية
+        originalGrouped.set(
+          product.productId, 
+          originalGrouped.get(product.productId)! + product.quantity
+        );
+      } else {
+        // إذا لم يكن موجوداً، إضافة كمية جديدة
+        originalGrouped.set(product.productId, product.quantity);
+      }
+    });
+    
     // حساب الكميات المطلوبة بعد التعديل (مع مراعاة الكميات الأصلية)
-    const inventoryCheck = editedProducts.map(editedProduct => {
+    const inventoryCheck = Array.from(groupedProducts.values()).map(editedProduct => {
       // البحث عن نفس المنتج في الفاتورة الأصلية
-      const originalProduct = originalProducts.find(p => p.productId === editedProduct.productId);
-      const originalQuantity = originalProduct ? originalProduct.quantity : 0;
+      const originalQuantity = originalGrouped.get(editedProduct.productId) || 0;
       
       // البحث عن المنتج في المخزون
       const inventoryProduct = productsArray.find((p: any) => p.id === editedProduct.productId);
@@ -1306,30 +1354,41 @@ export default function InvoiceManagementPage() {
                         const productId = Number(e.target.value);
                         if (!productId) return;
                         
-                        // التحقق من وجود المنتج في القائمة
-                        const exists = editedProducts.some(p => p.productId === productId);
-                        if (exists) {
-                          toast({
-                            title: t('error'),
-                            description: t('product_already_in_list'),
-                            variant: 'destructive',
-                          });
-                          return;
-                        }
-                        
                         // العثور على المنتج من قائمة المنتجات
                         const productsArray = Array.isArray(products) ? products : [];
                         const product = productsArray.find((p: any) => p.id === productId);
                         if (!product) return;
                         
+                        // التحقق من وجود المنتج في القائمة
+                        const existingProduct = editedProducts.find(p => p.productId === productId);
+                        
                         // التحقق من توفر الكمية في المخزون
                         const stock = product.stock || 0;
-                        if (stock <= 0) {
+                        
+                        // استخراج منتجات الفاتورة الأصلية
+                        const originalProducts = invoiceToEdit ? parseProducts(invoiceToEdit) : [];
+                        
+                        // العثور على نفس المنتج في الفاتورة الأصلية
+                        const originalProduct = originalProducts.find(p => p.productId === productId);
+                        const originalQuantity = originalProduct ? originalProduct.quantity : 0;
+                        
+                        // حساب الكمية المتاحة للإضافة = الاستوك الحالي + الكمية الأصلية في الفاتورة - الكمية المستخدمة بالفعل في الفاتورة المعدلة
+                        const currentUsedQuantity = existingProduct ? existingProduct.quantity : 0;
+                        const availableToAdd = stock + originalQuantity - currentUsedQuantity;
+                        
+                        if (availableToAdd <= 0) {
                           toast({
                             title: t('error'),
                             description: t('product_out_of_stock'),
                             variant: 'destructive',
                           });
+                          return;
+                        }
+                        
+                        // إذا كان المنتج موجود بالفعل في القائمة، نزيد الكمية بدلاً من إضافة سطر جديد
+                        if (existingProduct) {
+                          // زيادة الكمية بواحد فقط
+                          updateProductQuantity(productId, existingProduct.quantity + 1);
                           return;
                         }
                         
