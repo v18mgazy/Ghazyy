@@ -3284,9 +3284,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   
                   try {
                     // حساب الربح باستخدام الدالة المحسنة بطريقة await
-                    const profit = await calculateProfitImproved(singleItemInvoice, 'top-products');
-                    console.log(`[أفضل المنتجات - محسّن] حساب ربح المنتج ${item.productName || 'Unknown'}: الربح = ${profit}`);
-                    productData.profit += profit;
+                    const profitResult = await calculateProfitImproved(singleItemInvoice, 'top-products');
+                    // استخراج قيمة الربح من كائن النتيجة
+                    const profitValue = profitResult && typeof profitResult === 'object' && 'profit' in profitResult 
+                      ? profitResult.profit 
+                      : (typeof profitResult === 'number' ? profitResult : 0);
+                    
+                    // تسجيل معلومات مفصلة
+                    if (profitResult && typeof profitResult === 'object' && 'profitWithoutDiscount' in profitResult) {
+                      console.log(`[أفضل المنتجات - محسّن] حساب ربح المنتج ${item.productName || 'Unknown'}: الربح = ${profitValue}`);
+                      
+                      // إظهار معلومات الخصم إذا كان مؤثراً
+                      if (profitResult.profitReduction > 0) {
+                        console.log(`[أفضل المنتجات - محسّن] تأثير الخصم: قبل=${profitResult.profitWithoutDiscount}, بعد=${profitValue}, الفرق=${profitResult.profitReduction}`);
+                      }
+                    } else {
+                      console.log(`[أفضل المنتجات - محسّن] حساب ربح المنتج ${item.productName || 'Unknown'}: الربح = ${profitValue}`);
+                    }
+                    
+                    productData.profit += profitValue;
                   } catch (error) {
                     console.error(`[أفضل المنتجات - محسّن] خطأ في حساب الربح للمنتج ${item.productName || 'Unknown'}: ${error}`);
                     // نستكمل حتى في حالة الخطأ باستخدام الطريقة البديلة
@@ -3339,7 +3355,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isInDateRange) {
         // حساب الأرباح من بيانات المنتجات إذا كانت متوفرة
         // استخدام دالة حساب الربح المحسنة لحساب الربح
-        let calculatedProfit = await calculateProfitImproved(invoice, 'detailed');
+        const profitResult = await calculateProfitImproved(invoice, 'detailed');
+        
+        // استخراج الربح النهائي بعد الخصم
+        const finalProfit = profitResult && typeof profitResult === 'object' && 'profit' in profitResult 
+          ? profitResult.profit 
+          : (typeof profitResult === 'number' ? profitResult : 0);
+        
+        // استخراج معلومات إضافية عن الخصم وتأثيره على الربح
+        const profitWithoutDiscount = profitResult && typeof profitResult === 'object' && 'profitWithoutDiscount' in profitResult 
+          ? profitResult.profitWithoutDiscount : finalProfit;
+        const profitReduction = profitResult && typeof profitResult === 'object' && 'profitReduction' in profitResult
+          ? profitResult.profitReduction : 0;
+          
+        // تسجيل معلومات عن تأثير الخصم للتصحيح
+        if (profitReduction > 0) {
+          console.log(`[التقارير المفصلة] تأثير الخصم على فاتورة ${invoice.invoiceNumber}:`);
+          console.log(`  - الربح الأصلي: ${profitWithoutDiscount}`);
+          console.log(`  - الربح بعد الخصم: ${finalProfit}`);
+          console.log(`  - انخفاض الربح: ${profitReduction} (${(profitReduction / profitWithoutDiscount * 100).toFixed(1)}%)`);
+        }
         
         // إضافة معلومات الخصم للتقارير المفصلة
         detailedReports.push({
@@ -3347,7 +3382,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           date: new Date(invoice.date).toISOString().split('T')[0],
           type: 'sale',
           amount: invoice.total,
-          profit: calculatedProfit, // إضافة الربح المحسوب
+          profit: finalProfit, // إضافة الربح المحسوب بعد الخصم
+          profitWithoutDiscount, // إضافة الربح قبل الخصم
+          profitReduction, // إضافة مقدار انخفاض الربح
           details: `Invoice #${invoice.invoiceNumber}, Payment: ${invoice.paymentMethod}`,
           customerName: invoice.customerName || 'عميل غير معروف',
           paymentStatus: invoice.paymentStatus,
@@ -3359,7 +3396,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           discountPercentage: invoice.discountPercentage,
           itemsDiscount: invoice.itemsDiscount,
           invoiceDiscount: invoice.invoiceDiscount,
-          paymentMethod: invoice.paymentMethod
+          paymentMethod: invoice.paymentMethod,
+          
+          // إضافة معلومات موجزة عن الخصم
+          discountSummary: profitReduction > 0 
+            ? `خصم ${profitReduction.toFixed(2)} (${(profitReduction / profitWithoutDiscount * 100).toFixed(1)}%)` 
+            : ''
         });
       }
     }
