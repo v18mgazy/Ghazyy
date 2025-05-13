@@ -2547,7 +2547,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // للتقرير اليومي، نضيف كل فاتورة كعنصر منفصل
       // استخدام for...of بدلاً من forEach للتعامل مع الدوال غير المتزامنة
       for (const inv of invoices) {
-        const profit = await calculateProfitImproved(inv, 'detailed');
+        const profitResult = await calculateProfitImproved(inv, 'detailed');
+        const profit = profitResult.profit || 0;
         // حساب قيمة الخصم الإجمالية
         const subtotal = parseFloat(inv.subtotal) || 0;
         const total = parseFloat(inv.total) || 0;
@@ -2768,9 +2769,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // استخدام الوظيفة المحسنة لحساب الربح بدقة
           console.log(`Calculating profit for invoice ${invoice.id} using improved method`);
-          const invoiceProfit = await calculateProfitImproved(invoice, type as string);
-          console.log(`Profit for invoice ${invoice.id}: ${invoiceProfit}`);
-          totalProfit += invoiceProfit;
+          const profitResult = await calculateProfitImproved(invoice, type as string);
+          const profit = profitResult.profit || 0;
+          
+          // تسجيل معلومات الربح مع تفاصيل الخصم
+          console.log(`Profit for invoice ${invoice.id}: ${profit} (Original profit: ${profitResult.profitWithoutDiscount})`);
+          console.log(`Discount details: Total discount amount: ${profitResult.totalDiscountAmount}, Profit reduction: ${profitResult.profitReduction}`);
+          
+          totalProfit += profit;
         }
       }
       
@@ -2883,20 +2889,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function calculateProfitFromProductsData(invoice: any, reportType: string = 'unknown'): Promise<any> {
     // استدعاء الدالة المحسنة وإرجاع نتيجتها
     console.log(`[تجسير] استدعاء الدالة المحسنة لحساب الربح من النوع ${reportType}`);
+    
     // الحصول على كائن النتيجة الكامل من الدالة المحسنة
     const result = await calculateProfitImproved(invoice, reportType);
     
-    // للمحافظة على التوافقية مع الكود القديم، نعيد الربح فقط إذا كانت النتيجة رقم
-    // وإلا نعيد كائن النتيجة الكامل
-    if (typeof result === 'number') {
-      return result;
-    } else if (result && typeof result === 'object' && 'profit' in result) {
-      // لضمان التوافقية، إذا كانت الدالة في مكان ما تتوقع رقم فقط وليس كائن
-      // في حالات الاستخدام القديمة
+    // تسجيل معلومات مفصلة عن تأثير الخصم على الربح
+    if (result && typeof result === 'object' && 'profit' in result) {
+      const { profit, profitWithoutDiscount, profitReduction, totalDiscountAmount, discountDetails } = result;
+      
+      if (profitReduction > 0) {
+        console.log(`[تجسير] معلومات تأثير الخصم (${reportType}):`);
+        console.log(`  - الربح بدون خصم: ${profitWithoutDiscount}`);
+        console.log(`  - الربح النهائي مع الخصم: ${profit}`);
+        console.log(`  - تأثير الخصم على الربح: ${profitReduction} (${(profitReduction / profitWithoutDiscount * 100).toFixed(1)}%)`);
+        console.log(`  - إجمالي قيمة الخصم: ${totalDiscountAmount}`);
+        
+        if (discountDetails) {
+          console.log(`  - تفاصيل الخصم:`);
+          if (discountDetails.invoiceDiscountPercentage > 0) {
+            console.log(`    * نسبة خصم الفاتورة: ${discountDetails.invoiceDiscountPercentage}%`);
+          }
+          if (discountDetails.invoiceDiscountAmount > 0) {
+            console.log(`    * قيمة خصم الفاتورة: ${discountDetails.invoiceDiscountAmount}`);
+          }
+          if (discountDetails.itemsDiscountAmount > 0) {
+            console.log(`    * مجموع خصومات المنتجات: ${discountDetails.itemsDiscountAmount}`);
+          }
+          if (discountDetails.generalDiscountAmount > 0) {
+            console.log(`    * الخصم العام: ${discountDetails.generalDiscountAmount}`);
+          }
+        }
+      }
+      
+      // دعم الاستخدامات القديمة التي تتوقع رقم فقط (الربح النهائي)
       return result.profit;
+    } else if (typeof result === 'number') {
+      // للتوافقية مع النسخ السابقة التي تعيد رقماً مباشرة
+      return result;
     }
     
     // في حالة عدم الحصول على نتيجة صحيحة
+    console.warn(`[تجسير] لم نتمكن من حساب الربح للفاتورة، نعيد صفر`);
     return 0;
   }
 
