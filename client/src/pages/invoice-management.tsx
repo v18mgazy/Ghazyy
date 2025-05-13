@@ -109,6 +109,15 @@ export default function InvoiceManagementPage() {
   const [storeAddress, setStoreAddress] = useState('');
   const [storePhone, setStorePhone] = useState('');
   
+  // حالة تعديل الفاتورة
+  const [invoiceToEdit, setInvoiceToEdit] = useState<Invoice | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editedProducts, setEditedProducts] = useState<InvoiceProduct[]>([]);
+  const [editedCustomerId, setEditedCustomerId] = useState<number | null>(null);
+  const [editedDiscount, setEditedDiscount] = useState<number>(0);
+  const [editedPaymentMethod, setEditedPaymentMethod] = useState<string>('cash');
+  const [editedNotes, setEditedNotes] = useState<string>('');
+  
   // حالة البحث
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -157,9 +166,97 @@ export default function InvoiceManagementPage() {
     },
   });
   
+  // mutation لتحديث الفاتورة
+  const updateInvoiceMutation = useMutation({
+    mutationFn: async (updateData: {
+      invoiceId: number;
+      customerId: number | null;
+      discount: number;
+      paymentMethod: string;
+      notes: string | null;
+      products: InvoiceProduct[];
+    }) => {
+      const { invoiceId, ...data } = updateData;
+      
+      // حساب إجماليات الفاتورة
+      const subtotal = data.products.reduce((sum, product) => sum + (product.price * product.quantity), 0);
+      const itemsDiscount = data.products.reduce((sum, product) => sum + (product.discount || 0), 0);
+      const invoiceDiscount = data.discount;
+      const total = subtotal - itemsDiscount - invoiceDiscount;
+      
+      // تحويل منتجات الفاتورة إلى JSON
+      const productsData = JSON.stringify(data.products);
+      
+      // تحويل بيانات المنتجات إلى تنسيق الحقول المنفصلة
+      const productIds = data.products.map(p => p.productId).join(',');
+      const productNames = data.products.map(p => p.productName).join(',');
+      const productQuantities = data.products.map(p => p.quantity).join(',');
+      const productPrices = data.products.map(p => p.price).join(',');
+      const productPurchasePrices = data.products.map(p => p.purchasePrice || 0).join(',');
+      const productDiscounts = data.products.map(p => p.discount || 0).join(',');
+      const productTotals = data.products.map(p => p.total).join(',');
+      const productProfits = data.products.map(p => {
+        const purchasePrice = p.purchasePrice || 0;
+        const sellingPrice = p.price;
+        const discount = p.discount || 0;
+        // حساب الربح = سعر البيع - سعر الشراء - الخصم
+        return (sellingPrice * p.quantity) - (purchasePrice * p.quantity) - discount;
+      }).join(',');
+      
+      // إعداد بيانات التحديث
+      const invoiceData = {
+        customerId: data.customerId,
+        subtotal,
+        discount: 0, // نحتفظ بصفر للتوافق مع النظام القديم
+        itemsDiscount,
+        invoiceDiscount,
+        total,
+        paymentMethod: data.paymentMethod,
+        notes: data.notes,
+        updatedAt: new Date(),
+        productsData,
+        productIds,
+        productNames,
+        productQuantities,
+        productPrices,
+        productPurchasePrices,
+        productDiscounts,
+        productTotals,
+        productProfits
+      };
+      
+      const res = await apiRequest('PATCH', `/api/invoices/${invoiceId}`, invoiceData);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
+      setEditDialogOpen(false);
+      setInvoiceToEdit(null);
+      
+      toast({
+        title: t('success'),
+        description: t('invoice_updated_successfully'),
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating invoice:', error);
+      toast({
+        title: t('error'),
+        description: t('error_updating_invoice'),
+        variant: 'destructive',
+      });
+    }
+  });
+  
   // استعلام لجلب العملاء (للحصول على معلومات الاتصال)
   const { data: customers } = useQuery({
     queryKey: ['/api/customers'],
+  });
+  
+  // استعلام لجلب المنتجات (للتعديل)
+  const { data: products } = useQuery({
+    queryKey: ['/api/products'],
   });
   
   // تعريف mutation لحذف الفاتورة
@@ -440,10 +537,120 @@ export default function InvoiceManagementPage() {
   
   // فتح صفحة تعديل الفاتورة
   const handleEditInvoice = (invoice: Invoice) => {
-    // سنقوم بتنفيذ هذه الوظيفة لاحقًا
-    toast({
-      title: t('feature_coming_soon'),
-      description: t('edit_invoice_feature_not_available'),
+    setInvoiceToEdit(invoice);
+    
+    // تحميل منتجات الفاتورة
+    const products = parseProducts(invoice);
+    setEditedProducts(products);
+    
+    // تعيين بيانات الفاتورة الأخرى
+    setEditedCustomerId(invoice.customerId);
+    setEditedDiscount(Number(invoice.invoiceDiscount || 0));
+    setEditedPaymentMethod(invoice.paymentMethod || 'cash');
+    setEditedNotes(invoice.notes || '');
+    
+    // فتح مربع حوار التعديل
+    setEditDialogOpen(true);
+  };
+  
+  // حساب إجمالي منتج بعد التعديل
+  const calculateProductTotal = (product: InvoiceProduct): number => {
+    const subtotal = product.price * product.quantity;
+    const discount = product.discount || 0;
+    return subtotal - discount;
+  };
+  
+  // تحديث كمية منتج في القائمة
+  const updateProductQuantity = (productId: number, quantity: number) => {
+    setEditedProducts(prevProducts => 
+      prevProducts.map(product => {
+        if (product.productId === productId) {
+          const updatedProduct = { 
+            ...product, 
+            quantity,
+            total: calculateProductTotal({ ...product, quantity })
+          };
+          return updatedProduct;
+        }
+        return product;
+      })
+    );
+  };
+  
+  // تحديث سعر منتج في القائمة
+  const updateProductPrice = (productId: number, price: number) => {
+    setEditedProducts(prevProducts => 
+      prevProducts.map(product => {
+        if (product.productId === productId) {
+          const updatedProduct = { 
+            ...product, 
+            price,
+            total: calculateProductTotal({ ...product, price })
+          };
+          return updatedProduct;
+        }
+        return product;
+      })
+    );
+  };
+  
+  // تحديث خصم منتج في القائمة
+  const updateProductDiscount = (productId: number, discount: number) => {
+    setEditedProducts(prevProducts => 
+      prevProducts.map(product => {
+        if (product.productId === productId) {
+          const updatedProduct = { 
+            ...product, 
+            discount,
+            total: calculateProductTotal({ ...product, discount })
+          };
+          return updatedProduct;
+        }
+        return product;
+      })
+    );
+  };
+  
+  // إزالة منتج من القائمة
+  const removeProduct = (productId: number) => {
+    setEditedProducts(prevProducts => 
+      prevProducts.filter(product => product.productId !== productId)
+    );
+  };
+  
+  // حفظ التعديلات
+  const handleSaveInvoice = () => {
+    if (!invoiceToEdit) return;
+    
+    // التحقق من وجود منتجات
+    if (editedProducts.length === 0) {
+      toast({
+        title: t('error'),
+        description: t('invoice_must_have_products'),
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // التحقق من صحة البيانات
+    const invalidProducts = editedProducts.filter(p => p.quantity <= 0 || p.price <= 0);
+    if (invalidProducts.length > 0) {
+      toast({
+        title: t('error'),
+        description: t('invalid_product_data'),
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // تنفيذ تحديث الفاتورة
+    updateInvoiceMutation.mutate({
+      invoiceId: invoiceToEdit.id,
+      customerId: editedCustomerId,
+      discount: editedDiscount,
+      paymentMethod: editedPaymentMethod,
+      notes: editedNotes,
+      products: editedProducts,
     });
   };
   
@@ -888,6 +1095,285 @@ export default function InvoiceManagementPage() {
               disabled={storeInfoMutation.isPending}
             >
               {storeInfoMutation.isPending ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                  {t('saving')}...
+                </>
+              ) : (
+                t('save_changes')
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* مربع حوار تعديل الفاتورة */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5" />
+              {t('edit_invoice')} - {invoiceToEdit?.invoiceNumber}
+            </DialogTitle>
+            <DialogDescription>
+              {t('edit_invoice_description')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {invoiceToEdit && (
+            <div className="space-y-6 py-4">
+              {/* معلومات العميل */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">{t('customer_information')}</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label htmlFor="customer" className="text-sm font-medium">
+                      {t('customer')}
+                    </label>
+                    <select
+                      id="customer"
+                      className="w-full p-2 border rounded-md"
+                      value={editedCustomerId || ''}
+                      onChange={(e) => setEditedCustomerId(Number(e.target.value) || null)}
+                    >
+                      <option value="">{t('select_customer')}</option>
+                      {Array.isArray(customers) && customers.map((customer: any) => (
+                        <option key={customer.id} value={customer.id}>
+                          {customer.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <label htmlFor="paymentMethod" className="text-sm font-medium">
+                      {t('payment_method')}
+                    </label>
+                    <select
+                      id="paymentMethod"
+                      className="w-full p-2 border rounded-md"
+                      value={editedPaymentMethod}
+                      onChange={(e) => setEditedPaymentMethod(e.target.value)}
+                    >
+                      <option value="cash">{t('cash')}</option>
+                      <option value="card">{t('card')}</option>
+                      <option value="deferred">{t('deferred')}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              {/* جدول المنتجات */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">{t('invoice_products')}</h3>
+                <div className="overflow-x-auto border rounded-md">
+                  <table className="w-full">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="p-2 text-start">{t('product')}</th>
+                        <th className="p-2 text-center">{t('quantity')}</th>
+                        <th className="p-2 text-center">{t('price')}</th>
+                        <th className="p-2 text-center">{t('discount')}</th>
+                        <th className="p-2 text-center">{t('total')}</th>
+                        <th className="p-2 text-center">{t('actions')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {editedProducts.map((product) => (
+                        <tr key={product.productId} className="border-t">
+                          <td className="p-2">{product.productName}</td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              min="1"
+                              className="w-20 text-center mx-auto"
+                              value={product.quantity}
+                              onChange={(e) => updateProductQuantity(product.productId, Number(e.target.value))}
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              className="w-24 text-center mx-auto"
+                              value={product.price}
+                              onChange={(e) => updateProductPrice(product.productId, Number(e.target.value))}
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              className="w-24 text-center mx-auto"
+                              value={product.discount || 0}
+                              onChange={(e) => updateProductDiscount(product.productId, Number(e.target.value))}
+                            />
+                          </td>
+                          <td className="p-2 text-center font-medium">
+                            {product.total.toFixed(2)}
+                          </td>
+                          <td className="p-2 text-center">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => removeProduct(product.productId)}
+                              title={t('remove')}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* إضافة منتج جديد */}
+                <div className="space-y-1 pt-2">
+                  <h4 className="text-sm font-medium">{t('add_product')}</h4>
+                  <div className="flex flex-wrap gap-2">
+                    <select
+                      className="p-2 border rounded-md flex-1"
+                      onChange={(e) => {
+                        const productId = Number(e.target.value);
+                        if (!productId) return;
+                        
+                        // التحقق من وجود المنتج في القائمة
+                        const exists = editedProducts.some(p => p.productId === productId);
+                        if (exists) {
+                          toast({
+                            title: t('error'),
+                            description: t('product_already_in_list'),
+                            variant: 'destructive',
+                          });
+                          return;
+                        }
+                        
+                        // العثور على المنتج من قائمة المنتجات
+                        const productsArray = Array.isArray(products) ? products : [];
+                        const product = productsArray.find((p: any) => p.id === productId);
+                        if (!product) return;
+                        
+                        // إضافة المنتج إلى القائمة
+                        setEditedProducts([
+                          ...editedProducts,
+                          {
+                            productId: product.id,
+                            productName: product.name,
+                            barcode: product.barcode,
+                            quantity: 1,
+                            price: product.sellingPrice,
+                            purchasePrice: product.purchasePrice,
+                            discount: 0,
+                            total: product.sellingPrice
+                          }
+                        ]);
+                        
+                        // إعادة القائمة المنسدلة إلى الوضع الافتراضي
+                        e.target.value = '';
+                      }}
+                    >
+                      <option value="">{t('select_product')}</option>
+                      {Array.isArray(products) && products.map((product: any) => (
+                        <option key={product.id} value={product.id}>
+                          {product.name} - {t('stock')}: {product.stock} - {t('price')}: {product.sellingPrice}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              {/* ملخص الفاتورة */}
+              <div className="pt-4 border-t space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between gap-4">
+                  {/* ملاحظات الفاتورة */}
+                  <div className="space-y-1 flex-1">
+                    <label htmlFor="notes" className="text-sm font-medium">
+                      {t('notes')}
+                    </label>
+                    <Input
+                      id="notes"
+                      placeholder={t('enter_notes')}
+                      value={editedNotes || ''}
+                      onChange={(e) => setEditedNotes(e.target.value)}
+                    />
+                  </div>
+                  
+                  {/* خصم الفاتورة */}
+                  <div className="space-y-1 w-full sm:w-48">
+                    <label htmlFor="discount" className="text-sm font-medium">
+                      {t('invoice_discount')}
+                    </label>
+                    <Input
+                      id="discount"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={editedDiscount}
+                      onChange={(e) => setEditedDiscount(Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+                
+                {/* إجماليات الفاتورة */}
+                <div className="space-y-2 w-full sm:w-72 ml-auto">
+                  <div className="flex justify-between">
+                    <span className="text-sm">{t('subtotal')}:</span>
+                    <span className="font-medium">
+                      {editedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0).toFixed(2)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-sm">{t('products_discount')}:</span>
+                    <span className="font-medium text-red-500">
+                      -{editedProducts.reduce((sum, product) => sum + (product.discount || 0), 0).toFixed(2)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-sm">{t('invoice_discount')}:</span>
+                    <span className="font-medium text-red-500">
+                      -{editedDiscount.toFixed(2)}
+                    </span>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="flex justify-between">
+                    <span className="font-medium">{t('total')}:</span>
+                    <span className="font-bold">
+                      {(
+                        editedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0) -
+                        editedProducts.reduce((sum, product) => sum + (product.discount || 0), 0) -
+                        editedDiscount
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditDialogOpen(false)}
+            >
+              {t('cancel')}
+            </Button>
+            
+            <Button
+              type="submit"
+              onClick={handleSaveInvoice}
+              disabled={updateInvoiceMutation.isPending}
+            >
+              {updateInvoiceMutation.isPending ? (
                 <>
                   <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
                   {t('saving')}...
