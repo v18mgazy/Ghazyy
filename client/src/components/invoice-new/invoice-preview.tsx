@@ -21,11 +21,56 @@ import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
 interface InvoicePreviewProps {
-  invoice: any;
-  onClose: () => void;
+  open?: boolean; 
+  onOpenChange?: (open: boolean) => void;
+  customer?: {
+    id: string;
+    name: string;
+    phone: string;
+    address: string;
+  };
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  products?: any[];
+  notes?: string;
+  paymentMethod?: string;
+  invoice?: any;
+  onClose?: () => void;
+  subtotal?: number;
+  itemsDiscount?: number;
+  invoiceDiscount?: number;
+  total?: number;
 }
 
-const InvoicePreview: React.FC<InvoicePreviewProps> = ({ invoice, onClose }) => {
+const InvoicePreview: React.FC<InvoicePreviewProps> = ({ 
+  invoice,
+  onClose = () => {},
+  customer,
+  invoiceNumber,
+  invoiceDate,
+  products,
+  notes,
+  paymentMethod,
+  subtotal,
+  itemsDiscount,
+  invoiceDiscount,
+  total
+}) => {
+  // إذا تم تمرير كائن الفاتورة كاملاً، نستخدمه، وإلا نستخدم الخصائص الفردية
+  const invoiceData = invoice || {
+    customerName: customer?.name,
+    customerPhone: customer?.phone,
+    customerAddress: customer?.address,
+    invoiceNumber,
+    date: invoiceDate,
+    notes,
+    paymentMethod,
+    subtotal,
+    itemsDiscount,
+    invoiceDiscount,
+    total,
+    products: products || []
+  };
   const { t } = useTranslation();
   const { language } = useLocale();
   const isRtl = language === 'ar';
@@ -43,8 +88,8 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ invoice, onClose }) => 
   // معالجة بيانات المنتجات من الفاتورة
   const parseProducts = () => {
     try {
-      if (invoice.productsData) {
-        return JSON.parse(invoice.productsData);
+      if (invoiceData.productsData) {
+        return JSON.parse(invoiceData.productsData);
       }
       return [];
     } catch (error) {
