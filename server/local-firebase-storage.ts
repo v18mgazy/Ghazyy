@@ -847,16 +847,17 @@ export class LocalFirebaseStorage implements IStorage {
   
   // Customer Debt Management Functions
   
+  // تخزين سجلات المديونية
+  private customerDebts = new Map<number, CustomerDebt>();
+  private customerDebtIdCounter = 1;
+  
   /**
    * الحصول على سجل مديونية محدد
    * @param id معرف سجل المديونية
    */
   async getCustomerDebt(id: number): Promise<CustomerDebt | undefined> {
     console.log(`LocalFirebaseStorage: Getting customer debt with ID ${id}`);
-    await this.delay();
-    
-    const debts = await this.loadData<CustomerDebt>('customer_debts');
-    return debts.find(debt => debt.id === id);
+    return this.customerDebts.get(id);
   }
   
   /**
@@ -865,10 +866,8 @@ export class LocalFirebaseStorage implements IStorage {
    */
   async getCustomerDebts(customerId: number): Promise<CustomerDebt[]> {
     console.log(`LocalFirebaseStorage: Getting debts for customer ID ${customerId}`);
-    await this.delay();
-    
-    const debts = await this.loadData<CustomerDebt>('customer_debts');
-    return debts.filter(debt => debt.customerId === customerId);
+    const allDebts = Array.from(this.customerDebts.values());
+    return allDebts.filter(debt => debt.customerId === customerId);
   }
   
   /**
@@ -877,31 +876,29 @@ export class LocalFirebaseStorage implements IStorage {
    */
   async createCustomerDebt(debtData: InsertCustomerDebt): Promise<CustomerDebt> {
     console.log(`LocalFirebaseStorage: Creating customer debt`, debtData);
-    await this.delay();
-    
-    const debts = await this.loadData<CustomerDebt>('customer_debts');
-    
-    // إنشاء معرف جديد
-    const newId = debts.length > 0 ? Math.max(...debts.map(debt => debt.id)) + 1 : 1;
     
     // إنشاء سجل المديونية الجديد
     const newDebt: CustomerDebt = {
       ...debtData,
-      id: newId,
-      createdAt: new Date().toISOString()
+      id: this.customerDebtIdCounter++,
+      createdAt: new Date()
     };
     
-    // إضافة السجل الجديد إلى قائمة سجلات المديونية
-    debts.push(newDebt);
-    await this.saveData('customer_debts', debts);
+    // إضافة السجل الجديد إلى Map
+    this.customerDebts.set(newDebt.id, newDebt);
     
     // تحديث إجمالي مديونية العميل
     const customer = await this.getCustomer(debtData.customerId);
     if (customer) {
-      const totalDebt = (customer.totalDebt || 0) + debtData.amount;
-      await this.updateCustomer(customer.id, { totalDebt });
+      // تحديث إجمالي المديونية بإضافة مبلغ المديونية الجديد
+      const newTotalDebt = (customer.totalDebt || 0) + debtData.amount;
+      await this.updateCustomer(customer.id, { 
+        totalDebt: newTotalDebt 
+      });
     }
     
     return newDebt;
-  }
 }
+
+// تصدير مثيل من الفئة للاستخدام في الوحدات الأخرى
+export const localFirebaseStorage = new LocalFirebaseStorage();

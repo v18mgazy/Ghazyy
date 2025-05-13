@@ -225,7 +225,7 @@ export default function CustomerList({
       setSelectedCustomer(customer);
       setShowDebtHistory(true);
       
-      const response = await fetch(`/api/customers/${customer.id}/debt-history`);
+      const response = await fetch(`/api/customer-debts/${customer.id}`);
       
       if (!response.ok) {
         console.error('API returned error status:', response.status);
