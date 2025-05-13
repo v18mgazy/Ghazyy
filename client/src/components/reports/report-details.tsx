@@ -663,11 +663,30 @@ export default function ReportDetails({
                             const estimatedProfit = product.revenue * 0.3;
                             return formatCurrency(estimatedProfit);
                           }
+                          
+                          // عرض معلومات الخصم وتأثيره على الربح إذا كانت متوفرة
+                          if (product.discountImpact && product.profitWithoutDiscount && product.profitReduction) {
+                            const reductionPercentage = ((product.profitReduction / product.profitWithoutDiscount) * 100).toFixed(1);
+                            return (
+                              <div className="flex flex-col">
+                                <span>{formatCurrency(product.profit)}</span>
+                                <span className="text-xs text-amber-600 dark:text-amber-400">
+                                  ({reductionPercentage}% {t('profit_reduction')})
+                                </span>
+                              </div>
+                            );
+                          }
+                          
+                          // عرض قيمة الربح فقط في حالة عدم وجود تأثير الخصم
                           return formatCurrency(product.profit);
                         })()}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800">
+                        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                          ${product.discountImpact 
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800'
+                          }`}>
                           {(() => {
                             if (product.revenue <= 0) return '0%';
                             
@@ -677,7 +696,23 @@ export default function ReportDetails({
                               profit = product.revenue * 0.3;
                             }
                             
-                            return `${((profit / product.revenue) * 100).toFixed(1)}%`;
+                            const percentage = ((profit / product.revenue) * 100).toFixed(1);
+                            
+                            // إذا كان هناك تخفيض بسبب الخصم، أظهر ذلك
+                            if (product.discountImpact && product.profitWithoutDiscount) {
+                              const originalPercentage = ((product.profitWithoutDiscount / product.revenue) * 100).toFixed(1);
+                              
+                              return (
+                                <div className="flex items-center">
+                                  <span>{percentage}%</span>
+                                  <span className="ml-1 text-xs opacity-70">
+                                    ({originalPercentage}%)
+                                  </span>
+                                </div>
+                              );
+                            }
+                            
+                            return `${percentage}%`;
                           })()}
                         </div>
                       </TableCell>
