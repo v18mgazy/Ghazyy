@@ -1070,16 +1070,7 @@ export default function ManagementPage() {
             {t('users_management')}
           </TabsTrigger>
 
-          <TabsTrigger 
-            value="settings" 
-            className="flex items-center gap-2 transition-all data-[state=active]:bg-gray-600 data-[state=active]:text-white hover:bg-gray-100 data-[state=active]:hover:bg-gray-700 relative overflow-hidden group"
-          >
-            <span className="absolute inset-0 bg-gradient-to-r from-gray-400/20 to-gray-400/0 group-hover:opacity-100 opacity-0 transition-opacity duration-300"></span>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-            </svg>
-            {t('system_settings')}
-          </TabsTrigger>
+
         </TabsList>
         
         <TabsContent value="products">
@@ -1139,99 +1130,10 @@ export default function ManagementPage() {
           />
         </TabsContent>
 
-        <TabsContent value="settings">
-          <div className="p-4 space-y-6 bg-white rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold text-gray-800">{t('system_settings')}</h2>
-            
-            <div className="border-t border-gray-200 pt-4">
-              <h3 className="text-lg font-medium text-gray-800 mb-2">{t('date_time_settings')}</h3>
-              <p className="text-gray-600 mb-4">
-                لوحظ وجود مشكلة في تخزين التواريخ في قاعدة البيانات، حيث أن هناك فرق 3 ساعات بين الوقت الفعلي والوقت المخزن. استخدم هذه الأداة لإصلاح جميع التواريخ في قاعدة البيانات.
-              </p>
-              
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.981l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="mr-3">
-                    <p className="text-sm text-yellow-700">
-                      تنبيه: ستقوم هذه العملية بتحديث جميع التواريخ في قاعدة البيانات. تأكد من عدم استخدام النظام من قبل مستخدمين آخرين خلال هذه العملية.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              <FixDatesButton />
-            </div>
-          </div>
-        </TabsContent>
+
       </Tabs>
     </div>
   );
 }
 
-// زر إصلاح التواريخ
-function FixDatesButton() {
-  const { t } = useTranslation();
-  const { toast } = useToast();
-  const [isFixing, setIsFixing] = useState(false);
-  
-  const fixDatesMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/admin/fix-dates');
-      return await response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "تم بنجاح",
-        description: "تم إصلاح جميع التواريخ في قاعدة البيانات بنجاح",
-        variant: 'default',
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "خطأ",
-        description: error.message || "حدث خطأ أثناء إصلاح التواريخ",
-        variant: 'destructive',
-      });
-    },
-    onSettled: () => {
-      setIsFixing(false);
-    }
-  });
-  
-  const handleFixDates = () => {
-    if (window.confirm("هل أنت متأكد من أنك تريد إصلاح جميع التواريخ في قاعدة البيانات؟")) {
-      setIsFixing(true);
-      fixDatesMutation.mutate();
-    }
-  };
-  
-  return (
-    <button
-      onClick={handleFixDates}
-      disabled={isFixing}
-      className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors duration-200"
-    >
-      {isFixing ? (
-        <>
-          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          جاري إصلاح التواريخ...
-        </>
-      ) : (
-        <>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-          </svg>
-          إصلاح التواريخ
-        </>
-      )}
-    </button>
-  );
-}
+
