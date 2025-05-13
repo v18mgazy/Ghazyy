@@ -1325,7 +1325,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('Recalculated profit after PATCH update:', profitData);
           
           // تحديث بيانات التقرير للفاتورة المحدثة
+          // نستخدم تاريخ إنشاء الفاتورة مع إضافة تعديل التوقيت المحلي
           const reportDate = new Date(updatedInvoiceData.createdAt || new Date());
+          // ضبط الوقت إلى منتصف اليوم في التوقيت المحلي لتجنب مشاكل تغيير اليوم بسبب التوقيت
+          reportDate.setHours(12, 0, 0, 0);
           const dailyDate = formatDateForReportType(reportDate, 'daily');
           
           // حاول العثور على تقرير موجود لهذا اليوم
@@ -1651,7 +1654,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentMethod: req.body.paymentMethod,
         paymentStatus: req.body.paymentStatus,
         notes: customerInfo.notes || req.body.notes,
-        date: req.body.date || new Date().toISOString(),
+        // نضبط التاريخ بدقة مع الحفاظ على التوقيت المحلي
+        date: req.body.date || (() => {
+          const now = new Date();
+          now.setHours(now.getHours() + 3); // تعديل للتوقيت المحلي
+          return now.toISOString();
+        })(),
         // تخزين بيانات المنتجات بالطريقتين للتوافق مع الإصدارات السابقة
         productsData: JSON.stringify(productsDataArray),
         // تخزين بيانات المنتجات في حقول منفصلة
@@ -1665,8 +1673,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         productProfits: productProfits.join(','),
         userId: userId,
         isDeleted: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        // نضبط تاريخ الإنشاء مع الحفاظ على التوقيت المحلي
+        createdAt: (() => {
+          const now = new Date();
+          now.setHours(now.getHours() + 3); // تعديل للتوقيت المحلي
+          return now.toISOString();
+        })(),
+        updatedAt: (() => {
+          const now = new Date();
+          now.setHours(now.getHours() + 3); // تعديل للتوقيت المحلي
+          return now.toISOString();
+        })()
       };
       
       console.log('Final invoice data for creation:', invoiceData);
