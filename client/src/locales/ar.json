@@ -469,6 +469,9 @@
   "total_profit": "إجمالي الربح",
   "total_orders": "إجمالي الطلبات",
   "damaged_items_value": "قيمة العناصر التالفة",
+  "profit_without_discount": "الربح قبل الخصم",
+  "profit_reduction": "تخفيض الربح بسبب الخصم",
+  "discount_breakdown": "تفاصيل الخصومات",
   
   "january": "يناير",
   "february": "فبراير",
