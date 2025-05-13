@@ -141,12 +141,25 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
       // سجل بيانات إضافية للمساعدة في فهم العملية
       console.log(`[حساب الربح - تحسين] [${reportType}] حساب ربح المنتج "${product.productName || product.name || 'غير معروف'}":`);
       console.log(`  - سعر البيع: ${sellingPrice}`);
+      console.log(`  - نسبة الخصم: ${discountPercentage}%`);
+      console.log(`  - سعر البيع بعد الخصم: ${discountedSellingPrice}`);
       console.log(`  - سعر الشراء: ${purchasePrice}`);
       console.log(`  - الكمية: ${quantity}`);
-      console.log(`  - الربح: (${sellingPrice} - ${purchasePrice}) * ${quantity} = ${productProfit}`);
+      console.log(`  - الربح: (${discountedSellingPrice} - ${purchasePrice}) * ${quantity} = ${productProfit}`);
       
       // إضافة إلى إجمالي الربح
       totalProfit += productProfit;
+    }
+
+    // التحقق من وجود خصم إجمالي على الفاتورة وتطبيقه على الربح
+    if (invoice.discountPercentage && Number(invoice.discountPercentage) > 0) {
+      const invoiceDiscountPercentage = Number(invoice.discountPercentage);
+      const originalProfit = totalProfit;
+      
+      // تطبيق خصم الفاتورة الإجمالي على الربح
+      totalProfit = totalProfit * (1 - (invoiceDiscountPercentage / 100));
+      
+      console.log(`[حساب الربح - تحسين] [${reportType}] تطبيق خصم الفاتورة ${invoiceDiscountPercentage}% على الربح: ${originalProfit} → ${totalProfit}`);
     }
 
     console.log(`[حساب الربح - تحسين] [${reportType}] إجمالي الربح المحسوب للفاتورة: ${totalProfit}`);
