@@ -332,6 +332,18 @@ export default function ReportDetails({
                             ({reductionPercentage}%)
                           </span>
                         </p>
+                        
+                        {/* إضافة تفصيل قيم الخصم في التقرير */}
+                        <p className="text-xs flex items-center gap-1 opacity-80 mt-1 text-muted-foreground">
+                          {t('discount_breakdown')}: {' '}
+                          <span className="font-medium text-orange-600 dark:text-orange-400">
+                            {formatCurrency(summaryGroups.sales.reduce((sum, sale) => sum + (
+                              (sale.itemsDiscount || 0) + 
+                              (sale.invoiceDiscount || 0) + 
+                              (sale.discount || 0)
+                            ), 0))}
+                          </span>
+                        </p>
                       </div>
                     );
                   }

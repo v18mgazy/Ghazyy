@@ -53,9 +53,20 @@ export async function calculateProfitFromProductsData(invoice: any, reportType =
                 } else if (invoice.discountPercentage && invoice.discountPercentage > 0) {
                     // استخدام نسبة الخصم من الفاتورة إذا كانت متوفرة
                     invoiceDiscountRate = invoice.discountPercentage / 100;
+                    console.log(`[${reportType}] استخدام نسبة الخصم من الفاتورة: ${invoice.discountPercentage}%`);
                 } else if (invoice.invoiceDiscount && invoice.subtotal && invoice.subtotal > 0) {
                     // حساب نسبة الخصم من قيمة الخصم والإجمالي قبل الخصم
                     invoiceDiscountRate = invoice.invoiceDiscount / invoice.subtotal;
+                    console.log(`[${reportType}] حساب نسبة الخصم من قيمة الخصم (${invoice.invoiceDiscount}) والإجمالي (${invoice.subtotal}): ${(invoiceDiscountRate*100).toFixed(1)}%`);
+                } else if (invoice.discount && invoice.discount > 0) {
+                    // استخدام حقل الخصم العام كملاذ أخير
+                    if (invoice.subtotal && invoice.subtotal > 0) {
+                        invoiceDiscountRate = invoice.discount / invoice.subtotal;
+                    } else {
+                        // تقدير نسبة الخصم بناء على قيمة الخصم مقارنة بإجمالي المبلغ
+                        invoiceDiscountRate = invoice.discount / (invoice.total + invoice.discount);
+                    }
+                    console.log(`[${reportType}] استخدام حقل الخصم العام: ${invoice.discount} (${(invoiceDiscountRate*100).toFixed(1)}%)`);
                 }
                 
                 // التأكد من أن نسبة الخصم منطقية
@@ -256,10 +267,23 @@ export async function generateReport(params: ReportParams): Promise<any> {
       previousSalesCount: 0
     };
     
-    // حساب الإجماليات
+    // حساب الإجماليات مع تسجيل معلومات الخصم
     for (const invoice of filteredInvoices) {
+      // تسجيل معلومات الخصم للتحقق
+      console.log(`[معلومات الخصم - ${type}] فاتورة رقم ${invoice.invoiceNumber || invoice.id}:`, {
+        subtotal: invoice.subtotal || 0,
+        itemsDiscount: invoice.itemsDiscount || 0,
+        invoiceDiscount: invoice.invoiceDiscount || 0,
+        discountPercentage: invoice.discountPercentage || 0,
+        standardDiscount: invoice.discount || 0,
+        totalDiscount: (invoice.itemsDiscount || 0) + (invoice.invoiceDiscount || 0) + (invoice.discount || 0),
+        totalAfterDiscount: invoice.total || 0
+      });
+      
       summary.totalSales += invoice.total || 0;
-      summary.totalProfit += await calculateProfitFromProductsData(invoice, type);
+      const invoiceProfit = await calculateProfitFromProductsData(invoice, type);
+      console.log(`[ربح الفاتورة - ${type}] فاتورة رقم ${invoice.invoiceNumber || invoice.id}: ${invoiceProfit}`);
+      summary.totalProfit += invoiceProfit;
     }
     
     for (const item of filteredDamagedItems) {
