@@ -702,9 +702,23 @@ export default function InvoiceManagement() {
               <span>${formatCurrency(invoice.subtotal || invoice.total)}</span>
             </div>
             
-            ${invoice.discount && invoice.discount > 0 ? `
+            ${(invoice.itemsDiscount && invoice.itemsDiscount > 0) ? `
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                <span style="font-weight: bold; color: #555;">Discount:</span>
+                <span style="font-weight: bold; color: #555;">Items Discount:</span>
+                <span>${formatCurrency(invoice.itemsDiscount)}</span>
+              </div>
+            ` : ''}
+            
+            ${(invoice.invoiceDiscount && invoice.invoiceDiscount > 0) ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #555;">Invoice Discount:</span>
+                <span>${formatCurrency(invoice.invoiceDiscount)}</span>
+              </div>
+            ` : ''}
+            
+            ${(invoice.discount && invoice.discount > 0) ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="font-weight: bold; color: #555;">Total Discount:</span>
                 <span>${formatCurrency(invoice.discount)}</span>
               </div>
             ` : ''}
