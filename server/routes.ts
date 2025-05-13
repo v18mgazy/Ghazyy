@@ -15,6 +15,8 @@ import { type ZodError } from "zod-validation-error";
 
 // استيراد وظائف حساب الربح المحسنة
 import { calculateProfitFromProductsData, generateReport } from './report-helpers';
+// استيراد وظائف إصلاح التواريخ
+import { fixAllDates } from './date-fix';
 
 /**
  * دالة محسنة لحساب الأرباح وتأثير الخصومات من بيانات الفاتورة
