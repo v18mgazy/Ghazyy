@@ -81,8 +81,8 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
   const [totalDiscount, setTotalDiscount] = useState(0);
   const [invoiceDiscount, setInvoiceDiscount] = useState(0);
   const [total, setTotal] = useState(0);
-  // تاريخ الفاتورة - استخدم التاريخ الحالي كقيمة ابتدائية
   const [invoiceDate, setInvoiceDate] = useState<Date>(new Date());
+
   
   // إضافة عميل جديد
   const [newCustomer, setNewCustomer] = useState({
