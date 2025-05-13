@@ -151,19 +151,65 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
       totalProfit += productProfit;
     }
 
-    // التحقق من وجود خصم إجمالي على الفاتورة وتطبيقه على الربح
-    if (invoice.discountPercentage && Number(invoice.discountPercentage) > 0) {
-      const invoiceDiscountPercentage = Number(invoice.discountPercentage);
-      const originalProfit = totalProfit;
-      
-      // تطبيق خصم الفاتورة الإجمالي على الربح
-      totalProfit = totalProfit * (1 - (invoiceDiscountPercentage / 100));
-      
-      console.log(`[حساب الربح - تحسين] [${reportType}] تطبيق خصم الفاتورة ${invoiceDiscountPercentage}% على الربح: ${originalProfit} → ${totalProfit}`);
+    // التحقق من وجود خصم إجمالي (نسبة أو قيمة ثابتة) على الفاتورة وتطبيقه على الربح
+    // 1. حصر جميع أنواع الخصومات
+    const invoiceDiscountPercentage = invoice.discountPercentage ? Number(invoice.discountPercentage) : 0;
+    const invoiceDiscountAmount = invoice.invoiceDiscount ? Number(invoice.invoiceDiscount) : 0;
+    const itemsDiscountAmount = invoice.itemsDiscount ? Number(invoice.itemsDiscount) : 0;
+    const generalDiscountAmount = invoice.discount ? Number(invoice.discount) : 0;
+    
+    // معلومات الفاتورة للتصحيح
+    const subtotal = invoice.subtotal ? Number(invoice.subtotal) : 0;
+    const total = invoice.total ? Number(invoice.total) : 0;
+    
+    // 2. حساب نسبة الخصم الفعلية من الإجمالي
+    let effectiveDiscountRatio = 0;
+    
+    // إذا كان لدينا قيمة الإجمالي قبل الخصم والإجمالي بعد الخصم، يمكن حساب نسبة الخصم الفعلية
+    if (subtotal > 0 && total > 0 && subtotal > total) {
+      effectiveDiscountRatio = (subtotal - total) / subtotal;
+      console.log(`[حساب الربح - تحسين] [${reportType}] حساب نسبة الخصم الفعلية: (${subtotal} - ${total}) / ${subtotal} = ${effectiveDiscountRatio}`);
+    } 
+    // إذا لم تكن متوفرة، نحسب نسبة الخصم الفعلية من قيم الخصم الفردية
+    else if (invoiceDiscountPercentage > 0) {
+      effectiveDiscountRatio = invoiceDiscountPercentage / 100;
+      console.log(`[حساب الربح - تحسين] [${reportType}] استخدام نسبة الخصم المعطاة: ${invoiceDiscountPercentage}% = ${effectiveDiscountRatio}`);
     }
-
+    
+    // 3. تطبيق الخصم على الربح بنفس النسبة
+    const originalProfit = totalProfit;
+    if (effectiveDiscountRatio > 0) {
+      totalProfit = totalProfit * (1 - effectiveDiscountRatio);
+      console.log(`[حساب الربح - تحسين] [${reportType}] تطبيق خصم الفاتورة ${(effectiveDiscountRatio * 100).toFixed(1)}% على الربح: ${originalProfit} → ${totalProfit}`);
+    }
+    
+    // 4. تحضير معلومات إضافية للتقارير
+    const totalDiscountAmount = invoiceDiscountAmount + itemsDiscountAmount + generalDiscountAmount;
+    const profitWithoutDiscount = originalProfit; // الربح قبل تطبيق الخصم
+    const profitReduction = profitWithoutDiscount - totalProfit; // مقدار انخفاض الربح بسبب الخصم
+    
+    console.log(`[حساب الربح - تحسين] [${reportType}] معلومات الخصم والربح:`);
+    console.log(`  - الربح قبل الخصم: ${profitWithoutDiscount}`);
+    console.log(`  - الخصم الكلي: ${totalDiscountAmount}`);
+    console.log(`  - تأثير الخصم على الربح: ${profitReduction}`);
+    console.log(`  - الربح النهائي: ${totalProfit}`);
+    
+    // إنشاء كائن مفصل يحتوي على معلومات الربح والخصم
+    const result = {
+      profit: totalProfit > 0 ? totalProfit : 0,
+      profitWithoutDiscount,
+      profitReduction,
+      totalDiscountAmount,
+      discountDetails: {
+        invoiceDiscountPercentage,
+        invoiceDiscountAmount,
+        itemsDiscountAmount,
+        generalDiscountAmount
+      }
+    };
+    
     console.log(`[حساب الربح - تحسين] [${reportType}] إجمالي الربح المحسوب للفاتورة: ${totalProfit}`);
-    return totalProfit > 0 ? totalProfit : 0; // لا نسمح بالأرباح السالبة
+    return result; // إرجاع كائن مفصل بدلاً من قيمة الربح فقط
   } catch (error) {
     console.error(`[حساب الربح - تحسين] [${reportType}] ❌ خطأ في حساب الربح: ${error instanceof Error ? error.message : String(error)}`);
     
