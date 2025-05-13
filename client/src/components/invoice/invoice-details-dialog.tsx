@@ -59,11 +59,7 @@ export default function InvoiceDetailsDialog({
 
         <div className="mt-4">
           {/* استخدام مكون عرض الفاتورة نفسه المستخدم في إنشاء الفاتورة الجديدة */}
-          <InvoicePreview 
-            invoice={invoice}
-            showPrintButton={true}
-            showShareButton={true}
-          />
+          <InvoicePreview invoice={invoice} />
         </div>
 
         <DialogFooter className="flex flex-row justify-end gap-2 mt-6">

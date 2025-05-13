@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import BarcodeScanner from '@/components/barcode-scanner';
 import EditInvoiceDialog from '@/components/invoice/edit-invoice-dialog-new';
+import InvoiceDetailsDialog from '@/components/invoice/invoice-details-dialog';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useAuthContext } from '@/context/auth-context';
 import { useLocale } from '@/hooks/use-locale';
@@ -139,6 +140,8 @@ export default function InvoiceManagement() {
   const [scannedProduct, setScannedProduct] = useState<any>(null);
   const [isEditInvoiceDialogOpen, setIsEditInvoiceDialogOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
+  const [isInvoiceDetailsOpen, setIsInvoiceDetailsOpen] = useState(false);
+  const [detailsInvoice, setDetailsInvoice] = useState<any>(null);
   
   // استخدام useQuery لجلب البيانات من الخادم
   const { data: dbInvoices, isLoading: isLoadingInvoices, error: invoicesError } = useQuery({
@@ -453,34 +456,86 @@ export default function InvoiceManagement() {
   };
 
   // Open invoice details dialog with items
+  // Open invoice details dialog with items - استخدام مكون عرض تفاصيل الفاتورة الجديد
   const openInvoiceDetails = (invoice: any) => {
-    console.log('Opening invoice details:', invoice);
+    console.log('Opening invoice details with new dialog:', invoice);
 
     try {
-      // استخدام بيانات المنتجات المتوفرة مباشرة في الفاتورة المعالجة بدلاً من طلبها مرة أخرى
-      if (invoice.items && Array.isArray(invoice.items) && invoice.items.length > 0) {
-        console.log('Using pre-processed items directly from invoice:', invoice.items);
-        
-        // المنتجات متوفرة بالفعل، نستخدمها مباشرة
-        setSelectedInvoice({
-          ...invoice,
-          isLoadingItems: false,
-          loadError: false
-        });
-        
-        return; // المنتجات جاهزة، لا داعي لمزيد من المعالجة
-      }
+      // تجهيز بيانات الفاتورة للعرض
+      const processFinalInvoice = (invoiceData: any) => {
+        // استخراج المنتجات من البيانات المشفرة
+        try {
+          let products = [];
+          
+          // محاولة استخراج المنتجات من حقل productsData
+          if (invoiceData.productsData) {
+            try {
+              const parsedProducts = JSON.parse(invoiceData.productsData);
+              if (Array.isArray(parsedProducts)) {
+                products = parsedProducts;
+              }
+            } catch (e) {
+              console.error('Error parsing productsData JSON:', e);
+            }
+          }
+          
+          // إذا لم يتم العثور على منتجات في productsData، نحاول استخدام الحقول المنفصلة
+          if (products.length === 0 && invoiceData.productIds) {
+            try {
+              const productIds = invoiceData.productIds.split(',');
+              const productNames = invoiceData.productNames.split(',');
+              const productQuantities = invoiceData.productQuantities.split(',').map(Number);
+              const productPrices = invoiceData.productPrices.split(',').map(Number);
+              
+              products = productIds.map((id: string, index: number) => ({
+                id: parseInt(id),
+                productId: parseInt(id),
+                name: productNames[index] || 'منتج غير معروف',
+                productName: productNames[index] || 'منتج غير معروف',
+                price: productPrices[index] || 0,
+                quantity: productQuantities[index] || 1,
+              }));
+            } catch (e) {
+              console.error('Error extracting products from separate fields:', e);
+            }
+          }
+          
+          // تنسيق البيانات النهائية للفاتورة
+          const processedInvoice = {
+            ...invoiceData,
+            products: products,
+            customerName: invoiceData.customerName,
+            customerPhone: invoiceData.customerPhone,
+            customerAddress: invoiceData.customerAddress,
+            invoiceDiscount: invoiceData.invoiceDiscount || 0,
+            itemsDiscount: invoiceData.itemsDiscount || 0,
+            subtotal: invoiceData.subtotal || 0,
+            total: invoiceData.total || 0,
+          };
+          
+          console.log('Processed invoice for display:', processedInvoice);
+          return processedInvoice;
+        } catch (error) {
+          console.error('Error processing invoice for display:', error);
+          return invoiceData;
+        }
+      };
       
-      // إذا لم تكن المنتجات متوفرة مسبقًا، نأخذها من حقل productsData
-      setSelectedInvoice({
-        ...invoice,
-        isLoadingItems: true,
-        loadError: false
+      // تحضير الفاتورة للعرض
+      const processedInvoice = processFinalInvoice(invoice);
+      setDetailsInvoice(processedInvoice);
+      setIsInvoiceDetailsOpen(true);
+      
+    } catch (error) {
+      console.error('Error opening invoice details:', error);
+      
+      toast({
+        title: t('error'),
+        description: t('error_opening_invoice_details'),
+        variant: 'destructive'
       });
-      
-      console.log('Attempting to parse products from invoice.productsData:', invoice.productsData);
-      
-      // محاولة استخراج بيانات المنتجات من حقل productsData مباشرة
+    }
+  };
       try {
         // محاولة قراءة البيانات من الحقول المنفصلة أولاً
         let formattedItems: any[] = [];
