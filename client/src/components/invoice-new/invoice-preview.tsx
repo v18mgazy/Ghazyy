@@ -387,7 +387,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
             {invoiceData.notes && (
               <div className="mt-6 p-3 bg-muted/20 rounded-md">
                 <h4 className="text-sm font-semibold mb-1">{t('notes')}:</h4>
-                <p className="text-sm text-muted-foreground">{invoice.notes}</p>
+                <p className="text-sm text-muted-foreground">{invoiceData.notes}</p>
               </div>
             )}
           </div>
