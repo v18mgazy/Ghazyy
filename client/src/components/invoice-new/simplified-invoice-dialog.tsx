@@ -374,35 +374,59 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
     }
     
     // إنشاء البيانات اللازمة للفاتورة
-    // إضافة تأثير الخصم على مستوى المنتج
+    // حساب قيمة خصم الفاتورة أولاً
+    const subtotalBeforeInvoiceDiscount = invoiceProducts.reduce((sum, product) => {
+      const productDiscount = product.discount || 0;
+      const productPrice = product.sellingPrice;
+      const productQuantity = product.quantity;
+      return sum + (productPrice * productQuantity * (1 - (productDiscount / 100)));
+    }, 0);
+    
+    // نسبة خصم الفاتورة
+    const invoiceDiscountRate = invoiceDiscount / 100;
+    
+    // إضافة تأثير الخصم على مستوى المنتج والفاتورة
     const invoiceItems = invoiceProducts.map(product => {
       // حساب خصم المنتج
       const productDiscount = product.discount || 0;
       const productPrice = product.sellingPrice;
       const productQuantity = product.quantity;
       
-      // حساب إجمالي سعر المنتج مع الخصم
-      const productTotal = productPrice * productQuantity * (1 - (productDiscount / 100));
+      // حساب إجمالي سعر المنتج بعد خصم المنتج
+      const productTotalAfterProductDiscount = productPrice * productQuantity * (1 - (productDiscount / 100));
       
-      // حساب الربح على المنتج بعد الخصم
+      // حساب نسبة هذا المنتج من إجمالي الفاتورة (بعد الخصومات على مستوى المنتج)
+      const productRatioOfInvoice = productTotalAfterProductDiscount / subtotalBeforeInvoiceDiscount;
+      
+      // حساب حصة المنتج من خصم الفاتورة
+      const productShareOfInvoiceDiscount = productTotalAfterProductDiscount * invoiceDiscountRate;
+      
+      // إجمالي سعر المنتج النهائي بعد جميع الخصومات
+      const finalProductTotal = Number((productTotalAfterProductDiscount - productShareOfInvoiceDiscount).toFixed(2));
+      
+      // حساب الربح مع مراعاة خصم المنتج وخصم الفاتورة
       const purchasePrice = product.purchasePrice || 0;
-      const profit = (productPrice * (1 - (productDiscount / 100)) - purchasePrice) * productQuantity;
       
-      // حساب قيمة المنتج النهائية والربح بدقة
-      const calculatedProductTotal = Number((productPrice * productQuantity * (1 - (productDiscount / 100))).toFixed(2));
-      const calculatedProfit = Number(((productPrice * (1 - (productDiscount / 100)) - purchasePrice) * productQuantity).toFixed(2));
+      // الربح الأساسي بعد خصم المنتج وقبل خصم الفاتورة
+      const basicProfit = (productPrice * (1 - (productDiscount / 100)) - purchasePrice) * productQuantity;
+      
+      // الربح النهائي بعد تطبيق جميع الخصومات
+      const finalProfit = Number((basicProfit * (1 - invoiceDiscountRate)).toFixed(2));
+      
+      console.log(`منتج ${product.name}: سعر=${productPrice}, خصم المنتج=${productDiscount}%, إجمالي بعد خصم المنتج=${productTotalAfterProductDiscount}, حصة خصم الفاتورة=${productShareOfInvoiceDiscount}, ربح نهائي=${finalProfit}`);
       
       return {
         productId: product.id,
         productName: product.name,
         barcode: product.barcode,
-        price: productPrice, // استخدام price بدلاً من sellingPrice ليتناسب مع واجهة API
+        price: productPrice,
         sellingPrice: productPrice,
         purchasePrice: purchasePrice,
         quantity: productQuantity,
         discount: productDiscount,
-        total: calculatedProductTotal, // استخدام total بدلاً من totalPrice ليتناسب مع واجهة API
-        profit: calculatedProfit // ربح المنتج بعد تطبيق الخصم
+        invoiceDiscountShare: productShareOfInvoiceDiscount, // حفظ حصة المنتج من خصم الفاتورة
+        total: finalProductTotal, // الإجمالي النهائي بعد كل الخصومات
+        profit: finalProfit // الربح النهائي بعد كل الخصومات
       };
     });
     
