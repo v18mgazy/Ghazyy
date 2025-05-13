@@ -73,13 +73,15 @@ export default function EditInvoiceDialog({
   });
   const [products, setProducts] = useState<any[]>(invoice?.products || []);
   
-  // تهيئة قيمة الخصم من الفاتورة بشكل مبسط
+  // تهيئة قيمة الخصم من الفاتورة بشكل صريح
+  // هنا نستخدم القيمة 0 كبداية مؤقتة فقط، وسيتم تحديثها في useEffect
   const [invoiceDiscount, setInvoiceDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState(invoice?.paymentMethod || 'cash');
   const [notes, setNotes] = useState(invoice?.notes || '');
   
-  // عند تحديث بيانات الفاتورة نقوم بتحديث قيمة الخصم
+  // استخدام useEffect لتحديث قيمة الخصم عند تغير بيانات الفاتورة
   useEffect(() => {
+    console.log('------------------------------');
     console.log('Invoice data for edit:', invoice);
     console.log('Invoice discount value (direct):', invoice?.invoiceDiscount);
     console.log('Invoice discount type:', typeof invoice?.invoiceDiscount);
@@ -87,24 +89,38 @@ export default function EditInvoiceDialog({
     // تحويل قيمة الخصم إلى رقم بطريقة آمنة
     let discountValue = 0;
     
-    try {
-      if (invoice?.invoiceDiscount !== undefined && invoice?.invoiceDiscount !== null) {
-        discountValue = Number(invoice.invoiceDiscount);
-        if (isNaN(discountValue)) {
-          // محاولة تجربة طرق أخرى للتحويل إذا كان الرقم غير صالح
-          discountValue = parseFloat(String(invoice.invoiceDiscount));
-          if (isNaN(discountValue)) {
-            discountValue = 0;
+    if (invoice && typeof invoice === 'object') {
+      // للتأكد من أن البيانات موجودة قبل محاولة الوصول إليها
+      try {
+        if ('invoiceDiscount' in invoice) {
+          // تحويل القيمة إلى رقم باستخدام طرق متعددة
+          if (typeof invoice.invoiceDiscount === 'number') {
+            // إذا كان الخصم رقمًا بالفعل
+            discountValue = invoice.invoiceDiscount;
+          } else if (typeof invoice.invoiceDiscount === 'string') {
+            // إذا كان نصًا نحوله إلى رقم
+            const numValue = Number(invoice.invoiceDiscount);
+            if (!isNaN(numValue)) {
+              discountValue = numValue;
+            } else {
+              // محاولة إزالة أي أحرف غير رقمية ثم التحويل
+              const cleanedValue = invoice.invoiceDiscount.replace(/[^0-9.]/g, '');
+              discountValue = parseFloat(cleanedValue) || 0;
+            }
           }
         }
+      } catch (error) {
+        console.error('Error processing invoice discount:', error);
       }
-    } catch (error) {
-      console.error('Error converting invoice discount to number:', error);
-      discountValue = 0;
     }
     
     console.log('Final invoice discount value:', discountValue);
-    setInvoiceDiscount(discountValue);
+    
+    // فقط نحدث قيمة الخصم إذا كان هناك قيمة فعلية
+    if (discountValue > 0) {
+      setInvoiceDiscount(discountValue);
+    }
+    console.log('------------------------------');
   }, [invoice]);
   
   // استعلام لجلب بيانات المنتجات وحالة المخزون
@@ -591,7 +607,8 @@ export default function EditInvoiceDialog({
                         type="number"
                         min="0"
                         className="w-24 h-8 text-right"
-                        value={invoiceDiscount}
+                        defaultValue={invoiceDiscount}
+                        key={`invoice-discount-${invoiceDiscount}`}
                         onChange={(e) => {
                           console.log('Setting invoice discount to:', e.target.value);
                           // تحويل القيمة المدخلة إلى رقم بشكل آمن

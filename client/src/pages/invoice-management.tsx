@@ -713,6 +713,30 @@ export default function InvoiceManagement() {
       });
       
       // 4. تحضير بيانات الفاتورة للتعديل
+      
+      // إعداد قيمة الخصم بشكل صحيح
+      let invoiceDiscountValue = 0;
+      try {
+        if (latestInvoiceData.invoiceDiscount !== undefined && latestInvoiceData.invoiceDiscount !== null) {
+          invoiceDiscountValue = Number(latestInvoiceData.invoiceDiscount);
+          if (isNaN(invoiceDiscountValue)) {
+            // إذا فشل التحويل، نحاول بطريقة أخرى
+            const strValue = String(latestInvoiceData.invoiceDiscount).trim();
+            invoiceDiscountValue = parseFloat(strValue);
+            if (isNaN(invoiceDiscountValue)) {
+              invoiceDiscountValue = 0;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error converting invoice discount:', error);
+        invoiceDiscountValue = 0;
+      }
+      
+      console.log('Original invoice discount:', latestInvoiceData.invoiceDiscount);
+      console.log('Type of invoice discount:', typeof latestInvoiceData.invoiceDiscount);
+      console.log('Processed invoice discount value:', invoiceDiscountValue);
+      
       const invoiceToEdit = {
         id: latestInvoiceData.id,
         invoiceNumber: latestInvoiceData.invoiceNumber,
@@ -723,7 +747,7 @@ export default function InvoiceManagement() {
         subtotal: latestInvoiceData.subtotal || 0,
         discount: latestInvoiceData.discount || 0,
         itemsDiscount: latestInvoiceData.itemsDiscount || 0,
-        invoiceDiscount: Number(latestInvoiceData.invoiceDiscount || 0),
+        invoiceDiscount: invoiceDiscountValue,
         total: latestInvoiceData.total || 0,
         paymentMethod: latestInvoiceData.paymentMethod || 'cash',
         paymentStatus: latestInvoiceData.paymentStatus || 'completed',
