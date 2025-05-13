@@ -64,7 +64,8 @@ export default function CustomersPage() {
     phone: '',
     address: '',
     notes: '',
-    isPotential: true
+    isPotential: true,
+    oldDebt: 0
   });
   
   // عند النقر على زر تعديل العميل
@@ -346,6 +347,17 @@ export default function CustomersPage() {
                 </SelectContent>
               </Select>
             </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="oldDebt">{t('old_debt')}</Label>
+              <Input
+                id="oldDebt"
+                type="number"
+                value={newCustomer.oldDebt.toString()}
+                onChange={(e) => setNewCustomer({ ...newCustomer, oldDebt: parseFloat(e.target.value) || 0 })}
+                placeholder="0"
+              />
+            </div>
           </div>
           
           <DialogFooter>
@@ -439,6 +451,20 @@ export default function CustomersPage() {
                   <SelectItem value="no">{t('no')}</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-oldDebt">{t('old_debt')}</Label>
+              <Input
+                id="edit-oldDebt"
+                type="number"
+                value={currentCustomer?.oldDebt?.toString() || '0'}
+                onChange={(e) => currentCustomer && setCurrentCustomer({ 
+                  ...currentCustomer, 
+                  oldDebt: parseFloat(e.target.value) || 0 
+                })}
+                placeholder="0"
+              />
             </div>
           </div>
           

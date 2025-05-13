@@ -35,7 +35,20 @@ interface Customer {
   address: string;
   notes: string;
   isPotential: boolean;
+  oldDebt: number;
+  totalDebt: number;
   totalPurchases: number;
+}
+
+interface CustomerDebt {
+  id: number;
+  customerId: number;
+  amount: number;
+  reason: string;
+  date: string;
+  createdAt: string;
+  invoiceId?: number;
+  createdBy: number;
 }
 
 interface CustomerListProps {
