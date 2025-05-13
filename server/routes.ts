@@ -191,19 +191,53 @@ async function calculateProfitImproved(invoice: any, reportType: string = 'unkno
       console.log(`[حساب الربح - تحسين] [${reportType}] حساب قيمة الخصم من الفرق: ${subtotal} - ${total} = ${totalDiscountValue}`);
     }
     
-    // 3. حساب تأثير الخصم على الربح (بنسبة قيمة الخصم إلى الإجمالي)
+    // 3. لا نطبق أي خصم إضافي مبني على النسب المئوية - نستخدم فقط الربح المحسوب مسبقاً
     const originalProfit = totalProfit;
-    if (totalDiscountValue > 0 && subtotal > 0) {
-      // نسبة الخصم من الإجمالي
-      const discountRatio = totalDiscountValue / subtotal;
-      // تطبيق هذه النسبة على الربح
-      totalProfit = totalProfit * (1 - discountRatio);
-      console.log(`[حساب الربح - تحسين] [${reportType}] خصم الفاتورة (${totalDiscountValue}) يؤثر على الربح بنسبة ${(discountRatio * 100).toFixed(1)}%: ${originalProfit} → ${totalProfit}`);
+    
+    console.log(`[حساب الربح - تحسين] [${reportType}] الربح النهائي (بعد الخصم): ${originalProfit}`);
+    // التأكد من أن الربح النهائي لا يقل عن صفر
+    if (totalProfit < 0) {
+      totalProfit = 0;
+      console.log(`[حساب الربح - تحسين] [${reportType}] تعديل الربح السالب إلى صفر`);
     }
     
     // 4. تحضير معلومات إضافية للتقارير
     const totalDiscountAmount = invoiceDiscountAmount + itemsDiscountAmount + generalDiscountAmount;
-    const profitWithoutDiscount = originalProfit; // الربح قبل تطبيق الخصم
+    // حساب الربح قبل تطبيق الخصم
+    // نحسب الربح قبل الخصم من المنتجات مباشرة
+    let profitWithoutDiscount = 0;
+    let productsDataForCalc = [];
+    
+    if (typeof invoice.productsData === 'string') {
+      try {
+        productsDataForCalc = JSON.parse(invoice.productsData);
+      } catch (e) {
+        console.error(`[${reportType}] خطأ في تحليل بيانات المنتج للحساب البديل: ${e}`);
+        // في حالة الفشل، نعتبر الربح قبل الخصم هو نفس الربح الإجمالي
+        profitWithoutDiscount = originalProfit;
+      }
+    } else if (Array.isArray(invoice.productsData)) {
+      productsDataForCalc = invoice.productsData;
+    } else if (Array.isArray(invoice.products)) {
+      productsDataForCalc = invoice.products;
+    }
+    
+    if (Array.isArray(productsDataForCalc) && productsDataForCalc.length > 0) {
+      for (const product of productsDataForCalc) {
+        const sellingPrice = parseFloat(product.price || product.sellingPrice) || 0;
+        const purchasePrice = parseFloat(product.purchasePrice) || 0;
+        const quantity = parseInt(product.quantity) || 0;
+        
+        // حساب الربح بدون الخصم: سعر البيع - سعر الشراء
+        const productProfitWithoutDiscount = (sellingPrice - purchasePrice) * quantity;
+        profitWithoutDiscount += productProfitWithoutDiscount;
+      }
+    } else {
+      // إذا لم نتمكن من الحصول على بيانات المنتجات، نستخدم قيمة الربح الحالية
+      profitWithoutDiscount = originalProfit;
+    }
+    
+    // حساب مقدار انخفاض الربح بسبب الخصم
     const profitReduction = profitWithoutDiscount - totalProfit; // مقدار انخفاض الربح بسبب الخصم
     
     console.log(`[حساب الربح - تحسين] [${reportType}] معلومات الخصم والربح:`);
