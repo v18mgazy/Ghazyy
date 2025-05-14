@@ -433,40 +433,59 @@ export default function SimplifiedInvoiceDialog({
             {filteredCustomers?.map((customer: any) => (
               <Card
                 key={customer.id}
-                className={`cursor-pointer hover:bg-accent transition-colors ${
-                  selectedCustomer?.id === customer.id ? 'bg-primary/10 border-primary/30' : ''
+                className={`cursor-pointer transition-all shadow-sm hover:shadow-md ${
+                  selectedCustomer?.id === customer.id 
+                  ? 'bg-gradient-to-r from-primary/10 to-blue-100 dark:from-primary/20 dark:to-blue-900/20 border-primary' 
+                  : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                 }`}
                 onClick={() => handleCustomerSelect(customer)}
               >
-                <CardContent className="p-3">
+                <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="font-medium flex items-center gap-2">
-                        {customer.name}
+                        <div className="bg-slate-100 dark:bg-slate-700 p-1.5 rounded-full">
+                          <User className="h-3.5 w-3.5 text-primary" />
+                        </div>
+                        <span className="text-lg">{customer.name}</span>
                         {selectedCustomer?.id === customer.id && (
-                          <Check className="h-4 w-4 text-primary" />
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        {customer.phone && (
-                          <div className="text-sm text-muted-foreground flex items-center">
-                            <Smartphone className="h-3 w-3 mr-1 text-muted-foreground" />
-                            {customer.phone}
-                          </div>
-                        )}
-                        {customer.totalDebt > 0 && (
-                          <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-xs">
-                            {t('debt')}: {formatCurrency(customer.totalDebt)}
+                          <Badge className="bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-600">
+                            {t('selected')}
                           </Badge>
                         )}
                       </div>
+                      <div className="flex flex-wrap items-center gap-2 mt-2 ml-7">
+                        {customer.phone && (
+                          <div className="text-sm text-muted-foreground flex items-center">
+                            <Phone className="h-3 w-3 mr-1 text-muted-foreground" />
+                            {customer.phone}
+                          </div>
+                        )}
+                        {customer.address && (
+                          <div className="text-sm text-muted-foreground flex items-center ml-2">
+                            <Building className="h-3 w-3 mr-1 text-muted-foreground" />
+                            <span className="truncate max-w-[150px]">{customer.address}</span>
+                          </div>
+                        )}
+                      </div>
+                      {customer.totalDebt > 0 && (
+                        <div className="mt-2 ml-7">
+                          <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
+                            {t('debt')}: {formatCurrency(customer.totalDebt)}
+                          </Badge>
+                        </div>
+                      )}
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`h-7 ${selectedCustomer?.id === customer.id ? 'bg-primary text-white hover:bg-primary/90 hover:text-white' : 'border border-primary/30 text-primary hover:bg-primary/10'}`}
+                      className={`h-8 ${
+                        selectedCustomer?.id === customer.id 
+                        ? 'bg-gradient-to-r from-primary to-blue-600 text-white hover:from-primary/90 hover:to-blue-700' 
+                        : 'border border-primary/30 text-primary hover:bg-primary/10'
+                      }`}
                     >
-                      {t('select')}
+                      {selectedCustomer?.id === customer.id ? t('selected') : t('select')}
                     </Button>
                   </div>
                 </CardContent>
@@ -525,20 +544,22 @@ export default function SimplifiedInvoiceDialog({
                   <CommandList>
                     <CommandEmpty>{t('no_products_found')}</CommandEmpty>
                     <CommandGroup>
-                      {products?.filter((p: any) =>
-                        p.name.toLowerCase().includes(productSearch.toLowerCase())
-                      ).map((product: any) => (
-                        <CommandItem
-                          key={product.id}
-                          onSelect={() => handleProductSelect(product)}
-                          className="flex justify-between"
-                        >
-                          <span>{product.name}</span>
-                          <span className="text-muted-foreground">
-                            {formatCurrency(product.sellingPrice)}
-                          </span>
-                        </CommandItem>
-                      ))}
+                      {Array.isArray(products) 
+                        ? products
+                            .filter((p: any) => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                            .map((product: any) => (
+                              <CommandItem
+                                key={product.id}
+                                onSelect={() => handleProductSelect(product)}
+                                className="flex justify-between"
+                              >
+                                <span>{product.name}</span>
+                                <span className="text-muted-foreground">
+                                  {formatCurrency(product.sellingPrice)}
+                                </span>
+                              </CommandItem>
+                            )) 
+                        : null}
                     </CommandGroup>
                   </CommandList>
                 </Command>
