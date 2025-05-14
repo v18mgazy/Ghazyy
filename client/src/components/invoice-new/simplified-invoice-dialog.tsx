@@ -399,11 +399,11 @@ export default function SimplifiedInvoiceDialog({
 
   // مكون خطوة اختيار العميل
   function CustomerStep() {
-    const filteredCustomers = customers?.filter((customer: any) =>
+    const filteredCustomers = Array.isArray(customers) ? customers.filter((customer: any) =>
       `${customer.name} ${customer.phone || ''}`
         .toLowerCase()
         .includes(customerSearch.toLowerCase())
-    );
+    ) : [];
 
     return (
       <div className="space-y-4">
@@ -482,16 +482,25 @@ export default function SimplifiedInvoiceDialog({
   function ProductsStep() {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-medium">{t('add_products')}</h2>
+            <div className="bg-gradient-to-r from-primary to-blue-600 p-2 rounded-full shadow-sm">
+              <ShoppingCart className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 text-transparent bg-clip-text">
+              {t('add_products')}
+            </h2>
           </div>
           
           {selectedCustomer && (
-            <div className="flex items-center text-sm text-muted-foreground">
-              <User className="h-4 w-4 mr-1" />
-              <span>{selectedCustomer.name}</span>
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-full shadow-sm border border-slate-200">
+              <User className="h-4 w-4 mr-2 text-primary" />
+              <span className="font-medium">{selectedCustomer.name}</span>
+              {selectedCustomer.totalDebt > 0 && (
+                <Badge variant="outline" className="ml-2 bg-red-50 text-red-600 border-red-200 text-xs">
+                  {t('debt')}: {formatCurrency(selectedCustomer.totalDebt)}
+                </Badge>
+              )}
             </div>
           )}
         </div>
@@ -838,7 +847,7 @@ export default function SimplifiedInvoiceDialog({
                   </div>
                 </div>
                 
-                {newInvoiceId && <InvoicePreview invoiceId={newInvoiceId} />}
+                {newInvoiceId && <InvoicePreview invoice={{id: newInvoiceId}} />}
               </div>
             ) : (
               <>
@@ -849,12 +858,14 @@ export default function SimplifiedInvoiceDialog({
           </div>
           
           {!showPreview && (
-            <div className="p-4 border-t flex flex-wrap items-center justify-between gap-2">
+            <div className="p-6 border-t bg-slate-50 dark:bg-slate-900/50 flex flex-wrap items-center justify-between gap-4">
               <div>
                 {currentStep === 'products' && (
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => setCurrentStep('customer')}
+                    className="shadow-sm hover:bg-slate-100 border-slate-300"
+                    size="lg"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     {t('back')}
@@ -862,15 +873,49 @@ export default function SimplifiedInvoiceDialog({
                 )}
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 {currentStep === 'customer' && selectedCustomer && (
-                  <Button onClick={() => setCurrentStep('products')}>
+                  <Button 
+                    onClick={() => setCurrentStep('products')}
+                    className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-white shadow-md"
+                    size="lg"
+                  >
                     {t('continue')}
                     <ChevronRight className="h-4 w-4 ml-2" />
                   </Button>
                 )}
                 
-                <Button variant="outline" onClick={handleCloseDialog}>
+                {currentStep === 'products' && selectedProducts.length > 0 && (
+                  <Button 
+                    onClick={handleCreateInvoice}
+                    className="bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white shadow-md"
+                    size="lg"
+                    disabled={createInvoiceMutation.isPending}
+                  >
+                    {createInvoiceMutation.isPending ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        {t('saving')}
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-5 w-5 mr-2" />
+                        {t('confirm_invoice')}
+                      </>
+                    )}
+                  </Button>
+                )}
+                
+                <Button 
+                  variant="outline" 
+                  onClick={handleCloseDialog}
+                  className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 shadow-sm"
+                  size="lg"
+                >
+                  <X className="h-4 w-4 mr-2" />
                   {t('cancel')}
                 </Button>
               </div>
