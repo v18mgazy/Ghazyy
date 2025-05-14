@@ -431,20 +431,25 @@ export class RealtimeDBStorage implements IStorage {
       const debt: CustomerDebt = {
         ...debtData,
         id: newId,
+        date: now,
         createdAt: now
       };
       
-      // حفظ السجل
-      const newDebtRef = ref(database, `customer_debts/${newId}`);
-      await set(newDebtRef, {
-        customerId: debt.customerId,
-        amount: debt.amount,
+      // حفظ سجل المديونية
+      const debtData = {
+        customerId: Number(debt.customerId),
+        amount: Number(debt.amount),
         reason: debt.reason,
-        date: debt.date.toISOString(),
-        invoiceId: debt.invoiceId || null,
-        createdBy: debt.createdBy,
+        date: now,
+        invoiceId: null,
+        createdBy: Number(debt.createdBy),
         createdAt: now
-      });
+      };
+      
+      console.log('Saving debt data:', debtData);
+      
+      const newDebtRef = ref(database, `customer_debts/${newId}`);
+      await set(newDebtRef, debtData);
       
       // تحديث إجمالي مديونية العميل
       const customer = await this.getCustomer(debtData.customerId);
