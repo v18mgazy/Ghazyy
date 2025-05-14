@@ -55,6 +55,9 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
   const { language } = useLocale();
   const isRtl = language === 'ar';
   const { toast } = useToast();
+  
+  // إنشاء مرجع للحقل النصي للباركود
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   // حالة الفاتورة
   const [activeTab, setActiveTab] = useState('customer');
@@ -209,6 +212,42 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
       )
     : products;
 
+  // دالة للبحث عن منتج باستخدام الباركود
+  const handleBarcodeSearch = async (barcode: string) => {
+    if (!barcode || barcode.trim() === '') return;
+    
+    try {
+      const response = await fetch(`/api/products/barcode/${barcode.trim()}`);
+      if (!response.ok) {
+        throw new Error(`${t('product_not_found')}: ${barcode}`);
+      }
+      
+      const product = await response.json();
+      if (product) {
+        handleAddProduct(product);
+        setManualBarcode('');
+        toast({
+          title: t('product_added'),
+          description: product.name,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: t('product_not_found'),
+        description: barcode,
+        variant: "destructive"
+      });
+    }
+  };
+
+  // معالجة إدخال الباركود وتنفيذ البحث عند الضغط على Enter
+  const handleBarcodeInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleBarcodeSearch(manualBarcode);
+    }
+  };
+  
   // حساب المجاميع
   const calculateTotals = useCallback((products: any[], customInvoiceDiscount?: number) => {
     // حساب المجموع الفرعي (subtotal): إجمالي أسعار المنتجات قبل أي خصم
