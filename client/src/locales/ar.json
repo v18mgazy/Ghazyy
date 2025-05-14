@@ -31,6 +31,7 @@
   "debt_reduced_error": "حدث خطأ أثناء تخفيض الدين",
   "error_loading_debt_history": "حدث خطأ أثناء تحميل سجل الديون",
   "customer_debt_details": "تفاصيل ديون العميل",
+  "deferred_invoices_total": "إجمالي الفواتير الآجلة",
   "type": "النوع",
   "date": "التاريخ",
   "total_purchases": "إجمالي المشتريات",

@@ -31,6 +31,7 @@
   "debt_reduced_error": "Error reducing debt",
   "error_loading_debt_history": "Error loading debt history",
   "customer_debt_details": "Customer Debt Details",
+  "deferred_invoices_total": "Deferred Invoices Total",
   "type": "Type",
   "date": "Date",
   "total_purchases": "Total Purchases",

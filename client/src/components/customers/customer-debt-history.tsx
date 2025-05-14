@@ -216,6 +216,26 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
           </TableBody>
         </Table>
       </div>
+
+      {/* ملخص للديون */}
+      <div className="mt-4 p-3 bg-muted rounded-md space-y-2">
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">{t('manual_debt')}:</span>
+          <span className={data.manualDebtTotal > 0 ? 'text-red-600' : 'text-green-600'}>
+            {formatCurrency(data.manualDebtTotal)}
+          </span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">{t('deferred_invoices_total')}:</span>
+          <span className="text-orange-600">{formatCurrency(data.deferredInvoicesTotal)}</span>
+        </div>
+        <div className="flex justify-between font-bold border-t pt-2 mt-2">
+          <span>{t('total_debt')}:</span>
+          <span className={data.totalDebt > 0 ? 'text-red-600' : 'text-green-600'}>
+            {formatCurrency(data.totalDebt)}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
