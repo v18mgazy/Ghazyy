@@ -47,11 +47,15 @@ export default function SalesPage() {
   };
   
   const handleProductScanned = (product: any) => {
+    // نقوم بإعداد المنتج الممسوح وفتح نافذة الفاتورة مباشرة
     setLastScannedProduct(product);
     setShowScanner(false);
     
-    // نفتح نافذة إنشاء الفاتورة مباشرة بعد المسح
-    setIsCreateInvoiceOpen(true);
+    // استخدام setTimeout للتأكد من أن التغييرات تحدث في دورة الحدث التالية
+    // هذا سيمنع ظهور أي نوافذ وسيطة
+    setTimeout(() => {
+      setIsCreateInvoiceOpen(true);
+    }, 100);
   };
   
   const handleCloseInvoice = () => {
