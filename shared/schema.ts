@@ -51,8 +51,7 @@ export const customers = pgTable("customers", {
   address: text("address"),
   notes: text("notes"),
   isPotential: boolean("is_potential").default(true),
-  oldDebt: real("old_debt").default(0), // المديونية القديمة
-  totalDebt: real("total_debt").default(0), // إجمالي المديونية الحالية
+  totalDebt: real("total_debt").default(0), // إجمالي الديون (مجموع الديون - المدفوعات)
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
