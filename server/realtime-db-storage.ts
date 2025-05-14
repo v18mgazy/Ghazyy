@@ -411,9 +411,9 @@ export class RealtimeDBStorage implements IStorage {
    * إنشاء سجل مديونية جديد
    * @param debtData بيانات المديونية
    */
-  async createCustomerDebt(debtData: InsertCustomerDebt): Promise<CustomerDebt> {
+  async createCustomerDebt(data: any): Promise<any> {
     try {
-      console.log(`RealtimeDBStorage: Creating customer debt`, debtData);
+      console.log(`RealtimeDBStorage: Creating customer debt`, data);
       
       // الحصول على معرف جديد
       const debtsRef = ref(database, 'customer_debts');
@@ -426,39 +426,33 @@ export class RealtimeDBStorage implements IStorage {
         newId = Math.max(...ids, 0) + 1;
       }
       
-      // تحضير بيانات السجل
+      // تحضير بيانات السجل بشكل محكم
       const now = new Date().toISOString();
-      const debt: CustomerDebt = {
-        ...debtData,
+      const entryData = {
         id: newId,
-        date: now,
-        createdAt: now
-      };
-      
-      // حفظ سجل المديونية
-      const debtData = {
-        customerId: Number(debt.customerId),
-        amount: Number(debt.amount),
-        reason: debt.reason,
+        customerId: Number(data.customerId),
+        amount: Number(data.amount),
+        reason: data.reason,
         date: now,
         invoiceId: null,
-        createdBy: Number(debt.createdBy),
+        createdBy: Number(data.createdBy),
         createdAt: now
       };
       
-      console.log('Saving debt data:', debtData);
+      console.log('Saving debt data:', entryData);
       
+      // حفظ سجل المديونية
       const newDebtRef = ref(database, `customer_debts/${newId}`);
-      await set(newDebtRef, debtData);
+      await set(newDebtRef, entryData);
       
       // تحديث إجمالي مديونية العميل
-      const customer = await this.getCustomer(debtData.customerId);
+      const customer = await this.getCustomer(entryData.customerId);
       if (customer) {
-        const totalDebt = (customer.totalDebt || 0) + debtData.amount;
+        const totalDebt = (customer.totalDebt || 0) + entryData.amount;
         await this.updateCustomer(customer.id, { totalDebt });
       }
       
-      return debt;
+      return entryData;
     } catch (error) {
       console.error('Error creating customer debt:', error);
       throw error;
