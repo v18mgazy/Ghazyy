@@ -22,7 +22,6 @@ interface CustomerResponse {
   address: string;
   notes: string;
   isPotential: boolean;
-  oldDebt: number;
   totalDebt: number;
   createdAt: string;
   updatedAt?: string;
@@ -36,7 +35,6 @@ interface Customer {
   address: string;
   notes: string;
   isPotential: boolean;
-  oldDebt: number;
   totalDebt: number;
   totalPurchases: number;
 }
@@ -64,8 +62,7 @@ export default function CustomersPage() {
     phone: '',
     address: '',
     notes: '',
-    isPotential: true,
-    oldDebt: 0
+    isPotential: true
   });
   
   // عند النقر على زر تعديل العميل
@@ -353,16 +350,7 @@ export default function CustomersPage() {
               </Select>
             </div>
             
-            <div className="grid gap-2">
-              <Label htmlFor="oldDebt">{t('old_debt')}</Label>
-              <Input
-                id="oldDebt"
-                type="number"
-                value={newCustomer.oldDebt.toString()}
-                onChange={(e) => setNewCustomer({ ...newCustomer, oldDebt: parseFloat(e.target.value) || 0 })}
-                placeholder="0"
-              />
-            </div>
+
           </div>
           
           <DialogFooter>
@@ -458,19 +446,7 @@ export default function CustomersPage() {
               </Select>
             </div>
             
-            <div className="grid gap-2">
-              <Label htmlFor="edit-oldDebt">{t('old_debt')}</Label>
-              <Input
-                id="edit-oldDebt"
-                type="number"
-                value={currentCustomer?.oldDebt?.toString() || '0'}
-                onChange={(e) => currentCustomer && setCurrentCustomer({ 
-                  ...currentCustomer, 
-                  oldDebt: parseFloat(e.target.value) || 0 
-                })}
-                placeholder="0"
-              />
-            </div>
+
           </div>
           
           <DialogFooter>
