@@ -8,7 +8,7 @@ import {
   Printer, Plus, Minus, DollarSign, Percent, Package2, Calculator, Trash2,
   RefreshCcw, RotateCcw, ArrowLeft, CheckCircle, QrCode, Keyboard,
   CreditCard, Clock, Smartphone, MessageSquare, Tag as TagIcon, Percent as PercentIcon,
-  Info as InfoIcon
+  Info as InfoIcon, Phone, Building
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -407,19 +407,23 @@ export default function SimplifiedInvoiceDialog({
 
     return (
       <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <User className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-medium">{t('select_customer')}</h2>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="bg-gradient-to-r from-primary to-blue-600 p-2.5 rounded-full shadow-sm">
+            <User className="h-5 w-5 text-white" />
+          </div>
+          <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 text-transparent bg-clip-text">
+            {t('select_customer')}
+          </h2>
         </div>
         
-        <div className="relative">
+        <div className="relative mb-4">
           <Input
             placeholder={t('search_customers')}
             value={customerSearch}
             onChange={(e) => setCustomerSearch(e.target.value)}
-            className="pl-10"
+            className="pl-10 border-blue-200 focus-visible:ring-blue-500 shadow-sm"
           />
-          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-blue-500" />
         </div>
         
         <ScrollArea className="h-[300px] rounded-md border border-border">
@@ -613,61 +617,74 @@ export default function SimplifiedInvoiceDialog({
           </div>
         </div>
         
-        <div className="rounded-lg border">
-          <div className="bg-muted/40 px-4 py-2.5 flex items-center justify-between border-b">
-            <h3 className="font-medium">{t('invoice_items')}</h3>
+        <div className="rounded-lg border border-blue-100 shadow-sm">
+          <div className="bg-gradient-to-r from-primary/10 to-blue-100 dark:from-primary/20 dark:to-blue-900/20 px-4 py-3 flex items-center justify-between border-b border-blue-100">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {selectedProducts.reduce((sum, p) => sum + p.quantity, 0)} {t('items')}
-              </span>
+              <ShoppingCart className="h-4 w-4 text-primary" />
+              <h3 className="font-semibold text-primary">{t('invoice_items')}</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-white/80 border-blue-200">
+                <span>{selectedProducts.reduce((sum, p) => sum + p.quantity, 0)} {t('items')}</span>
+              </Badge>
             </div>
           </div>
           
-          <div className="divide-y">
+          <div className="divide-y divide-blue-50">
             {selectedProducts.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground">
-                <ShoppingCart className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                <p>{t('no_products_added')}</p>
+              <div className="py-10 text-center text-muted-foreground">
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-full p-4 w-16 h-16 mx-auto mb-3 flex items-center justify-center">
+                  <ShoppingCart className="h-8 w-8 text-blue-300" />
+                </div>
+                <p className="text-primary/70">{t('no_products_added')}</p>
               </div>
             ) : (
               selectedProducts.map((product) => (
-                <div key={product.id} className="p-3 flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{product.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {formatCurrency(product.sellingPrice)} × {product.quantity}
+                <div key={product.id} className="p-4 hover:bg-blue-50/50 dark:hover:bg-blue-900/5 flex items-center justify-between transition-colors">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="bg-slate-100 dark:bg-slate-700 p-2 rounded-full">
+                      <Package2 className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-medium truncate max-w-[200px]">{product.name}</div>
+                      <div className="text-sm text-muted-foreground flex items-center gap-1">
+                        <TagIcon className="h-3 w-3" />
+                        <span>{formatCurrency(product.sellingPrice)}</span>
+                        <span className="text-slate-300 mx-1">×</span>
+                        <span>{product.quantity}</span>
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    <div className="text-right font-medium">
+                  <div className="flex items-center gap-3">
+                    <div className="text-right font-medium text-primary">
                       {formatCurrency(product.sellingPrice * product.quantity)}
                     </div>
                     
-                    <div className="flex items-center border rounded-md">
+                    <div className="flex items-center border rounded-md border-blue-200 overflow-hidden shadow-sm">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-none border-r"
+                        className="h-8 w-8 rounded-none border-r border-blue-200 bg-white hover:bg-blue-50"
                         onClick={() => updateProductQuantity(product.id, product.quantity - 1)}
                       >
-                        <Minus className="h-3 w-3" />
+                        <Minus className="h-3 w-3 text-primary" />
                       </Button>
-                      <span className="w-10 text-center text-sm">{product.quantity}</span>
+                      <span className="w-10 text-center text-sm font-medium">{product.quantity}</span>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-none border-l"
+                        className="h-8 w-8 rounded-none border-l border-blue-200 bg-white hover:bg-blue-50"
                         onClick={() => updateProductQuantity(product.id, product.quantity + 1)}
                       >
-                        <Plus className="h-3 w-3" />
+                        <Plus className="h-3 w-3 text-primary" />
                       </Button>
                     </div>
                     
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      className="h-8 w-8 text-destructive hover:text-white hover:bg-destructive rounded-full"
                       onClick={() => removeProduct(product.id)}
                     >
                       <Trash2 className="h-4 w-4" />
