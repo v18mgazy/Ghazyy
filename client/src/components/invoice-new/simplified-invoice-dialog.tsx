@@ -1016,17 +1016,20 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
 
                     <div className="md:col-span-2">
                       <div className="mb-5">
-                        <Label htmlFor="paymentMethod" className="text-base font-medium text-gray-700 block mb-2">
-                          {t('payment_method')}
-                        </Label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="flex items-center gap-2 mb-3 border-b pb-2">
+                          <DollarSign className="h-5 w-5 text-primary" />
+                          <Label htmlFor="paymentMethod" className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                            {t('payment_method')}
+                          </Label>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-1">
                           <Button
                             type="button"
                             variant={paymentMethod === 'cash' ? 'default' : 'outline'}
-                            className={`h-14 px-3 font-medium text-base rounded-xl ${
+                            className={`h-14 px-3 font-medium text-base rounded-xl transition-all duration-200 ${
                               paymentMethod === 'cash' 
-                                ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 shadow-md'
-                                : 'bg-white hover:bg-emerald-50 border-emerald-200 text-emerald-600 hover:text-emerald-700 hover:border-emerald-300'
+                                ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 shadow-md transform hover:-translate-y-0.5'
+                                : 'bg-white hover:bg-emerald-50 border-emerald-200 text-emerald-600 hover:text-emerald-700 hover:border-emerald-300 hover:shadow-sm'
                             }`}
                             onClick={() => setPaymentMethod('cash')}
                           >
@@ -1037,10 +1040,10 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                           <Button
                             type="button"
                             variant={paymentMethod === 'card' ? 'default' : 'outline'}
-                            className={`h-14 px-3 font-medium text-base rounded-xl ${
+                            className={`h-14 px-3 font-medium text-base rounded-xl transition-all duration-200 ${
                               paymentMethod === 'card' 
-                                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-md'
-                                : 'bg-white hover:bg-blue-50 border-blue-200 text-blue-600 hover:text-blue-700 hover:border-blue-300'
+                                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-md transform hover:-translate-y-0.5'
+                                : 'bg-white hover:bg-blue-50 border-blue-200 text-blue-600 hover:text-blue-700 hover:border-blue-300 hover:shadow-sm'
                             }`}
                             onClick={() => setPaymentMethod('card')}
                           >
@@ -1051,10 +1054,10 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                           <Button
                             type="button"
                             variant={paymentMethod === 'deferred' ? 'default' : 'outline'}
-                            className={`h-14 px-3 font-medium text-base rounded-xl ${
+                            className={`h-14 px-3 font-medium text-base rounded-xl transition-all duration-200 ${
                               paymentMethod === 'deferred' 
-                                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700 shadow-md'
-                                : 'bg-white hover:bg-purple-50 border-purple-200 text-purple-600 hover:text-purple-700 hover:border-purple-300'
+                                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700 shadow-md transform hover:-translate-y-0.5'
+                                : 'bg-white hover:bg-purple-50 border-purple-200 text-purple-600 hover:text-purple-700 hover:border-purple-300 hover:shadow-sm'
                             }`}
                             onClick={() => setPaymentMethod('deferred')}
                           >
@@ -1065,10 +1068,10 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                           <Button
                             type="button"
                             variant={paymentMethod === 'e-wallet' ? 'default' : 'outline'}
-                            className={`h-14 px-3 font-medium text-base rounded-xl ${
+                            className={`h-14 px-3 font-medium text-base rounded-xl transition-all duration-200 ${
                               paymentMethod === 'e-wallet' 
-                                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-md'
-                                : 'bg-white hover:bg-amber-50 border-amber-200 text-amber-600 hover:text-amber-700 hover:border-amber-300'
+                                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-md transform hover:-translate-y-0.5'
+                                : 'bg-white hover:bg-amber-50 border-amber-200 text-amber-600 hover:text-amber-700 hover:border-amber-300 hover:shadow-sm'
                             }`}
                             onClick={() => setPaymentMethod('e-wallet')}
                           >
@@ -1088,9 +1091,9 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                             placeholder={t('invoice_notes')}
                             value={invoiceNotes}
                             onChange={(e) => setInvoiceNotes(e.target.value)}
-                            className="pl-10 h-12 text-base border-primary/20 focus:border-primary rounded-lg"
+                            className="pl-10 h-12 text-base border-primary/20 focus:border-primary rounded-lg transition-all duration-150 focus:shadow-sm"
                           />
-                          <MessageSquare className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                          <MessageSquare className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                         </div>
                       </div>
                       
