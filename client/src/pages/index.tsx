@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocale } from '@/hooks/use-locale';
 import { Button } from '@/components/ui/button';
-import { ReceiptText, Plus, ArrowRight, Loader2, ShoppingCart } from 'lucide-react';
-import BarcodeScanner from '@/components/barcode-scanner';
+import { ReceiptText, Plus, ArrowRight, Loader2, ShoppingCart, Scan } from 'lucide-react';
+import SmallBarcodeScannerModal from '@/components/small-barcode-scanner-modal';
 // استيراد مكون إنشاء الفاتورة المبسط
 import SimplifiedInvoiceDialog from '@/components/invoice-new/simplified-invoice-dialog';
 import { useQuery } from '@tanstack/react-query';
@@ -98,8 +98,29 @@ export default function SalesPage() {
             </Button>
           </div>
           
-          {/* قسم ماسح الباركود */}
-          <BarcodeScanner onProductScanned={(product: any) => handleProductScanned(product)} />
+          {/* زر فتح ماسح الباركود في نافذة منبثقة صغيرة */}
+          <div className="flex justify-center my-8">
+            <Button 
+              onClick={handleActivateScanner} 
+              size="lg"
+              variant="outline"
+              className="px-6 py-8 border-2 border-dashed border-primary/40 hover:border-primary/70 bg-primary/5 hover:bg-primary/10 transition-all group"
+            >
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <Scan className="h-8 w-8 text-primary" />
+                </div>
+                <span className="font-semibold text-lg">{t('scan_barcode')}</span>
+              </div>
+            </Button>
+          </div>
+          
+          {/* نافذة ماسح الباركود المنبثقة الصغيرة */}
+          <SmallBarcodeScannerModal 
+            open={showScanner} 
+            onOpenChange={setShowScanner} 
+            onProductScanned={handleProductScanned} 
+          />
           
           {/* تمت إزالة قسم المنتجات الأخيرة بناءً على طلب العميل */}
           
