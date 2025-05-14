@@ -36,7 +36,6 @@ interface Customer {
   address: string;
   notes: string;
   isPotential: boolean;
-  oldDebt: number;
   totalDebt: number;
   totalPurchases: number;
 }
@@ -101,7 +100,7 @@ export default function CustomerList({
     const customerInvoices = allInvoices.filter(invoice => 
       // تطابق حسب معرف العميل أو اسم العميل مع عدم تضمين الفواتير المحذوفة
       (invoice.customerId?.toString() === customerId ||
-       invoice.customerName === props.customers.find(c => c.id.toString() === customerId)?.name) &&
+       invoice.customerName === customers.find(c => c.id.toString() === customerId)?.name) &&
       !invoice.isDeleted
     );
     
@@ -111,17 +110,17 @@ export default function CustomerList({
         : (typeof invoice.total === 'string' ? parseFloat(invoice.total) : 0);
       return total + invoiceTotal;
     }, 0);
-  }, [allInvoices, props.customers]);
+  }, [allInvoices, customers]);
 
   // تحويل البيانات من شكل الاستجابة إلى الشكل الذي يستخدمه المكون مع حساب إجمالي المشتريات
   const processedCustomers = useMemo(() => {
-    return props.customers.map(customer => ({
+    return customers.map(customer => ({
       ...customer,
       id: customer.id.toString(),
       // حساب إجمالي المشتريات لكل عميل
       totalPurchases: calculateTotalPurchases(customer.id.toString()),
     }));
-  }, [props.customers, calculateTotalPurchases]);
+  }, [customers, calculateTotalPurchases]);
 
   const filteredCustomers = processedCustomers.filter(customer => 
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
