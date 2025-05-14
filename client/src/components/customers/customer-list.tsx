@@ -176,7 +176,7 @@ export default function CustomerList({
     window.open(whatsappLink, '_blank');
   };
   
-  // دالة لإضافة مديونية جديدة للعميل
+  // دالة لإضافة مديونية جديدة للعميل (محدثة لاستخدام نقطة النهاية الجديدة)
   const handleAddDebt = async () => {
     if (!selectedCustomer || debtAmount <= 0 || !debtReason) {
       toast({
@@ -188,21 +188,16 @@ export default function CustomerList({
     }
 
     try {
-      const response = await fetch(`/api/customer-debts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          customerId: parseInt(selectedCustomer.id),
-          amount: debtAmount,
-          reason: debtReason,
-          createdBy: 1, // المستخدم الحالي (نفترض أنه المدير)
-        }),
+      const response = await apiRequest('POST', `/api/customer-debts/add`, {
+        customerId: parseInt(selectedCustomer.id),
+        amount: debtAmount,
+        reason: debtReason,
+        createdBy: 1, // المستخدم الحالي (نفترض أنه المدير)
       });
 
       if (!response.ok) {
-        throw new Error('Failed to add debt');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to add debt');
       }
 
       toast({
@@ -229,7 +224,7 @@ export default function CustomerList({
     }
   };
 
-  // دالة لخفض مديونية العميل
+  // دالة لخفض مديونية العميل (محدثة لاستخدام نقطة النهاية الجديدة)
   const handleReduceDebt = async () => {
     if (!selectedCustomer || debtAmount <= 0 || !debtReason) {
       toast({
@@ -241,21 +236,16 @@ export default function CustomerList({
     }
 
     try {
-      const response = await fetch(`/api/customer-debts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          customerId: parseInt(selectedCustomer.id),
-          amount: -debtAmount, // قيمة سالبة لتمثيل تخفيض المديونية
-          reason: debtReason,
-          createdBy: 1, // المستخدم الحالي (نفترض أنه المدير)
-        }),
+      const response = await apiRequest('POST', `/api/customer-debts/reduce`, {
+        customerId: parseInt(selectedCustomer.id),
+        amount: debtAmount, // الخادم سيحولها إلى قيمة سالبة
+        reason: debtReason,
+        createdBy: 1, // المستخدم الحالي (نفترض أنه المدير)
       });
 
       if (!response.ok) {
-        throw new Error('Failed to reduce debt');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to reduce debt');
       }
 
       toast({
@@ -282,34 +272,11 @@ export default function CustomerList({
     }
   };
 
-  // دالة لعرض سجل المديونية للعميل
-  const viewDebtHistory = async (customer: Customer) => {
-    try {
-      setSelectedCustomer(customer);
-      setShowDebtHistory(true);
-      
-      const response = await fetch(`/api/customer-debts/${customer.id}`);
-      
-      if (!response.ok) {
-        console.error('API returned error status:', response.status);
-        setDebtHistory([]);
-        return;
-      }
-      
-      const debtHistoryData = await response.json();
-      
-      if (!Array.isArray(debtHistoryData)) {
-        console.log('No debt history found for customer');
-        setDebtHistory([]);
-        return;
-      }
-      
-      console.log('Debt history data:', debtHistoryData);
-      setDebtHistory(debtHistoryData);
-    } catch (error) {
-      console.error('Error viewing debt history:', error);
-      setDebtHistory([]);
-    }
+  // دالة لعرض سجل المديونية للعميل (محدثة لاستخدام المكون الجديد)
+  const viewDebtHistory = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowDebtHistory(true);
+    // لا حاجة لاسترجاع البيانات هنا، سيقوم المكون CustomerDebtHistory بذلك تلقائيًا
   };
 
   // استعلام للحصول على تاريخ مشتريات العميل (سيتم استخدامه عند طلب عرض التاريخ)
@@ -837,7 +804,7 @@ export default function CustomerList({
         </DialogContent>
       </Dialog>
 
-      {/* مربع حوار سجل المديونية */}
+      {/* مربع حوار سجل المديونية - تم التحديث لاستخدام المكون الجديد */}
       <Dialog open={showDebtHistory} onOpenChange={setShowDebtHistory}>
         <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -849,46 +816,18 @@ export default function CustomerList({
             </DialogDescription>
           </DialogHeader>
 
-          {debtHistory.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {t('no_debt_history')}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('date')}</TableHead>
-                  <TableHead>{t('amount')}</TableHead>
-                  <TableHead>{t('type')}</TableHead>
-                  <TableHead>{t('reason')}</TableHead>
-                  {debtHistory.some(item => item.invoiceId) && (
-                    <TableHead>{t('invoice_number')}</TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {debtHistory.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      {new Date(item.date).toLocaleDateString('ar-EG')}
-                    </TableCell>
-                    <TableCell className={item.amount > 0 ? "text-red-600" : "text-green-600"}>
-                      {formatCurrency(Math.abs(item.amount))}
-                    </TableCell>
-                    <TableCell>
-                      {item.amount > 0 ? t('debt_added') : t('debt_reduced')}
-                    </TableCell>
-                    <TableCell>{item.reason}</TableCell>
-                    {debtHistory.some(i => i.invoiceId) && (
-                      <TableCell>
-                        {item.invoiceId ? item.invoiceId : '-'}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-              <tfoot>
-                <tr className="border-t">
+          {selectedCustomer && (
+            <CustomerDebtHistory 
+              customerId={Number(selectedCustomer.id)} 
+              className="py-4"
+            />
+          )}
+          
+          <DialogFooter>
+            <Button onClick={() => setShowDebtHistory(false)}>
+              {t('close')}
+            </Button>
+          </DialogFooter>>
                   <td colSpan={2} className="py-2 px-4 text-right font-semibold">
                     {t('current_total_debt')}:
                   </td>
