@@ -4186,12 +4186,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Customer not found' });
       }
       
+      // 1. الحصول على سجل الديون المضافة/المخفضة يدويًا
       const debts = await storage.getCustomerDebts(customerId);
-      const totalDebt = customer.totalDebt || 0;
+
+      // 2. الحصول على الفواتير الآجلة للعميل
+      const allInvoices = await storage.getAllInvoices();
+      const deferredInvoices = allInvoices.filter(invoice => 
+        !invoice.isDeleted && 
+        invoice.customerId === customerId && 
+        invoice.paymentStatus === 'deferred'
+      );
+      
+      // 3. حساب قيمة الفواتير الآجلة
+      const deferredInvoicesTotal = deferredInvoices.reduce((total, invoice) => total + invoice.total, 0);
+      
+      // 4. إضافة الديون المسجلة يدويًا (في totalDebt) + قيمة الفواتير الآجلة
+      const totalManualDebt = customer.totalDebt || 0;
+      const totalDebt = totalManualDebt + deferredInvoicesTotal;
+      
+      // 5. إضافة الفواتير الآجلة إلى البيانات المرسلة للعميل
+      const deferredInvoicesInfo = deferredInvoices.map(invoice => ({
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        date: invoice.date,
+        amount: invoice.total,
+        isPending: invoice.paymentStatus === 'deferred'
+      }));
       
       return res.json({ 
         debts, 
-        totalDebt 
+        totalDebt,
+        manualDebtTotal: totalManualDebt,
+        deferredInvoicesTotal,
+        deferredInvoices: deferredInvoicesInfo
       });
     } catch (error) {
       console.error('Error fetching customer debts:', error);

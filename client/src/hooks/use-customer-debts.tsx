@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
  * Interface for CustomerDebt data returned from the API
  */
 export interface CustomerDebt {
-  id: number;
+  id: number | string;
   customerId: number;
   amount: number;
   reason: string;
@@ -14,6 +14,18 @@ export interface CustomerDebt {
   createdAt: string;
   invoiceId?: number;
   createdBy: number;
+  isDeferred?: boolean;
+}
+
+/**
+ * Interface for deferred invoices
+ */
+export interface DeferredInvoice {
+  id: number;
+  invoiceNumber: string;
+  date: string;
+  amount: number;
+  isPending: boolean;
 }
 
 /**
@@ -22,6 +34,9 @@ export interface CustomerDebt {
 export interface CustomerDebtsResponse {
   debts: CustomerDebt[];
   totalDebt: number;
+  manualDebtTotal: number;
+  deferredInvoicesTotal: number;
+  deferredInvoices: DeferredInvoice[];
 }
 
 /**

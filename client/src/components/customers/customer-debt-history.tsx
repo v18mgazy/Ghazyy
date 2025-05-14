@@ -82,20 +82,41 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
     );
   }
 
+  // إنشاء "ديون" وهمية من الفواتير الآجلة لعرضهم في نفس الجدول
+  const deferredInvoiceDebts = data.deferredInvoices.map(invoice => ({
+    id: `invoice-${invoice.id}`, // معرف فريد لتجنب تعارض المعرفات
+    customerId: Number(customerId),
+    amount: invoice.amount, // قيمة الفاتورة الآجلة (دائماً إيجابية/إضافة دين)
+    reason: t('deferred_invoice'), // سبب الدين: "فاتورة آجلة"
+    date: invoice.date,
+    createdAt: invoice.date,
+    invoiceId: invoice.id,
+    createdBy: 0, // لا يوجد مستخدم محدد للفواتير الآجلة
+    isDeferred: true // علامة لتحديد أن هذا العنصر هو فاتورة آجلة وليس دين يدوي
+  }));
+
+  // دمج الديون اليدوية والفواتير الآجلة في قائمة واحدة
+  const allDebts = [...data.debts, ...deferredInvoiceDebts];
+  
+  // ترتيب جميع الديون حسب التاريخ (الأحدث أولاً)
+  const sortedDebts = allDebts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
   return (
     <div className={className}>
+      {/* إجمالي الديون - يشمل الديون المضافة يدوياً + الفواتير الآجلة */}
       <div className="mb-4 p-3 bg-muted rounded-md flex justify-between items-center">
         <div>
-          <span className="text-sm text-muted-foreground">{t('current_debt_balance')}:</span>
+          <span className="text-sm text-muted-foreground">{t('total_debt')}:</span>
           <span className={`ml-2 font-bold ${data.totalDebt > 0 ? 'text-red-600' : 'text-green-600'}`}>
             {formatCurrency(data.totalDebt)}
           </span>
         </div>
         <Badge variant="outline" className="text-xs px-2 py-0">
-          {t('transactions_count')}: {data.debts.length}
+          {t('transactions_count')}: {sortedDebts.length}
         </Badge>
       </div>
 
+      {/* سجل المديونية الموحد (يشمل كل من الديون اليدوية والفواتير الآجلة) */}
       <div className="rounded-md border overflow-hidden">
         <Table>
           <TableHeader>
@@ -107,31 +128,54 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.debts.map((debt) => {
-              const transaction = getTransactionType(debt.amount, debt.invoiceId);
-              return (
-                <TableRow key={debt.id}>
-                  <TableCell className="font-medium text-xs">
-                    {formatDate(debt.date)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={`flex items-center ${transaction.color}`}>
-                      {transaction.icon}
-                      <span>{transaction.label}</span>
-                      {debt.invoiceId && (
-                        <span className="ml-1 text-xs opacity-70">#{debt.invoiceId}</span>
-                      )}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate">
-                    {debt.reason || t('no_reason_provided')}
-                  </TableCell>
-                  <TableCell className={`text-right font-medium ${debt.amount > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                    {formatCurrency(Math.abs(debt.amount))}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+            {sortedDebts.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                  {t('no_debt_records')}
+                </TableCell>
+              </TableRow>
+            ) : (
+              sortedDebts.map((debt) => {
+                // نستخدم نوع معاملة مختلف للفواتير الآجلة
+                const transaction = debt.isDeferred
+                  ? {
+                      icon: <Receipt className="h-3 w-3 mr-1" />,
+                      label: t('deferred_invoice'),
+                      color: 'bg-orange-50 text-orange-700 border-orange-200'
+                    }
+                  : getTransactionType(debt.amount, debt.invoiceId);
+                
+                return (
+                  <TableRow key={debt.id}>
+                    <TableCell className="font-medium text-xs">
+                      {formatDate(debt.date)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`flex items-center ${transaction.color}`}>
+                        {transaction.icon}
+                        <span>{transaction.label}</span>
+                        {debt.invoiceId && !debt.isDeferred && (
+                          <span className="ml-1 text-xs opacity-70">#{debt.invoiceId}</span>
+                        )}
+                        {debt.isDeferred && (
+                          <span className="ml-1 text-xs opacity-70">#{debt.invoiceId}</span>
+                        )}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {debt.reason || t('no_reason_provided')}
+                    </TableCell>
+                    <TableCell className={`text-right font-medium ${
+                      debt.isDeferred 
+                        ? 'text-orange-600' 
+                        : (debt.amount > 0 ? 'text-red-600' : 'text-green-600')
+                    }`}>
+                      {formatCurrency(Math.abs(debt.amount))}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </div>
