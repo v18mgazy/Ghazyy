@@ -1,22 +1,32 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { useTranslation } from "react-i18next";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
+/**
+ * Interface for CustomerDebt data returned from the API
+ */
 export interface CustomerDebt {
   id: number;
   customerId: number;
   amount: number;
   reason: string;
   date: string;
+  createdAt: string;
+  invoiceId?: number;
   createdBy: number;
 }
 
+/**
+ * Interface for the response containing debts and total debt
+ */
 export interface CustomerDebtsResponse {
   debts: CustomerDebt[];
   totalDebt: number;
 }
 
+/**
+ * Interface for adding a new debt
+ */
 export interface AddDebtData {
   customerId: number;
   amount: number;
@@ -24,6 +34,9 @@ export interface AddDebtData {
   createdBy: number;
 }
 
+/**
+ * Interface for reducing a debt
+ */
 export interface ReduceDebtData {
   customerId: number;
   amount: number;
@@ -32,83 +45,92 @@ export interface ReduceDebtData {
 }
 
 /**
- * Hook للحصول على سجل ديون العميل
- * @param customerId معرف العميل
+ * Hook to get a customer's debt history
+ * @param customerId - The customer ID
  */
 export function useCustomerDebts(customerId: number) {
-  return useQuery<CustomerDebtsResponse>({
-    queryKey: [`/api/customer-debts/${customerId}`],
+  return useQuery<CustomerDebtsResponse, Error>({
+    queryKey: ['/api/customer-debts', customerId],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/customer-debts/${customerId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch debt history');
+      }
+      return await response.json();
+    },
     enabled: !!customerId,
+    staleTime: 30000 // 30 seconds
   });
 }
 
 /**
- * Hook لإضافة دين جديد للعميل
+ * Hook to add a new debt to a customer
  */
 export function useAddCustomerDebt() {
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
-  
+  const { toast } = useToast();
+
   return useMutation({
     mutationFn: async (data: AddDebtData) => {
-      const response = await apiRequest("POST", "/api/customer-debts/add", data);
+      const response = await apiRequest('POST', `/api/customer-debts/add`, data);
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || t("debt_added_error"));
+        throw new Error(errorData.message || 'Failed to add debt');
       }
-      return response.json();
+      return await response.json();
     },
-    onSuccess: (_, variables) => {
-      toast({
-        title: t("success"),
-        description: t("debt_added_success"),
-      });
+    onSuccess: (_data, variables) => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['/api/customer-debts', variables.customerId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
       
-      // تحديث بيانات ديون العميل وبيانات العملاء
-      queryClient.invalidateQueries({ queryKey: [`/api/customer-debts/${variables.customerId}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      toast({
+        title: 'نجاح',
+        description: 'تمت إضافة المديونية بنجاح',
+      });
     },
     onError: (error: Error) => {
       toast({
-        title: t("error"),
-        description: error.message || t("debt_added_error"),
-        variant: "destructive",
+        title: 'خطأ',
+        description: `فشل إضافة المديونية: ${error.message}`,
+        variant: 'destructive',
       });
     },
   });
 }
 
 /**
- * Hook لتخفيض دين العميل (تسجيل دفعة)
+ * Hook to reduce a customer's debt (register a payment)
  */
 export function useReduceCustomerDebt() {
   const queryClient = useQueryClient();
-  const { t } = useTranslation();
-  
+  const { toast } = useToast();
+
   return useMutation({
     mutationFn: async (data: ReduceDebtData) => {
-      const response = await apiRequest("POST", "/api/customer-debts/reduce", data);
+      const response = await apiRequest('POST', `/api/customer-debts/reduce`, data);
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || t("debt_reduced_error"));
+        throw new Error(errorData.message || 'Failed to reduce debt');
       }
-      return response.json();
+      return await response.json();
     },
-    onSuccess: (_, variables) => {
-      toast({
-        title: t("success"),
-        description: t("debt_reduced_success"),
-      });
+    onSuccess: (_data, variables) => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['/api/customer-debts', variables.customerId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
       
-      // تحديث بيانات ديون العميل وبيانات العملاء
-      queryClient.invalidateQueries({ queryKey: [`/api/customer-debts/${variables.customerId}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      toast({
+        title: 'نجاح',
+        description: 'تم تخفيض المديونية بنجاح',
+      });
     },
     onError: (error: Error) => {
       toast({
-        title: t("error"),
-        description: error.message || t("debt_reduced_error"),
-        variant: "destructive",
+        title: 'خطأ',
+        description: `فشل تخفيض المديونية: ${error.message}`,
+        variant: 'destructive',
       });
     },
   });

@@ -4171,6 +4171,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // === Supplier Management Routes ===
+  // API routes for customer debts
+  // Get all debts for a specific customer
+  app.get('/api/customer-debts/:customerId', async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.customerId);
+      
+      if (isNaN(customerId)) {
+        return res.status(400).json({ message: 'Invalid customer ID' });
+      }
+      
+      const customer = await storage.getCustomer(customerId);
+      if (!customer) {
+        return res.status(404).json({ message: 'Customer not found' });
+      }
+      
+      const debts = await storage.getCustomerDebts(customerId);
+      const totalDebt = customer.totalDebt || 0;
+      
+      return res.json({ 
+        debts, 
+        totalDebt 
+      });
+    } catch (error) {
+      console.error('Error fetching customer debts:', error);
+      return res.status(500).json({ message: 'Failed to fetch customer debts' });
+    }
+  });
+
+  // Add new debt to a customer
+  app.post('/api/customer-debts/add', async (req, res) => {
+    try {
+      const { customerId, amount, reason, createdBy } = req.body;
+      
+      if (!customerId || !amount || !reason || !createdBy) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+      
+      // Validate that amount is positive
+      if (amount <= 0) {
+        return res.status(400).json({ message: 'Amount must be positive' });
+      }
+      
+      // Find the customer
+      const customer = await storage.getCustomer(customerId);
+      if (!customer) {
+        return res.status(404).json({ message: 'Customer not found' });
+      }
+      
+      // Create new debt record
+      const newDebt = await storage.createCustomerDebt({
+        customerId,
+        amount,
+        reason,
+        createdBy,
+        date: new Date(),
+      });
+      
+      // Update customer's total debt
+      const updatedTotalDebt = (customer.totalDebt || 0) + amount;
+      await storage.updateCustomer(customerId, { totalDebt: updatedTotalDebt });
+      
+      return res.status(201).json(newDebt);
+    } catch (error) {
+      console.error('Error adding customer debt:', error);
+      return res.status(500).json({ message: 'Failed to add customer debt' });
+    }
+  });
+
+  // Reduce customer debt (register a payment)
+  app.post('/api/customer-debts/reduce', async (req, res) => {
+    try {
+      const { customerId, amount, reason, createdBy } = req.body;
+      
+      if (!customerId || !amount || !reason || !createdBy) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+      
+      // Ensure amount is treated as negative (for reduction)
+      const paymentAmount = amount < 0 ? amount : -Math.abs(amount);
+      
+      // Find the customer
+      const customer = await storage.getCustomer(customerId);
+      if (!customer) {
+        return res.status(404).json({ message: 'Customer not found' });
+      }
+      
+      // Prevent reducing debt more than the current total
+      if (Math.abs(paymentAmount) > (customer.totalDebt || 0)) {
+        return res.status(400).json({ 
+          message: 'Payment amount cannot exceed the current debt' 
+        });
+      }
+      
+      // Create new debt record (with negative amount)
+      const newDebt = await storage.createCustomerDebt({
+        customerId,
+        amount: paymentAmount,
+        reason,
+        createdBy,
+        date: new Date(),
+      });
+      
+      // Update customer's total debt
+      const updatedTotalDebt = (customer.totalDebt || 0) + paymentAmount;
+      await storage.updateCustomer(customerId, { totalDebt: updatedTotalDebt });
+      
+      return res.status(201).json(newDebt);
+    } catch (error) {
+      console.error('Error reducing customer debt:', error);
+      return res.status(500).json({ message: 'Failed to reduce customer debt' });
+    }
+  });
+
+  // Supplier routes
   app.use('/api/suppliers', supplierRoutes);
   app.use('/api/supplier-invoices', supplierInvoiceRoutes);
   app.use('/api/supplier-payments', supplierPaymentRoutes);

@@ -1,119 +1,140 @@
-import { useCustomerDebts } from "@/hooks/use-customer-debts";
-import { useTranslation } from "react-i18next";
-import { formatCurrency, formatDate } from "@/lib/utils";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { format } from 'date-fns';
+import { ArrowDownCircle, ArrowUpCircle, Receipt } from 'lucide-react';
+import { useCustomerDebts } from '@/hooks/use-customer-debts';
+import { Card, CardContent } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatCurrency } from '@/lib/utils';
 
 interface CustomerDebtHistoryProps {
   customerId: number;
   className?: string;
 }
 
-export function CustomerDebtHistory({ customerId, className = "" }: CustomerDebtHistoryProps) {
+export default function CustomerDebtHistory({ customerId, className = '' }: CustomerDebtHistoryProps) {
   const { t } = useTranslation();
-  const { data, isLoading, isError } = useCustomerDebts(customerId);
+  const { data, isLoading, error } = useCustomerDebts(customerId);
 
-  // عرض شاشة التحميل
+  // تنسيق التاريخ المستخرج من قاعدة البيانات
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return format(date, 'yyyy-MM-dd HH:mm');
+    } catch (err) {
+      console.error('Error formatting date:', err);
+      return dateString;
+    }
+  };
+
+  // تحديد نوع المعاملة (إضافة أو تخفيض دين)
+  const getTransactionType = (amount: number, invoiceId?: number) => {
+    if (invoiceId) {
+      return {
+        label: t('invoice_purchase'),
+        icon: <Receipt className="h-4 w-4 mr-1" />,
+        color: 'bg-gray-100 text-gray-800 border-gray-200'
+      };
+    }
+    return amount > 0
+      ? {
+          label: t('debt_added'),
+          icon: <ArrowUpCircle className="h-4 w-4 mr-1 text-red-500" />,
+          color: 'bg-red-100 text-red-800 border-red-200'
+        }
+      : {
+          label: t('debt_reduced'),
+          icon: <ArrowDownCircle className="h-4 w-4 mr-1 text-green-500" />,
+          color: 'bg-green-100 text-green-800 border-green-200'
+        };
+  };
+
   if (isLoading) {
     return (
-      <div className={className}>
-        <h3 className="text-lg font-semibold mb-3">{t("debt_history")}</h3>
-        <div className="space-y-2">
-          <Skeleton className="h-6 w-full" />
-          <Skeleton className="h-6 w-full" />
-          <Skeleton className="h-6 w-full" />
-        </div>
+      <div className={`space-y-3 ${className}`}>
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
       </div>
     );
   }
 
-  // عرض رسالة خطأ إذا فشل التحميل
-  if (isError) {
+  if (error) {
     return (
-      <div className={className}>
-        <h3 className="text-lg font-semibold mb-3">{t("debt_history")}</h3>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t("error")}</AlertTitle>
-          <AlertDescription>
-            {t("error_loading_debt_history")}
-          </AlertDescription>
-        </Alert>
-      </div>
+      <Card className={`${className} border-red-200`}>
+        <CardContent className="p-6 text-center text-red-500">
+          <p>{t('error_loading_debt_history')}</p>
+          <p className="text-sm mt-2">{error.message}</p>
+        </CardContent>
+      </Card>
     );
   }
 
-  // عرض رسالة إذا لم يكن هناك سجلات
-  if (!data?.debts?.length) {
+  if (!data || !data.debts || data.debts.length === 0) {
     return (
-      <div className={className}>
-        <h3 className="text-lg font-semibold mb-3">{t("debt_history")}</h3>
-        <p className="text-muted-foreground text-center py-8">{t("no_debt_records")}</p>
-      </div>
+      <Card className={`${className} border-gray-200`}>
+        <CardContent className="p-6 text-center text-muted-foreground">
+          <p>{t('no_debt_history')}</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className={className}>
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="text-lg font-semibold">{t("debt_history")}</h3>
-        <Badge variant="outline" className={data.totalDebt > 0 ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}>
-          {t("total_debt")}: {formatCurrency(data.totalDebt)}
+      <div className="mb-4 p-3 bg-muted rounded-md flex justify-between items-center">
+        <div>
+          <span className="text-sm text-muted-foreground">{t('current_debt_balance')}:</span>
+          <span className={`ml-2 font-bold ${data.totalDebt > 0 ? 'text-red-600' : 'text-green-600'}`}>
+            {formatCurrency(data.totalDebt)}
+          </span>
+        </div>
+        <Badge variant="outline" className="text-xs px-2 py-0">
+          {t('transactions_count')}: {data.debts.length}
         </Badge>
       </div>
-      <ScrollArea className="h-[300px] border rounded-md">
+
+      <div className="rounded-md border overflow-hidden">
         <Table>
-          <TableHeader className="bg-muted/50 sticky top-0">
+          <TableHeader>
             <TableRow>
-              <TableHead className="w-[120px]">{t("date")}</TableHead>
-              <TableHead className="w-[100px]">{t("amount")}</TableHead>
-              <TableHead>{t("reason")}</TableHead>
-              <TableHead className="text-right w-[100px]">{t("type")}</TableHead>
+              <TableHead className="w-[100px]">{t('date')}</TableHead>
+              <TableHead>{t('transaction_type')}</TableHead>
+              <TableHead>{t('reason')}</TableHead>
+              <TableHead className="text-right">{t('amount')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.debts.map((record) => (
-              <TableRow key={record.id}>
-                <TableCell className="font-mono text-xs">
-                  {formatDate(new Date(record.date))}
-                </TableCell>
-                <TableCell className={record.amount > 0 ? "text-red-700 font-medium" : "text-green-700 font-medium"}>
-                  {formatCurrency(Math.abs(record.amount))}
-                </TableCell>
-                <TableCell className="truncate max-w-[150px]">
-                  {record.reason === "debt_added" 
-                    ? t("debt_added") 
-                    : record.reason === "debt_reduced" 
-                      ? t("debt_reduced") 
-                      : record.reason}
-                </TableCell>
-                <TableCell className="text-right">
-                  {record.amount > 0 ? (
-                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                      {t("debt")}
+            {data.debts.map((debt) => {
+              const transaction = getTransactionType(debt.amount, debt.invoiceId);
+              return (
+                <TableRow key={debt.id}>
+                  <TableCell className="font-medium text-xs">
+                    {formatDate(debt.date)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={`flex items-center ${transaction.color}`}>
+                      {transaction.icon}
+                      <span>{transaction.label}</span>
+                      {debt.invoiceId && (
+                        <span className="ml-1 text-xs opacity-70">#{debt.invoiceId}</span>
+                      )}
                     </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                      {t("payment")}
-                    </Badge>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell className="max-w-[200px] truncate">
+                    {debt.reason || t('no_reason_provided')}
+                  </TableCell>
+                  <TableCell className={`text-right font-medium ${debt.amount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {formatCurrency(Math.abs(debt.amount))}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

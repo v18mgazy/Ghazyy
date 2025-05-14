@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { 
   Search, FileSpreadsheet, Edit, History, Loader2,
-  MessageSquareShare, Filter, Info
+  MessageSquareShare, Filter, Info, CreditCard, Wallet
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,9 @@ import {
 } from "@/components/ui/tooltip";
 import { createWhatsAppLink, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import CustomerDebtHistory from './customer-debt-history';
+import AddDebtDialog from './add-debt-dialog';
+import ReduceDebtDialog from './reduce-debt-dialog';
 
 interface Customer {
   id: string;
@@ -176,100 +179,16 @@ export default function CustomerList({
     window.open(whatsappLink, '_blank');
   };
   
-  // دالة لإضافة مديونية جديدة للعميل (محدثة لاستخدام نقطة النهاية الجديدة)
-  const handleAddDebt = async () => {
-    if (!selectedCustomer || debtAmount <= 0 || !debtReason) {
-      toast({
-        title: t('validation_error'),
-        description: t('debt_amount_reason_required'),
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      const response = await apiRequest('POST', `/api/customer-debts/add`, {
-        customerId: parseInt(selectedCustomer.id),
-        amount: debtAmount,
-        reason: debtReason,
-        createdBy: 1, // المستخدم الحالي (نفترض أنه المدير)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to add debt');
-      }
-
-      toast({
-        title: t('success'),
-        description: t('debt_added_successfully'),
-      });
-
-      // إعادة تحميل بيانات العملاء
-      if (typeof onRefreshData === 'function') {
-        onRefreshData();
-      }
-      
-      // إغلاق نافذة الحوار وإعادة تعيين القيم
-      setShowAddDebtDialog(false);
-      setDebtAmount(0);
-      setDebtReason('');
-    } catch (error) {
-      console.error('Error adding debt:', error);
-      toast({
-        title: t('error'),
-        description: t('error_adding_debt'),
-        variant: 'destructive',
-      });
-    }
+  // دالة فتح مربع حوار إضافة مديونية جديدة
+  const openAddDebtDialog = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowAddDebtDialog(true);
   };
 
-  // دالة لخفض مديونية العميل (محدثة لاستخدام نقطة النهاية الجديدة)
-  const handleReduceDebt = async () => {
-    if (!selectedCustomer || debtAmount <= 0 || !debtReason) {
-      toast({
-        title: t('validation_error'),
-        description: t('debt_amount_reason_required'),
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      const response = await apiRequest('POST', `/api/customer-debts/reduce`, {
-        customerId: parseInt(selectedCustomer.id),
-        amount: debtAmount, // الخادم سيحولها إلى قيمة سالبة
-        reason: debtReason,
-        createdBy: 1, // المستخدم الحالي (نفترض أنه المدير)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to reduce debt');
-      }
-
-      toast({
-        title: t('success'),
-        description: t('debt_reduced_successfully'),
-      });
-
-      // إعادة تحميل بيانات العملاء
-      if (typeof onRefreshData === 'function') {
-        onRefreshData();
-      }
-      
-      // إغلاق نافذة الحوار وإعادة تعيين القيم
-      setShowReduceDebtDialog(false);
-      setDebtAmount(0);
-      setDebtReason('');
-    } catch (error) {
-      console.error('Error reducing debt:', error);
-      toast({
-        title: t('error'),
-        description: t('error_reducing_debt'),
-        variant: 'destructive',
-      });
-    }
+  // دالة فتح مربع حوار تخفيض المديونية
+  const openReduceDebtDialog = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowReduceDebtDialog(true);
   };
 
   // دالة لعرض سجل المديونية للعميل (محدثة لاستخدام المكون الجديد)
@@ -518,25 +437,19 @@ export default function CustomerList({
                               variant="ghost"
                               size="icon"
                               className="text-amber-600 hover:text-amber-800 hover:bg-amber-50"
-                              onClick={() => {
-                                setSelectedCustomer(customer);
-                                setShowAddDebtDialog(true);
-                              }}
+                              onClick={() => openAddDebtDialog(customer)}
                               title={t('add_debt')}
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+                              <CreditCard className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
                               className="text-green-600 hover:text-green-800 hover:bg-green-50"
-                              onClick={() => {
-                                setSelectedCustomer(customer);
-                                setShowReduceDebtDialog(true);
-                              }}
+                              onClick={() => openReduceDebtDialog(customer)}
                               title={t('reduce_debt')}
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h20" /><path d="M5 20v-4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v4" /><path d="M6 8h12" /><path d="M9 12h6" /><path d="M17 4l4 4-4 4" /><path d="M7 4 3 8l4 4" /></svg>
+                              <Wallet className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -716,93 +629,28 @@ export default function CustomerList({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* مربع حوار إضافة مديونية */}
-      <Dialog open={showAddDebtDialog} onOpenChange={setShowAddDebtDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center">{t('add_debt')}</DialogTitle>
-            <DialogDescription className="text-center">
-              {selectedCustomer && (
-                <span className="font-semibold text-primary">{selectedCustomer.name}</span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="grid gap-2">
-              <Label htmlFor="debtAmount">{t('debt_amount')}</Label>
-              <Input
-                id="debtAmount"
-                type="number"
-                value={debtAmount}
-                onChange={(e) => setDebtAmount(Number(e.target.value))}
-                placeholder={t('enter_debt_amount')}
-                min="0"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="debtReason">{t('debt_reason')}</Label>
-              <Input
-                id="debtReason"
-                value={debtReason}
-                onChange={(e) => setDebtReason(e.target.value)}
-                placeholder={t('enter_debt_reason')}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDebtDialog(false)}>
-              {t('cancel')}
-            </Button>
-            <Button type="submit" onClick={handleAddDebt}>
-              {t('add')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Add Debt Dialog - Using New Component */}
+      {selectedCustomer && (
+        <AddDebtDialog
+          customerId={Number(selectedCustomer.id)}
+          customerName={selectedCustomer.name}
+          isOpen={showAddDebtDialog}
+          onClose={() => setShowAddDebtDialog(false)}
+          onDebtAdded={onRefreshData}
+        />
+      )}
 
-      {/* مربع حوار خفض المديونية */}
-      <Dialog open={showReduceDebtDialog} onOpenChange={setShowReduceDebtDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center">{t('reduce_debt')}</DialogTitle>
-            <DialogDescription className="text-center">
-              {selectedCustomer && (
-                <span className="font-semibold text-primary">{selectedCustomer.name}</span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="grid gap-2">
-              <Label htmlFor="debtAmount">{t('payment_amount')}</Label>
-              <Input
-                id="debtAmount"
-                type="number"
-                value={debtAmount}
-                onChange={(e) => setDebtAmount(Number(e.target.value))}
-                placeholder={t('enter_payment_amount')}
-                min="0"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="debtReason">{t('payment_details')}</Label>
-              <Input
-                id="debtReason"
-                value={debtReason}
-                onChange={(e) => setDebtReason(e.target.value)}
-                placeholder={t('enter_payment_details')}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowReduceDebtDialog(false)}>
-              {t('cancel')}
-            </Button>
-            <Button type="submit" onClick={handleReduceDebt}>
-              {t('save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Reduce Debt Dialog - Using New Component */}
+      {selectedCustomer && (
+        <ReduceDebtDialog
+          customerId={Number(selectedCustomer.id)}
+          customerName={selectedCustomer.name}
+          totalDebt={selectedCustomer.totalDebt || 0}
+          isOpen={showReduceDebtDialog}
+          onClose={() => setShowReduceDebtDialog(false)}
+          onDebtReduced={onRefreshData}
+        />
+      )}
 
       {/* مربع حوار سجل المديونية - تم التحديث لاستخدام المكون الجديد */}
       <Dialog open={showDebtHistory} onOpenChange={setShowDebtHistory}>
@@ -823,26 +671,6 @@ export default function CustomerList({
             />
           )}
           
-          <DialogFooter>
-            <Button onClick={() => setShowDebtHistory(false)}>
-              {t('close')}
-            </Button>
-          </DialogFooter>>
-                  <td colSpan={2} className="py-2 px-4 text-right font-semibold">
-                    {t('current_total_debt')}:
-                  </td>
-                  <td className="py-2 px-4 text-right font-bold">
-                    {formatCurrency(
-                      selectedCustomer?.totalDebt || 0
-                    )}
-                  </td>
-                  <td></td>
-                  {debtHistory.some(item => item.invoiceId) && <td></td>}
-                </tr>
-              </tfoot>
-            </Table>
-          )}
-
           <DialogFooter>
             <Button onClick={() => setShowDebtHistory(false)}>
               {t('close')}

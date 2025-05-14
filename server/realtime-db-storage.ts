@@ -411,7 +411,7 @@ export class RealtimeDBStorage implements IStorage {
    * إنشاء سجل مديونية جديد
    * @param debtData بيانات المديونية
    */
-  async createCustomerDebt(data: any): Promise<any> {
+  async createCustomerDebt(data: InsertCustomerDebt): Promise<CustomerDebt> {
     try {
       console.log(`RealtimeDBStorage: Creating customer debt`, data);
       
@@ -428,12 +428,14 @@ export class RealtimeDBStorage implements IStorage {
       
       // تحضير بيانات السجل بشكل محكم
       const now = new Date().toISOString();
-      const entryData = {
+      const dateToSave = data.date ? new Date(data.date).toISOString() : now;
+      
+      const entryData: CustomerDebt = {
         id: newId,
         customerId: Number(data.customerId),
         amount: Number(data.amount),
         reason: data.reason,
-        date: now,
+        date: new Date(dateToSave),
         invoiceId: data.invoiceId || null,
         createdBy: Number(data.createdBy),
         createdAt: now
@@ -441,9 +443,16 @@ export class RealtimeDBStorage implements IStorage {
       
       console.log('Saving debt data:', entryData);
       
+      // First, create a storage-friendly version of the object
+      const storageData = {
+        ...entryData,
+        date: entryData.date.toISOString(),
+        createdAt: new Date(entryData.createdAt).toISOString()
+      };
+      
       // حفظ سجل المديونية
       const newDebtRef = ref(database, `customer_debts/${newId}`);
-      await set(newDebtRef, entryData);
+      await set(newDebtRef, storageData);
       
       // تحديث إجمالي مديونية العميل - لا نستخدم حساب totalDebt هنا لأننا نريد فقط تسجيل الديون المضافة يدويًا
       // وليس الفواتير الآجلة التي سيتم حسابها في واجهة العميل

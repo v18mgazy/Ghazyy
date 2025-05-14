@@ -1,116 +1,164 @@
-import { Button } from "@/components/ui/button";
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  DialogDescription
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { useAddCustomerDebt } from "@/hooks/use-customer-debts";
-import { useAuth } from "@/hooks/use-auth";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useAddCustomerDebt } from '@/hooks/use-customer-debts';
 
+// الكلاس الرئيسي للخصائص
 interface AddDebtDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   customerId: number;
   customerName: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onDebtAdded?: () => void;
 }
 
-export function AddDebtDialog({
-  open,
-  onOpenChange,
-  customerId,
-  customerName,
+// نموذج التحقق من الصحة
+const formSchema = z.object({
+  amount: z.coerce.number().positive({ message: 'المبلغ يجب أن يكون أكبر من الصفر' }),
+  reason: z.string().min(3, { message: 'السبب يجب أن يكون على الأقل 3 أحرف' }).max(200),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+export default function AddDebtDialog({ 
+  customerId, 
+  customerName, 
+  isOpen, 
+  onClose,
+  onDebtAdded
 }: AddDebtDialogProps) {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const [amount, setAmount] = useState<number | "">("");
-  const [reason, setReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const addDebtMutation = useAddCustomerDebt();
   
-  const { mutate: addDebt, isPending } = useAddCustomerDebt();
+  // إعداد نموذج React Hook Form مع التحقق من الصحة باستخدام Zod
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      amount: 0,
+      reason: '',
+    },
+  });
 
-  // إعادة ضبط النموذج عند الإغلاق
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      setAmount("");
-      setReason("");
-    }
-    onOpenChange(open);
+  // إعادة تعيين النموذج عند الإغلاق
+  const handleClose = () => {
+    form.reset();
+    onClose();
   };
 
-  const handleSubmit = () => {
-    if (!amount || amount <= 0) return;
+  // معالجة إرسال النموذج
+  const onSubmit = async (values: FormValues) => {
+    setIsSubmitting(true);
     
-    addDebt({
-      customerId,
-      amount: Number(amount),
-      reason: reason || "debt_added",
-      createdBy: user?.id || 1,
-    }, {
-      onSuccess: () => {
-        handleOpenChange(false);
-      },
-    });
+    try {
+      await addDebtMutation.mutateAsync({
+        customerId,
+        amount: values.amount,
+        reason: values.reason,
+        createdBy: 1, // المستخدم الحالي، يمكن استبداله بمعرف المستخدم الفعلي
+      });
+      
+      // إعادة تعيين النموذج وإغلاق مربع الحوار
+      form.reset();
+      
+      // استدعاء وظيفة التحديث الخارجية إذا تم تقديمها
+      if (onDebtAdded) {
+        onDebtAdded();
+      }
+      
+      onClose();
+    } catch (error) {
+      console.error('Error adding debt:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>
-            {t("add_debt")} - {customerName}
-          </DialogTitle>
-          <DialogDescription>
-            {t("add_debt_description")}
+          <DialogTitle className="text-center">{t('add_debt')}</DialogTitle>
+          <DialogDescription className="text-center">
+            <span className="font-semibold text-primary">{customerName}</span>
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="amount" className="text-right">
-              {t("amount")}
-            </Label>
-            <Input
-              id="amount"
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : "")}
-              className="col-span-3"
-              placeholder="0.00"
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('debt_amount')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder={t('enter_debt_amount')}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="reason" className="text-right">
-              {t("reason")}
-            </Label>
-            <Textarea
-              id="reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="col-span-3"
-              placeholder={t("debt_reason_placeholder")}
+            
+            <FormField
+              control={form.control}
+              name="reason"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('debt_reason')}</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder={t('enter_debt_reason')}
+                      className="min-h-[80px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            {t("cancel")}
-          </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={!amount || amount <= 0 || isPending}
-            className="min-w-[80px]"
-          >
-            {isPending ? t("adding") : t("add")}
-          </Button>
-        </DialogFooter>
+            
+            <DialogFooter className="pt-4">
+              <Button 
+                variant="outline" 
+                type="button" 
+                onClick={handleClose}
+                disabled={isSubmitting}
+              >
+                {t('cancel')}
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isSubmitting || !form.formState.isValid}
+              >
+                {isSubmitting ? t('saving') : t('save')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
