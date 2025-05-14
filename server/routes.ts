@@ -989,48 +989,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
-  // الحصول على سجل المديونية لعميل محدد
-  app.get('/api/customer-debts/:customerId', async (req, res) => {
-    try {
-      const { customerId } = req.params;
-      const customerId_int = parseInt(customerId);
-      const debts = await storage.getCustomerDebts(customerId_int);
-      
-      // جلب الفواتير المؤجلة
-      const allInvoices = await storage.getAllInvoices();
-      const deferredInvoices = allInvoices.filter(inv => 
-        inv.customerId === customerId_int && 
-        inv.paymentStatus === 'deferred'
-      ).map(inv => ({
-        id: inv.id,
-        invoiceNumber: inv.invoiceNumber,
-        date: inv.date.toISOString(), // تحويل التاريخ إلى نص
-        amount: inv.total,
-        isPending: true
-      }));
-      
-      // حساب إجمالي الديون
-      const totalDebt = await calculateCustomerTotalDebt(customerId_int);
-      
-      // حساب إجمالي الفواتير المؤجلة
-      const deferredInvoicesTotal = deferredInvoices.reduce((sum, inv) => sum + inv.amount, 0);
-      
-      // حساب إجمالي الديون اليدوية (إجمالي الديون - الفواتير المؤجلة)
-      const manualDebtTotal = totalDebt - deferredInvoicesTotal;
-      
-      // إرسال البيانات إلى العميل
-      res.json({
-        debts,
-        deferredInvoices,
-        totalDebt,
-        manualDebtTotal,
-        deferredInvoicesTotal
-      });
-    } catch (err) {
-      console.error('Error fetching customer debts:', err);
-      res.status(500).json({ message: 'Failed to fetch customer debts' });
-    }
-  });
+  // تم نقل مسار الحصول على سجل المديونية لعميل محدد إلى القسم الآخر في الأسفل
+  // للحفاظ على اتساق الكود
   
   // مسار جديد للحصول على فواتير العميل
   app.get('/api/customer-invoices/:customerId', async (req, res) => {
@@ -4204,6 +4164,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid customer ID' });
       }
       
+      console.log(`Fetching debts for customer ID: ${customerId}`);
+      
       const customer = await storage.getCustomer(customerId);
       if (!customer) {
         return res.status(404).json({ message: 'Customer not found' });
@@ -4211,6 +4173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 1. الحصول على سجل الديون المضافة/المخفضة يدويًا
       const debts = await storage.getCustomerDebts(customerId);
+      console.log(`Found ${debts.length} manual debt records for customer`);
 
       // 2. الحصول على الفواتير الآجلة للعميل
       const allInvoices = await storage.getAllInvoices();
@@ -4220,29 +4183,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         invoice.paymentStatus === 'deferred'
       );
       
+      console.log(`Found ${deferredInvoices.length} deferred invoices for customer`);
+      
       // 3. حساب قيمة الفواتير الآجلة
       const deferredInvoicesTotal = deferredInvoices.reduce((total, invoice) => total + invoice.total, 0);
+      console.log(`Total deferred invoices amount: ${deferredInvoicesTotal}`);
       
       // 4. إضافة الديون المسجلة يدويًا (في totalDebt) + قيمة الفواتير الآجلة
       const totalManualDebt = customer.totalDebt || 0;
+      console.log(`Manual debt from customer record: ${totalManualDebt}`);
+      
       const totalDebt = totalManualDebt + deferredInvoicesTotal;
+      console.log(`Total debt (manual + deferred): ${totalDebt}`);
       
-      // 5. إضافة الفواتير الآجلة إلى البيانات المرسلة للعميل
-      const deferredInvoicesInfo = deferredInvoices.map(invoice => ({
-        id: invoice.id,
-        invoiceNumber: invoice.invoiceNumber,
-        date: invoice.date,
-        amount: invoice.total,
-        isPending: invoice.paymentStatus === 'deferred'
-      }));
+      // 5. تحويل الفواتير الآجلة إلى تنسيق مناسب للعرض في واجهة المستخدم
+      const deferredInvoicesInfo = deferredInvoices.map(invoice => {
+        const invoiceInfo = {
+          id: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          date: typeof invoice.date === 'object' ? invoice.date.toISOString() : invoice.date.toString(),
+          amount: invoice.total,
+          isPending: invoice.paymentStatus === 'deferred'
+        };
+        console.log(`Processed deferred invoice: #${invoiceInfo.invoiceNumber}, amount: ${invoiceInfo.amount}`);
+        return invoiceInfo;
+      });
       
-      return res.json({ 
+      const response = { 
         debts, 
         totalDebt,
         manualDebtTotal: totalManualDebt,
         deferredInvoicesTotal,
         deferredInvoices: deferredInvoicesInfo
-      });
+      };
+      
+      console.log(`Sending response with ${response.debts.length} debt records and ${response.deferredInvoices.length} deferred invoices`);
+      console.log(`Total debt in response: ${response.totalDebt}, Manual debt: ${response.manualDebtTotal}, Deferred invoices total: ${response.deferredInvoicesTotal}`);
+      
+      return res.json(response);
     } catch (error) {
       console.error('Error fetching customer debts:', error);
       return res.status(500).json({ message: 'Failed to fetch customer debts' });

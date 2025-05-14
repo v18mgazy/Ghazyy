@@ -101,8 +101,11 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
   }) : [];
 
   // دمج الديون اليدوية والفواتير الآجلة في قائمة واحدة
-  const allDebts = [...data.debts, ...deferredInvoiceDebts];
+  console.log("Manual debts count:", data.debts.length);
+  console.log("Deferred invoices count:", deferredInvoiceDebts.length);
   
+  const allDebts = [...data.debts, ...deferredInvoiceDebts];
+  console.log("Total combined debt records:", allDebts.length);
   // ترتيب جميع الديون حسب التاريخ (الأحدث أولاً)
   const sortedDebts = allDebts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 

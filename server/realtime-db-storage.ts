@@ -378,15 +378,20 @@ export class RealtimeDBStorage implements IStorage {
       const debtsRef = ref(database, 'customer_debts');
       const snapshot = await get(debtsRef);
       
-      if (!snapshot.exists()) return [];
+      if (!snapshot.exists()) {
+        console.log(`RealtimeDBStorage: No debt records found for customer ${customerId}`);
+        return [];
+      }
       
       const debts: CustomerDebt[] = [];
       const customerDebts = snapshot.val();
       
+      let count = 0;
       for (const [key, value] of Object.entries(customerDebts)) {
         const debtData = value as any;
         if (debtData.customerId === customerId) {
-          debts.push({
+          count++;
+          const debtRecord = {
             id: parseInt(key),
             customerId: debtData.customerId,
             amount: debtData.amount,
@@ -395,9 +400,13 @@ export class RealtimeDBStorage implements IStorage {
             invoiceId: debtData.invoiceId || null,
             createdBy: debtData.createdBy,
             createdAt: debtData.createdAt
-          });
+          };
+          debts.push(debtRecord);
+          console.log(`RealtimeDBStorage: Found debt record #${count}: Amount=${debtRecord.amount}, Reason=${debtRecord.reason}`);
         }
       }
+      
+      console.log(`RealtimeDBStorage: Found ${debts.length} debt records for customer ${customerId}`);
       
       // ترتيب السجلات بحسب التاريخ (الأحدث أولاً)
       return debts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
