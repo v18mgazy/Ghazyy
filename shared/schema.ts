@@ -62,7 +62,6 @@ export const insertCustomerSchema = createInsertSchema(customers).pick({
   address: true,
   notes: true,
   isPotential: true,
-  oldDebt: true,
 });
 
 // سجلات المديونية
