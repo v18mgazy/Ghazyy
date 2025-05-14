@@ -121,8 +121,34 @@ export default function CustomerList({
     }, 0);
   }, [allInvoices, customers]);
   
+  // دالة لحساب إجمالي ديون العميل باستخدام API الجديدة للديون
+  const { data: customersDebtsData } = useQuery<Record<string, { totalDebt: number }>>({
+    queryKey: ['/api/customers-total-debts'],
+    queryFn: async () => {
+      try {
+        // جلب بيانات الديون لكل العملاء
+        const response = await apiRequest('GET', '/api/customers-total-debts');
+        if (!response.ok) {
+          throw new Error('Failed to fetch customers total debts');
+        }
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error fetching customers total debts:', error);
+        return {};
+      }
+    },
+    staleTime: 30 * 1000, // تحديث كل 30 ثانية
+  });
+  
   // دالة لحساب إجمالي ديون العميل (الفواتير الآجلة + الديون المضافة)
   const calculateTotalDebt = useCallback((customerId: string) => {
+    // محاولة الحصول على البيانات من API الديون الجديدة أولاً
+    if (customersDebtsData && customersDebtsData[customerId]) {
+      return customersDebtsData[customerId].totalDebt;
+    }
+    
+    // طريقة احتياطية في حال عدم توفر البيانات من API الديون
     // 1. حساب الديون من الفواتير الآجلة
     const deferredInvoices = allInvoices.filter(invoice => 
       // تطابق حسب معرف العميل أو اسم العميل
@@ -144,7 +170,7 @@ export default function CustomerList({
     
     // 3. إجمالي الديون هو مجموع الفواتير الآجلة والديون المسجلة
     return deferredDebt + customerDebt;
-  }, [allInvoices, customers]);
+  }, [allInvoices, customers, customersDebtsData]);
 
   // تحويل البيانات من شكل الاستجابة إلى الشكل الذي يستخدمه المكون مع حساب إجمالي المشتريات والديون
   const processedCustomers = useMemo(() => {

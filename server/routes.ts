@@ -4227,6 +4227,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API للحصول على إجمالي مديونية جميع العملاء
+  app.get('/api/customers-total-debts', async (req, res) => {
+    try {
+      // الحصول على جميع العملاء
+      const customers = await storage.getAllCustomers();
+      
+      // إنشاء كائن لتخزين إجمالي الديون لكل عميل
+      const customersDebts: Record<string, { totalDebt: number }> = {};
+      
+      // الحصول على جميع الفواتير
+      const allInvoices = await storage.getAllInvoices();
+      
+      // معالجة كل عميل على حدة
+      for (const customer of customers) {
+        const customerId = customer.id.toString();
+        
+        // 1. الديون المسجلة يدويًا من سجل العميل
+        const manualDebtTotal = customer.totalDebt || 0;
+        
+        // 2. البحث عن الفواتير الآجلة للعميل
+        const deferredInvoices = allInvoices.filter(invoice => 
+          !invoice.isDeleted && 
+          invoice.customerId === customer.id && 
+          invoice.paymentStatus === 'deferred'
+        );
+        
+        // حساب إجمالي الفواتير الآجلة
+        const deferredInvoicesTotal = deferredInvoices.reduce((total, invoice) => 
+          total + (typeof invoice.total === 'number' ? invoice.total : parseFloat(invoice.total.toString())), 0);
+        
+        // 3. إجمالي الديون = الديون اليدوية + الفواتير الآجلة
+        const totalDebt = manualDebtTotal + deferredInvoicesTotal;
+        
+        // تخزين النتيجة في الكائن الرئيسي
+        customersDebts[customerId] = { totalDebt };
+      }
+      
+      // إرجاع البيانات
+      return res.json(customersDebts);
+    } catch (error) {
+      console.error('Error fetching customers total debts:', error);
+      return res.status(500).json({ message: 'Failed to fetch customers total debts' });
+    }
+  });
+  
   // Add new debt to a customer
   app.post('/api/customer-debts/add', async (req, res) => {
     try {
