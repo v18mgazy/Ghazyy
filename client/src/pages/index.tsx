@@ -21,6 +21,8 @@ export default function SalesPage() {
   const [activeCustomer, setActiveCustomer] = useState<Customer | null>(null);
   const [showScanner, setShowScanner] = useState(false);
   const [lastScannedProduct, setLastScannedProduct] = useState<any | null>(null);
+  const [manualBarcode, setManualBarcode] = useState('');
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
   
   // حالة النافذة المنبثقة لإنشاء الفاتورة
   const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
@@ -46,6 +48,7 @@ export default function SalesPage() {
     setIsCreateInvoiceOpen(false);
   };
   
+  // دالة معالجة المنتج الممسوح عبر الكاميرا
   const handleProductScanned = (product: any) => {
     // نقوم بإعداد المنتج الممسوح وفتح نافذة الفاتورة مباشرة
     setLastScannedProduct(product);
@@ -56,6 +59,36 @@ export default function SalesPage() {
     setTimeout(() => {
       setIsCreateInvoiceOpen(true);
     }, 100);
+  };
+  
+  // دالة معالجة البحث عن باركود مدخل يدوياً أو من ماسح خارجي
+  const handleBarcodeSearch = async (barcode: string) => {
+    if (!barcode || barcode.trim() === '') return;
+    
+    try {
+      const response = await fetch(`/api/products/barcode/${barcode.trim()}`);
+      if (!response.ok) {
+        throw new Error(`${t('product_not_found')}: ${barcode}`);
+      }
+      
+      const product = await response.json();
+      handleProductScanned(product);
+      setManualBarcode('');
+    } catch (error) {
+      toast({
+        title: t('product_not_found'),
+        description: barcode,
+        variant: "destructive"
+      });
+    }
+  };
+
+  // معالجة إدخال الباركود وتنفيذ البحث عند الضغط على Enter
+  const handleBarcodeInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleBarcodeSearch(manualBarcode);
+    }
   };
   
   const handleCloseInvoice = () => {
@@ -102,21 +135,53 @@ export default function SalesPage() {
             </Button>
           </div>
           
-          {/* زر فتح ماسح الباركود في نافذة منبثقة صغيرة */}
-          <div className="flex justify-center my-8">
-            <Button 
-              onClick={handleActivateScanner} 
-              size="lg"
-              variant="outline"
-              className="px-6 py-8 border-2 border-dashed border-primary/40 hover:border-primary/70 bg-primary/5 hover:bg-primary/10 transition-all group"
-            >
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <Scan className="h-8 w-8 text-primary" />
+          {/* قسم خيارات مسح الباركود */}
+          <div className="space-y-6 my-8">
+            <h2 className="text-xl font-semibold text-center">{t('barcode_options')}</h2>
+            
+            <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
+              {/* زر فتح ماسح الباركود في نافذة منبثقة صغيرة */}
+              <Button 
+                onClick={handleActivateScanner} 
+                size="lg"
+                variant="outline"
+                className="px-6 py-6 border-2 border-dashed border-primary/40 hover:border-primary/70 bg-primary/5 hover:bg-primary/10 transition-all group"
+              >
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <Scan className="h-6 w-6 text-primary" />
+                  </div>
+                  <span className="font-semibold">{t('scan_barcode')}</span>
                 </div>
-                <span className="font-semibold text-lg">{t('scan_barcode')}</span>
+              </Button>
+              
+              {/* قسم إدخال الباركود يدوياً أو باستخدام ماسح خارجي */}
+              <div className="bg-card border rounded-lg p-4 w-full md:max-w-md flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <Keyboard className="h-5 w-5 text-primary" />
+                  <h3 className="font-medium">{t('external_barcode_scanner')}</h3>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    ref={barcodeInputRef}
+                    type="text"
+                    value={manualBarcode}
+                    onChange={(e) => setManualBarcode(e.target.value)}
+                    onKeyDown={handleBarcodeInputKeyDown}
+                    placeholder={t('barcode_input_placeholder')}
+                    className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    autoComplete="off"
+                  />
+                  <Button 
+                    onClick={() => handleBarcodeSearch(manualBarcode)}
+                    type="button"
+                    disabled={!manualBarcode.trim()}
+                  >
+                    {t('search')}
+                  </Button>
+                </div>
               </div>
-            </Button>
+            </div>
           </div>
           
           {/* نافذة ماسح الباركود المنبثقة الصغيرة */}
