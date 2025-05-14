@@ -1174,25 +1174,36 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
         </div>
         
         {activeTab === 'products' && selectedCustomer && (
-          <div className="flex justify-between items-center bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-5 pt-6 border-t">
+          <div className="flex justify-between items-center bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-6 pt-7 border-t shadow-inner">
             <Button 
               variant="outline" 
               onClick={() => onOpenChange(false)}
               size="lg"
-              className="text-base font-medium px-8 py-6 h-auto border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800 shadow-md rounded-lg"
+              className="text-base font-medium px-8 py-6 h-auto border-gray-300
+                hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800 
+                shadow-md rounded-xl transition-all duration-200 
+                hover:border-gray-400 transform hover:-translate-y-1 hover:shadow-lg"
             >
-              <X className="mr-3 h-5 w-5" />
+              <X className="mr-3 h-5 w-5 text-gray-500" />
               {t('cancel')}
             </Button>
             <Button
               onClick={handleSaveInvoice}
               disabled={createInvoiceMutation.isPending || invoiceProducts.length === 0}
-              className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white text-lg font-bold px-10 py-6 h-auto shadow-lg hover:shadow-xl transition-all rounded-lg disabled:opacity-70 disabled:cursor-not-allowed"
+              className="relative bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 
+                text-white text-lg font-bold px-12 py-6 h-auto shadow-lg hover:shadow-xl 
+                transition-all duration-300 rounded-xl transform hover:-translate-y-1 
+                disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0
+                border-2 border-emerald-400/30 overflow-hidden"
               size="lg"
             >
+              <span className="absolute inset-0 w-full h-full opacity-25 bg-gradient-to-r from-transparent via-white to-transparent 
+                transform -skew-x-12 -translate-x-full transition-transform duration-1000
+                group-hover:translate-x-full"></span>
+                
               {createInvoiceMutation.isPending ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -1200,7 +1211,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                 </>
               ) : (
                 <>
-                  <Calculator className="mr-3 h-5 w-5" />
+                  <CheckCircle className="mr-3 h-6 w-6" />
                   {t('save_invoice')}
                 </>
               )}
