@@ -111,16 +111,43 @@ export default function CustomerList({
       return total + invoiceTotal;
     }, 0);
   }, [allInvoices, customers]);
+  
+  // دالة لحساب إجمالي ديون العميل (الفواتير الآجلة + الديون المضافة)
+  const calculateTotalDebt = useCallback((customerId: string) => {
+    // 1. حساب الديون من الفواتير الآجلة
+    const deferredInvoices = allInvoices.filter(invoice => 
+      // تطابق حسب معرف العميل أو اسم العميل
+      (invoice.customerId?.toString() === customerId ||
+       invoice.customerName === customers.find(c => c.id.toString() === customerId)?.name) &&
+      // فقط الفواتير الآجلة (بالتقسيط) وغير المحذوفة
+      invoice.paymentMethod === 'deferred' && !invoice.isDeleted
+    );
+    
+    const deferredDebt = deferredInvoices.reduce((total, invoice) => {
+      const invoiceTotal = typeof invoice.total === 'number' 
+        ? invoice.total 
+        : (typeof invoice.total === 'string' ? parseFloat(invoice.total) : 0);
+      return total + invoiceTotal;
+    }, 0);
+    
+    // 2. الديون الأخرى المسجلة للعميل (تؤخذ من حقل totalDebt في بيانات العميل)
+    const customerDebt = customers.find(c => c.id.toString() === customerId)?.totalDebt || 0;
+    
+    // 3. إجمالي الديون هو مجموع الفواتير الآجلة والديون المسجلة
+    return deferredDebt + customerDebt;
+  }, [allInvoices, customers]);
 
-  // تحويل البيانات من شكل الاستجابة إلى الشكل الذي يستخدمه المكون مع حساب إجمالي المشتريات
+  // تحويل البيانات من شكل الاستجابة إلى الشكل الذي يستخدمه المكون مع حساب إجمالي المشتريات والديون
   const processedCustomers = useMemo(() => {
     return customers.map(customer => ({
       ...customer,
       id: customer.id.toString(),
       // حساب إجمالي المشتريات لكل عميل
       totalPurchases: calculateTotalPurchases(customer.id.toString()),
+      // استبدال قيمة totalDebt الموجودة بالقيمة المحسوبة التي تشمل الفواتير الآجلة
+      totalDebt: calculateTotalDebt(customer.id.toString()),
     }));
-  }, [customers, calculateTotalPurchases]);
+  }, [customers, calculateTotalPurchases, calculateTotalDebt]);
 
   const filteredCustomers = processedCustomers.filter(customer => 
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -498,6 +525,16 @@ export default function CustomerList({
                         </TableCell>
                         <TableCell className={customer.totalDebt > 0 ? "font-medium text-red-700" : "font-medium"}>
                           {formatCurrency(customer.totalDebt || 0)}
+                          {customer.totalDebt > 0 && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <InfoCircle className="inline-block h-4 w-4 ml-1 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{t('total_debt_description')}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                         </TableCell>
                         <TableCell className="font-medium">{formatCurrency(customer.totalPurchases || 0)}</TableCell>
                         <TableCell>

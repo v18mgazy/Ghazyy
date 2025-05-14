@@ -434,7 +434,7 @@ export class RealtimeDBStorage implements IStorage {
         amount: Number(data.amount),
         reason: data.reason,
         date: now,
-        invoiceId: null,
+        invoiceId: data.invoiceId || null,
         createdBy: Number(data.createdBy),
         createdAt: now
       };
@@ -445,7 +445,8 @@ export class RealtimeDBStorage implements IStorage {
       const newDebtRef = ref(database, `customer_debts/${newId}`);
       await set(newDebtRef, entryData);
       
-      // تحديث إجمالي مديونية العميل
+      // تحديث إجمالي مديونية العميل - لا نستخدم حساب totalDebt هنا لأننا نريد فقط تسجيل الديون المضافة يدويًا
+      // وليس الفواتير الآجلة التي سيتم حسابها في واجهة العميل
       const customer = await this.getCustomer(entryData.customerId);
       if (customer) {
         const totalDebt = (customer.totalDebt || 0) + entryData.amount;
