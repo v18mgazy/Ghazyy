@@ -6,7 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   ReceiptText, Search, User, X, ShoppingCart, Check, Scan, ChevronRight,
   Printer, Plus, Minus, DollarSign, Percent, Package2, Calculator, Trash2,
-  RefreshCcw, RotateCcw, ArrowLeft, CheckCircle, QrCode, Keyboard
+  RefreshCcw, RotateCcw, ArrowLeft, CheckCircle, QrCode, Keyboard,
+  CreditCard, Clock, Smartphone, MessageSquare
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -927,7 +928,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center">
                                       <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center text-primary mr-3">
-                                        <Package className="h-5 w-5" />
+                                        <Package2 className="h-5 w-5" />
                                       </div>
                                       <p className="font-semibold truncate text-lg">{product.name}</p>
                                     </div>
@@ -994,47 +995,103 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                             })}
                           </div>
                         ) : (
-                          <div className="text-center p-6 border border-dashed rounded-md bg-muted/5">
-                            <ShoppingCart className="h-10 w-10 mx-auto text-muted-foreground opacity-40 mb-2" />
-                            <p className="text-base text-muted-foreground font-medium">{t('no_products_in_invoice')}</p>
-                            <p className="text-sm text-muted-foreground/80 mt-1">{t('use_product_search')}</p>
+                          <div className="text-center p-8 border-2 border-dashed border-primary/20 rounded-xl bg-muted/5 my-4">
+                            <div className="bg-primary/5 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <ShoppingCart className="h-10 w-10 text-primary/40" />
+                            </div>
+                            <p className="text-lg text-foreground font-medium mb-2">{t('no_products_in_invoice')}</p>
+                            <p className="text-base text-muted-foreground mt-1 max-w-md mx-auto">{t('use_product_search')}</p>
+                            <Button 
+                              variant="outline" 
+                              className="mt-4 bg-white hover:bg-primary/5 border-primary/20 hover:border-primary/30 text-primary font-medium"
+                              onClick={() => setActiveTab('products')}
+                            >
+                              <Search className="mr-2 h-4 w-4" />
+                              {t('search_products')}
+                            </Button>
                           </div>
                         )}
                       </div>
                     </div>
 
                     <div className="md:col-span-2">
-                      <div className="mb-3">
-                        <Label htmlFor="paymentMethod" className="text-base font-medium">
+                      <div className="mb-5">
+                        <Label htmlFor="paymentMethod" className="text-base font-medium text-gray-700 block mb-2">
                           {t('payment_method')}
                         </Label>
-                        <Select
-                          value={paymentMethod}
-                          onValueChange={setPaymentMethod}
-                        >
-                          <SelectTrigger id="paymentMethod" className="mt-1.5 h-11 text-base font-medium">
-                            <SelectValue placeholder={t('select_payment_method')} />
-                          </SelectTrigger>
-                          <SelectContent className="text-base">
-                            <SelectItem value="cash" className="py-3 cursor-pointer">{t('cash')}</SelectItem>
-                            <SelectItem value="card" className="py-3 cursor-pointer">{t('card')}</SelectItem>
-                            <SelectItem value="deferred" className="py-3 cursor-pointer">{t('pay_later')}</SelectItem>
-                            <SelectItem value="e-wallet" className="py-3 cursor-pointer">{t('e_wallet')}</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <Button
+                            type="button"
+                            variant={paymentMethod === 'cash' ? 'default' : 'outline'}
+                            className={`h-14 px-3 font-medium text-base rounded-xl ${
+                              paymentMethod === 'cash' 
+                                ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 shadow-md'
+                                : 'bg-white hover:bg-emerald-50 border-emerald-200 text-emerald-600 hover:text-emerald-700 hover:border-emerald-300'
+                            }`}
+                            onClick={() => setPaymentMethod('cash')}
+                          >
+                            <DollarSign className="mr-2 h-5 w-5" />
+                            {t('cash')}
+                          </Button>
+                          
+                          <Button
+                            type="button"
+                            variant={paymentMethod === 'card' ? 'default' : 'outline'}
+                            className={`h-14 px-3 font-medium text-base rounded-xl ${
+                              paymentMethod === 'card' 
+                                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-md'
+                                : 'bg-white hover:bg-blue-50 border-blue-200 text-blue-600 hover:text-blue-700 hover:border-blue-300'
+                            }`}
+                            onClick={() => setPaymentMethod('card')}
+                          >
+                            <CreditCard className="mr-2 h-5 w-5" />
+                            {t('card')}
+                          </Button>
+                          
+                          <Button
+                            type="button"
+                            variant={paymentMethod === 'deferred' ? 'default' : 'outline'}
+                            className={`h-14 px-3 font-medium text-base rounded-xl ${
+                              paymentMethod === 'deferred' 
+                                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700 shadow-md'
+                                : 'bg-white hover:bg-purple-50 border-purple-200 text-purple-600 hover:text-purple-700 hover:border-purple-300'
+                            }`}
+                            onClick={() => setPaymentMethod('deferred')}
+                          >
+                            <Clock className="mr-2 h-5 w-5" />
+                            {t('pay_later')}
+                          </Button>
+                          
+                          <Button
+                            type="button"
+                            variant={paymentMethod === 'e-wallet' ? 'default' : 'outline'}
+                            className={`h-14 px-3 font-medium text-base rounded-xl ${
+                              paymentMethod === 'e-wallet' 
+                                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-md'
+                                : 'bg-white hover:bg-amber-50 border-amber-200 text-amber-600 hover:text-amber-700 hover:border-amber-300'
+                            }`}
+                            onClick={() => setPaymentMethod('e-wallet')}
+                          >
+                            <Smartphone className="mr-2 h-5 w-5" />
+                            {t('e_wallet')}
+                          </Button>
+                        </div>
                       </div>
 
-                      <div>
-                        <Label htmlFor="notes" className="text-base font-medium">
+                      <div className="mb-5">
+                        <Label htmlFor="notes" className="text-base font-medium text-gray-700 block mb-2">
                           {t('notes')}
                         </Label>
-                        <Input
-                          id="notes"
-                          placeholder={t('invoice_notes')}
-                          value={invoiceNotes}
-                          onChange={(e) => setInvoiceNotes(e.target.value)}
-                          className="mt-1.5 h-11 text-base"
-                        />
+                        <div className="relative">
+                          <Input
+                            id="notes"
+                            placeholder={t('invoice_notes')}
+                            value={invoiceNotes}
+                            onChange={(e) => setInvoiceNotes(e.target.value)}
+                            className="pl-10 h-12 text-base border-primary/20 focus:border-primary rounded-lg"
+                          />
+                          <MessageSquare className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        </div>
                       </div>
                       
                       {/* خصم الفاتورة والمجاميع */}
