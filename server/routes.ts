@@ -4177,12 +4177,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 2. الحصول على الفواتير الآجلة الموافق عليها فقط للعميل
       const allInvoices = await storage.getAllInvoices();
-      const deferredInvoices = allInvoices.filter(invoice => 
-        !invoice.isDeleted && 
-        invoice.customerId === customerId && 
-        invoice.paymentStatus === 'deferred' &&
-        invoice.approved === true // إضافة شرط للتحقق من أن الفاتورة موافق عليها
-      );
+      const deferredInvoices = allInvoices.filter(invoice => {
+        // تحقق من أن الفاتورة ليست محذوفة وتنتمي للعميل وهي فاتورة آجلة
+        const basicCondition = !invoice.isDeleted && 
+                               invoice.customerId === customerId && 
+                               invoice.paymentStatus === 'deferred';
+                               
+        // تحقق من أن الفاتورة موافق عليها
+        // نتحقق أولاً من وجود حقل approved ثم التحقق من قيمته
+        // (للتوافق مع الفواتير القديمة التي قد لا يكون لديها هذا الحقل)
+        const isApproved = invoice.approved === true;
+        
+        return basicCondition && isApproved;
+      });
       
       console.log(`Found ${deferredInvoices.length} deferred invoices for customer`);
       
@@ -4247,12 +4254,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 1. الديون المسجلة يدويًا من سجل العميل
         const manualDebtTotal = customer.totalDebt || 0;
         
-        // 2. البحث عن الفواتير الآجلة للعميل
-        const deferredInvoices = allInvoices.filter(invoice => 
-          !invoice.isDeleted && 
-          invoice.customerId === customer.id && 
-          invoice.paymentStatus === 'deferred'
-        );
+        // 2. البحث عن الفواتير الآجلة الموافق عليها فقط للعميل
+        const deferredInvoices = allInvoices.filter(invoice => {
+          // التحقق من أن الفاتورة ليست محذوفة وتنتمي للعميل وهي فاتورة آجلة
+          const basicCondition = !invoice.isDeleted && 
+                                 invoice.customerId === customer.id && 
+                                 invoice.paymentStatus === 'deferred';
+                                 
+          // التحقق من أن الفاتورة موافق عليها
+          const isApproved = invoice.approved === true;
+          
+          return basicCondition && isApproved;
+        });
         
         // حساب إجمالي الفواتير الآجلة
         const deferredInvoicesTotal = deferredInvoices.reduce((total, invoice) => 
