@@ -8,7 +8,7 @@ import {
   Printer, Plus, Minus, DollarSign, Percent, Package2, Calculator, Trash2,
   RefreshCcw, RotateCcw, ArrowLeft, CheckCircle, QrCode, Keyboard,
   CreditCard, Clock, Smartphone, MessageSquare, Tag as TagIcon, Percent as PercentIcon,
-  Info as InfoIcon, Phone, Building
+  Info as InfoIcon, Phone, Building, BadgePercent
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -466,31 +466,27 @@ export default function SimplifiedInvoiceDialog({
                           </div>
                         )}
                         {customer.address && (
-                          <div className="text-sm text-muted-foreground flex items-center ml-2">
+                          <div className="text-sm text-muted-foreground flex items-center">
                             <Building className="h-3 w-3 mr-1 text-muted-foreground" />
-                            <span className="truncate max-w-[150px]">{customer.address}</span>
+                            {customer.address}
                           </div>
                         )}
                       </div>
+                      
                       {customer.totalDebt > 0 && (
-                        <div className="mt-2 ml-7">
-                          <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
-                            {t('debt')}: {formatCurrency(customer.totalDebt)}
+                        <div className="ml-7 mt-2">
+                          <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50">
+                            {t('has_debt')}: {formatCurrency(customer.totalDebt)}
                           </Badge>
                         </div>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`h-8 ${
-                        selectedCustomer?.id === customer.id 
-                        ? 'bg-gradient-to-r from-primary to-blue-600 text-white hover:from-primary/90 hover:to-blue-700' 
-                        : 'border border-primary/30 text-primary hover:bg-primary/10'
-                      }`}
-                    >
-                      {selectedCustomer?.id === customer.id ? t('selected') : t('select')}
-                    </Button>
+                    
+                    {selectedCustomer?.id === customer.id && (
+                      <Button size="sm" variant="outline" className="border-primary text-primary">
+                        {t('selected')}
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -501,311 +497,309 @@ export default function SimplifiedInvoiceDialog({
     );
   }
 
-  // مكون خطوة اختيار المنتجات
+  // مكون خطوة إضافة المنتجات
   function ProductsStep() {
+    const filteredProducts = Array.isArray(products)
+      ? products.filter((product: any) =>
+          product.name.toLowerCase().includes(productSearch.toLowerCase())
+        )
+      : [];
+
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="bg-gradient-to-r from-primary to-blue-600 p-2 rounded-full shadow-sm">
-              <ShoppingCart className="h-5 w-5 text-white" />
-            </div>
+      <div className="space-y-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="bg-gradient-to-r from-primary to-blue-600 p-2.5 rounded-full shadow-sm">
+            <ShoppingCart className="h-5 w-5 text-white" />
+          </div>
+          <div>
             <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 text-transparent bg-clip-text">
               {t('add_products')}
             </h2>
-          </div>
-          
-          {selectedCustomer && (
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-full shadow-sm border border-slate-200">
+            <div className="text-sm text-muted-foreground flex items-center gap-1">
               <User className="h-4 w-4 mr-2 text-primary" />
-              <span className="font-medium">{selectedCustomer.name}</span>
-              {selectedCustomer.totalDebt > 0 && (
-                <Badge variant="outline" className="ml-2 bg-red-50 text-red-600 border-red-200 text-xs">
-                  {t('debt')}: {formatCurrency(selectedCustomer.totalDebt)}
-                </Badge>
-              )}
+              {selectedCustomer?.name}
             </div>
-          )}
+          </div>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <div className="sm:col-span-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <div className="relative">
-                  <Input
-                    placeholder={t('search_products')}
-                    value={productSearch}
-                    onChange={(e) => setProductSearch(e.target.value)}
-                    className="w-full pl-10"
-                  />
-                  <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="p-0" align="start">
-                <Command>
-                  <CommandInput placeholder={t('search_products')} value={productSearch} onValueChange={setProductSearch} />
-                  <CommandList>
-                    <CommandEmpty>{t('no_products_found')}</CommandEmpty>
-                    <CommandGroup>
-                      {Array.isArray(products) 
-                        ? products
-                            .filter((p: any) => p.name.toLowerCase().includes(productSearch.toLowerCase()))
-                            .map((product: any) => (
-                              <CommandItem
-                                key={product.id}
-                                onSelect={() => handleProductSelect(product)}
-                                className="flex justify-between"
-                              >
-                                <span>{product.name}</span>
-                                <span className="text-muted-foreground">
-                                  {formatCurrency(product.sellingPrice)}
-                                </span>
-                              </CommandItem>
-                            )) 
-                        : null}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+        <div className="space-y-4 pt-2">
+          <div className="rounded-lg border shadow-sm">
+            <Command className="rounded-lg border-0">
+              <div className="relative">
+                <CommandInput 
+                  placeholder={t('search_products')} 
+                  value={productSearch} 
+                  onValueChange={setProductSearch} 
+                />
+                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              </div>
+              
+              <CommandList>
+                <CommandEmpty>{t('no_products_found')}</CommandEmpty>
+                <CommandGroup heading={t('products')}>
+                  {filteredProducts?.slice(0, 5).map((product: any) => (
+                    <CommandItem
+                      key={product.id}
+                      value={product.name}
+                      onSelect={() => handleProductSelect(product)}
+                    >
+                      <div className="flex-1 flex items-center justify-between">
+                        <span className="flex-1">{product.name}</span>
+                        <span className="text-muted-foreground text-sm">
+                          {formatCurrency(product.sellingPrice)}
+                        </span>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Input
               type="number"
-              min="1"
               value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-24"
+              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              min="1"
+              placeholder={t('quantity')}
+              className="w-24 border-blue-200"
             />
             
-            <Button 
-              size="default" 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setBarcodeDialogOpen(true)}
-              className="h-11 whitespace-nowrap bg-gradient-to-r from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200 font-medium flex-1"
+              className="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
             >
               <Scan className="h-5 w-5 mr-2 text-amber-700" />
-              {t('scan')}
+              {t('scan_barcode')}
             </Button>
-          </div>
-        </div>
-        
-        <div className="bg-card border rounded-lg p-3 flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <Keyboard className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-medium">{t('external_barcode_scanner')}</h3>
-          </div>
-          <div className="flex gap-2">
-            <Input
-              ref={barcodeInputRef}
-              type="text"
-              value={manualBarcode}
-              onChange={(e) => setManualBarcode(e.target.value)}
-              onKeyDown={handleBarcodeInputKeyDown}
-              placeholder={t('barcode_placeholder')}
-              className="flex-1"
-            />
-            <Button 
-              onClick={() => handleBarcodeSearch(manualBarcode)}
-              disabled={!manualBarcode.trim()}
-              size="sm"
-            >
-              {t('add')}
-            </Button>
-          </div>
-        </div>
-        
-        <div className="rounded-lg border border-blue-100 shadow-sm">
-          <div className="bg-gradient-to-r from-primary/10 to-blue-100 dark:from-primary/20 dark:to-blue-900/20 px-4 py-3 flex items-center justify-between border-b border-blue-100">
-            <div className="flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-primary">{t('invoice_items')}</h3>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="bg-white/80 border-blue-200">
-                <span>{selectedProducts.reduce((sum, p) => sum + p.quantity, 0)} {t('items')}</span>
-              </Badge>
+            
+            <div className="relative flex-1 max-w-xs">
+              <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none">
+                <Keyboard className="h-4 w-4 text-primary" />
+              </div>
+              <Input
+                placeholder={t('enter_barcode')}
+                value={manualBarcode}
+                onChange={(e) => setManualBarcode(e.target.value)}
+                onKeyDown={handleBarcodeInputKeyDown}
+                className="pl-9 border-blue-200"
+                ref={barcodeInputRef}
+              />
             </div>
           </div>
           
-          <div className="divide-y divide-blue-50">
+          <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border">
+            <div className="flex items-center gap-2 mb-3">
+              <ShoppingCart className="h-4 w-4 text-primary" />
+              <h3 className="font-medium">{t('products_in_invoice')}</h3>
+            </div>
+            
             {selectedProducts.length === 0 ? (
-              <div className="py-10 text-center text-muted-foreground">
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-full p-4 w-16 h-16 mx-auto mb-3 flex items-center justify-center">
-                  <ShoppingCart className="h-8 w-8 text-blue-300" />
-                </div>
-                <p className="text-primary/70">{t('no_products_added')}</p>
+              <div className="py-8 text-center text-muted-foreground flex flex-col items-center">
+                <ShoppingCart className="h-8 w-8 text-blue-300" />
+                <span className="mt-2">{t('no_products_added')}</span>
               </div>
             ) : (
-              selectedProducts.map((product) => (
-                <div key={product.id} className="p-4 hover:bg-blue-50/50 dark:hover:bg-blue-900/5 flex items-center justify-between transition-colors">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="bg-slate-100 dark:bg-slate-700 p-2 rounded-full">
-                      <Package2 className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <div className="font-medium truncate max-w-[200px]">{product.name}</div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-1">
-                        <TagIcon className="h-3 w-3" />
-                        <span>{formatCurrency(product.sellingPrice)}</span>
-                        <span className="text-slate-300 mx-1">×</span>
-                        <span>{product.quantity}</span>
+              <Table className="border-b rounded-md overflow-hidden">
+                <TableHeader className="bg-blue-50 dark:bg-blue-950/20">
+                  <TableRow>
+                    <TableHead className="w-[300px]">
+                      <div className="flex items-center gap-1">
+                        <Package2 className="h-4 w-4 text-primary" />
+                        {t('product')}
                       </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="text-right font-medium text-primary">
-                      {formatCurrency(product.sellingPrice * product.quantity)}
-                    </div>
-                    
-                    <div className="flex items-center border rounded-md border-blue-200 overflow-hidden shadow-sm">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-none border-r border-blue-200 bg-white hover:bg-blue-50"
-                        onClick={() => updateProductQuantity(product.id, product.quantity - 1)}
-                      >
-                        <Minus className="h-3 w-3 text-primary" />
-                      </Button>
-                      <span className="w-10 text-center text-sm font-medium">{product.quantity}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-none border-l border-blue-200 bg-white hover:bg-blue-50"
-                        onClick={() => updateProductQuantity(product.id, product.quantity + 1)}
-                      >
-                        <Plus className="h-3 w-3 text-primary" />
-                      </Button>
-                    </div>
-                    
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-white hover:bg-destructive rounded-full"
-                      onClick={() => removeProduct(product.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))
+                    </TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-1">
+                        <TagIcon className="h-3 w-3" />
+                        {t('price')}
+                      </div>
+                    </TableHead>
+                    <TableHead>{t('quantity')}</TableHead>
+                    <TableHead>{t('total')}</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedProducts.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell>{formatCurrency(product.sellingPrice)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-start gap-1">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-6 w-6 border-blue-200"
+                            onClick={() => updateProductQuantity(product.id, product.quantity - 1)}
+                          >
+                            <Minus className="h-3 w-3 text-primary" />
+                          </Button>
+                          <span className="w-8 text-center">{product.quantity}</span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-6 w-6 border-blue-200"
+                            onClick={() => updateProductQuantity(product.id, product.quantity + 1)}
+                          >
+                            <Plus className="h-3 w-3 text-primary" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {formatCurrency(product.quantity * product.sellingPrice)}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => removeProduct(product.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </div>
         </div>
-        
-        {selectedProducts.length > 0 && (
-          <div className="space-y-3 pt-2">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{t('subtotal')}</span>
-                <span>{formatCurrency(calculateTotals().subtotal)}</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min="0"
-                  value={invoiceDiscount}
-                  onChange={(e) => setInvoiceDiscount(parseFloat(e.target.value) || 0)}
-                  placeholder={t('discount')}
-                  className="w-32"
-                />
-                <span className="text-sm text-muted-foreground">{t('discount')}</span>
-              </div>
-              
-              <Separator className="my-2" />
-              
-              <div className="flex items-center justify-between font-medium">
-                <span>{t('total')}</span>
-                <span className="text-lg">{formatCurrency(calculateTotals().total)}</span>
-              </div>
-            </div>
-            
-            <div className="space-y-3 pt-2">
-              <div className="space-y-2">
-                <Label htmlFor="notes">{t('notes')}</Label>
-                <Input
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder={t('invoice_notes_placeholder')}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>{t('payment_method')}</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    variant={paymentMethod === 'cash' ? 'default' : 'outline'}
-                    className={`${
-                      paymentMethod === 'cash'
-                        ? 'bg-green-600 hover:bg-green-700 text-white' 
-                        : 'border-green-200 text-green-700 hover:bg-green-50'
-                    }`}
-                    onClick={() => setPaymentMethod('cash')}
-                  >
-                    <DollarSign className={`h-4 w-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
-                    {t('cash')}
-                  </Button>
-                  
-                  <Button
-                    variant={paymentMethod === 'deferred' ? 'default' : 'outline'}
-                    className={`${
-                      paymentMethod === 'deferred'
-                        ? 'bg-amber-600 hover:bg-amber-700 text-white'
-                        : 'border-amber-200 text-amber-700 hover:bg-amber-50'
-                    }`}
-                    onClick={() => setPaymentMethod('deferred')}
-                  >
-                    <Clock className={`h-4 w-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
-                    {t('deferred')}
-                  </Button>
-                  
-                  <Button
-                    variant={paymentMethod === 'later' ? 'default' : 'outline'}
-                    className={`${
-                      paymentMethod === 'later'
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                        : 'border-blue-200 text-blue-700 hover:bg-blue-50'
-                    }`}
-                    onClick={() => setPaymentMethod('later')}
-                  >
-                    <CreditCard className={`h-4 w-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
-                    {t('later')}
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="pt-2">
-                <Button
-                  className="w-full"
-                  disabled={selectedProducts.length === 0 || createInvoiceMutation.isPending}
-                  onClick={handleCreateInvoice}
-                >
-                  {createInvoiceMutation.isPending ? (
-                    <>
-                      <RefreshCcw className="h-4 w-4 mr-2 animate-spin" />
-                      {t('creating_invoice')}
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className={`h-4 w-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
-                      {t('create_invoice')}
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
 
-  // حوار ماسح الباركود
+  // مكون خطوة التأكيد
+  function ConfirmationStep() {
+    return (
+      <div className="space-y-6 pt-4">
+        <div className="rounded-lg border border-blue-100 shadow-sm">
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-900/10 dark:to-blue-900/5 p-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  <Calculator className="h-4 w-4 text-primary/70" />
+                  <span>{t('subtotal')}</span>
+                </span>
+                <span className="font-medium">{formatCurrency(calculateTotals().subtotal)}</span>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <BadgePercent className="h-4 w-4 text-primary/70" />
+                  <span>{t('discount')}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="relative w-32">
+                    <Input
+                      type="number"
+                      min="0"
+                      value={invoiceDiscount}
+                      onChange={(e) => setInvoiceDiscount(parseFloat(e.target.value) || 0)}
+                      placeholder="0.00"
+                      className="pl-8 border-blue-200 focus-visible:ring-blue-500"
+                    />
+                    <DollarSign className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                  </div>
+                </div>
+              </div>
+              
+              <Separator className="my-1 bg-blue-100" />
+          
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-primary flex items-center gap-1.5">
+                  <CreditCard className="h-4 w-4 text-primary" />
+                  {t('total')}
+                </span>
+                <span className="font-bold text-lg bg-gradient-to-r from-primary to-blue-600 text-transparent bg-clip-text">
+                  {formatCurrency(calculateTotals().total)}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-3 pt-2">
+            <div className="space-y-2">
+              <Label className="px-4">{t('payment_method')}</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  type="button"
+                  variant={paymentMethod === 'cash' ? 'default' : 'outline'}
+                  className={`${
+                    paymentMethod === 'cash'
+                      ? 'bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white shadow-md'
+                      : 'border-blue-200'
+                  }`}
+                  onClick={() => setPaymentMethod('cash')}
+                >
+                  <DollarSign className={`h-4 w-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
+                  {t('cash')}
+                </Button>
+                
+                <Button
+                  type="button"
+                  variant={paymentMethod === 'later' ? 'default' : 'outline'}
+                  className={`${
+                    paymentMethod === 'later'
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-500/90 hover:to-amber-600/90 text-white shadow-md'
+                      : 'border-blue-200'
+                  }`}
+                  onClick={() => setPaymentMethod('later')}
+                >
+                  <Clock className={`h-4 w-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
+                  {t('pay_later')}
+                </Button>
+                
+                <Button
+                  type="button"
+                  variant={paymentMethod === 'deferred' ? 'default' : 'outline'}
+                  className={`${
+                    paymentMethod === 'deferred'
+                      ? 'bg-gradient-to-r from-blue-400 to-blue-500 hover:from-blue-400/90 hover:to-blue-500/90 text-white shadow-md'
+                      : 'border-blue-200'
+                  }`}
+                  onClick={() => setPaymentMethod('deferred')}
+                >
+                  <CreditCard className={`h-4 w-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
+                  {t('deferred')}
+                </Button>
+              </div>
+            </div>
+            
+            <div className="pt-2">
+              <Label htmlFor="notes" className="px-4">{t('notes')}</Label>
+              <div className="px-4 pt-1 pb-4">
+                <Input 
+                  id="notes"
+                  placeholder={t('invoice_notes')}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="border-blue-200"
+                />
+              </div>
+            </div>
+            
+            {paymentMethod === 'deferred' && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-md mx-4 mb-4">
+                <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+                  {createInvoiceMutation.isPending ? (
+                    <RefreshCcw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle className={`h-4 w-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
+                  )}
+                  {t('deferred_payment_notice')}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* حوار ماسح الباركود */}
@@ -834,128 +828,118 @@ export default function SimplifiedInvoiceDialog({
         </DialogContent>
       </Dialog>
       
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-full sm:max-w-4xl max-h-[90vh] p-0 overflow-hidden bg-gradient-to-b from-slate-50 to-white dark:from-gray-900/20 dark:to-gray-900/5">
-        <DialogHeader className="p-6 pb-4 bg-gradient-to-r from-primary/20 to-blue-600/20 dark:from-primary/30 dark:to-blue-600/20 border-b border-primary/10">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 text-transparent bg-clip-text">
-              {currentStep === 'customer'
-                ? t('create_new_invoice')
-                : t('invoice_for_customer')}
-            </DialogTitle>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleCloseDialog}
-              className="h-8 w-8 rounded-full hover:bg-red-100 hover:text-red-600 transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto p-6">
-            {showPreview ? (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-green-600 flex items-center">
-                    <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
-                    {t('invoice_created_successfully')}
-                  </h2>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        resetForm();
-                        setCurrentStep('customer');
-                      }}
-                    >
-                      <RefreshCcw className="h-4 w-4 mr-2" />
-                      {t('new_invoice')}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCloseDialog}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      {t('close')}
-                    </Button>
-                  </div>
-                </div>
-                
-                {newInvoiceId && <InvoicePreview invoice={{id: newInvoiceId}} />}
-              </div>
-            ) : (
-              <>
-                {currentStep === 'customer' && <CustomerStep />}
-                {currentStep === 'products' && <ProductsStep />}
-              </>
-            )}
-          </div>
-          
-          {!showPreview && (
-            <div className="p-6 border-t bg-slate-50 dark:bg-slate-900/50 flex flex-wrap items-center justify-between gap-4">
-              <div>
-                {currentStep === 'products' && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentStep('customer')}
-                    className="shadow-sm hover:bg-slate-100 border-slate-300"
-                    size="lg"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    {t('back')}
-                  </Button>
-                )}
+      {/* حوار إنشاء الفاتورة الرئيسي */}
+      <Dialog open={open} onOpenChange={showPreview ? () => {} : onOpenChange}>
+        <DialogContent className="max-w-full sm:max-w-[90vw] md:max-w-[80vw] h-[90vh] p-0 gap-0">
+          {showPreview ? (
+            <div className="h-full flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b">
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+                  {t('invoice_confirmed')}
+                </h2>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={handleCloseDialog}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
               </div>
               
-              <div className="flex items-center gap-4">
-                {currentStep === 'customer' && selectedCustomer && (
-                  <Button 
-                    onClick={() => setCurrentStep('products')}
-                    className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700 text-white shadow-md"
-                    size="lg"
-                  >
-                    {t('continue')}
-                    <ChevronRight className="h-4 w-4 ml-2" />
-                  </Button>
-                )}
-                
-                {currentStep === 'products' && selectedProducts.length > 0 && (
-                  <Button 
-                    onClick={handleCreateInvoice}
-                    className="bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white shadow-md"
-                    size="lg"
-                    disabled={createInvoiceMutation.isPending}
-                  >
-                    {createInvoiceMutation.isPending ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        {t('saving')}
-                      </>
-                    ) : (
-                      <>
-                        <Check className="h-5 w-5 mr-2" />
-                        {t('confirm_invoice')}
-                      </>
-                    )}
-                  </Button>
-                )}
-                
-                <Button 
-                  variant="outline" 
-                  onClick={handleCloseDialog}
-                  className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 shadow-sm"
-                  size="lg"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  {t('cancel')}
-                </Button>
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">{t('invoice_details')}</h3>
+                    
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={resetForm}
+                      >
+                        <RefreshCcw className="h-4 w-4 mr-2" />
+                        {t('new_invoice')}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCloseDialog}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        {t('close')}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {newInvoiceId && <InvoicePreview invoice={{id: newInvoiceId}} />}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="h-full flex flex-col">
+              <div className="p-6 border-b bg-slate-50 dark:bg-slate-900/50 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold flex items-center gap-2">
+                    {currentStep === 'customer' && t('customer_selection')}
+                    {currentStep === 'products' && t('add_products')}
+                    {currentStep === 'confirmation' && t('confirm_invoice')}
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {currentStep === 'customer' && t('customer_selection_description')}
+                    {currentStep === 'products' && t('add_products_description')}
+                    {currentStep === 'confirmation' && t('confirm_invoice_description')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  {currentStep !== 'customer' && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setCurrentStep(currentStep === 'products' ? 'customer' : 'products')}
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      {t('back')}
+                    </Button>
+                  )}
+                  
+                  {currentStep === 'products' && (
+                    <Button 
+                      onClick={() => setCurrentStep('confirmation')}
+                      disabled={selectedProducts.length === 0}
+                    >
+                      {t('continue')}
+                      <ChevronRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  )}
+                  
+                  {currentStep === 'confirmation' && (
+                    <Button 
+                      onClick={handleCreateInvoice}
+                      className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white shadow-md"
+                      size="lg"
+                      disabled={createInvoiceMutation.isPending}
+                    >
+                      {createInvoiceMutation.isPending ? (
+                        <>
+                          <RefreshCcw className="h-4 w-4 mr-2 animate-spin" />
+                          {t('processing')}
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-5 w-5 mr-2" />
+                          {t('confirm_invoice')}
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-4">
+                {currentStep === 'customer' && <CustomerStep />}
+                {currentStep === 'products' && <ProductsStep />}
+                {currentStep === 'confirmation' && <ConfirmationStep />}
               </div>
             </div>
           )}
