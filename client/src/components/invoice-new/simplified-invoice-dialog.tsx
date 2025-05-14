@@ -511,25 +511,28 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
     createInvoiceMutation.mutate(invoice);
   };
 
-  // التأثير لإضافة منتج محدد مسبقاً
+  // التأثير لإضافة منتج محدد مسبقاً - المنتج الممسوح يتم تخزينه للإضافة لاحقاً
   useEffect(() => {
     if (preSelectedProduct && open) {
-      // تأخير إضافة المنتج بفترة قصيرة للتأكد من تهيئة الحالة
+      // تأخير بسيط للتأكد من تهيئة الحالة
       setTimeout(() => {
-        const productExists = invoiceProducts.some(p => p.id === preSelectedProduct.id);
-        if (!productExists) {
-          // التحقق من المخزون أولاً
-          if ((preSelectedProduct.stock || 0) > 0) {
-            // إضافة المنتج مباشرة وتغيير التاب إلى المنتجات
-            handleAddProduct(preSelectedProduct);
-            setActiveTab('products');
-          } else {
-            toast({
-              title: t('error'),
-              description: t('out_of_stock'),
-              variant: 'destructive'
-            });
-          }
+        // فقط التحقق من المخزون وإظهار رسالة إذا كان المخزون فارغاً
+        if ((preSelectedProduct.stock || 0) <= 0) {
+          toast({
+            title: t('error'),
+            description: t('out_of_stock'),
+            variant: 'destructive'
+          });
+        } else {
+          // فتح تاب اختيار العميل أولاً بدلاً من إضافة المنتج مباشرة
+          setActiveTab('customer');
+          
+          // عرض تنبيه لطيف للمستخدم
+          toast({
+            title: t('product_ready'),
+            description: t('please_select_customer_first'),
+            duration: 4000
+          });
         }
       }, 300);
     }
