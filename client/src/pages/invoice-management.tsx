@@ -5,6 +5,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { Customer, Product, Invoice } from '@shared/schema';
 import { useLocale } from '@/hooks/use-locale';
 import { useToast } from '@/hooks/use-toast';
+import { useAuthContext } from '@/context/auth-context';
 import {
   Card,
   CardContent,
@@ -96,6 +97,7 @@ export default function InvoiceManagementPage() {
   const isRtl = language === 'ar';
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuthContext();
   
   // حالة تفاصيل الفاتورة
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -275,6 +277,50 @@ export default function InvoiceManagementPage() {
     queryKey: ['/api/products'],
   });
   
+  // mutation للموافقة على الفاتورة الآجلة
+  const approveInvoiceMutation = useMutation({
+    mutationFn: async (invoiceId: number) => {
+      return await apiRequest('POST', `/api/payment-approvals/approve/${invoiceId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      toast({
+        title: t('success'),
+        description: t('invoice_approved_successfully'),
+      });
+    },
+    onError: (error) => {
+      console.error('Error approving invoice:', error);
+      toast({
+        title: t('error'),
+        description: t('error_approving_invoice'),
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // mutation لرفض الفاتورة الآجلة
+  const rejectInvoiceMutation = useMutation({
+    mutationFn: async (invoiceId: number) => {
+      return await apiRequest('POST', `/api/payment-approvals/reject/${invoiceId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      toast({
+        title: t('success'),
+        description: t('invoice_rejected_successfully'),
+      });
+    },
+    onError: (error) => {
+      console.error('Error rejecting invoice:', error);
+      toast({
+        title: t('error'),
+        description: t('error_rejecting_invoice'),
+        variant: 'destructive',
+      });
+    }
+  });
+
   // تعريف mutation لحذف الفاتورة
   const deleteMutation = useMutation({
     mutationFn: async (invoiceId: number) => {
@@ -317,6 +363,24 @@ export default function InvoiceManagementPage() {
         description: t('error_loading_invoice_details'),
         variant: 'destructive',
       });
+    }
+  };
+  
+  // الموافقة على الفاتورة الآجلة
+  const approveInvoicePayment = async (invoiceId: number) => {
+    try {
+      await approveInvoiceMutation.mutateAsync(invoiceId);
+    } catch (error) {
+      console.error('Error approving invoice payment:', error);
+    }
+  };
+  
+  // رفض الفاتورة الآجلة
+  const rejectInvoicePayment = async (invoiceId: number) => {
+    try {
+      await rejectInvoiceMutation.mutateAsync(invoiceId);
+    } catch (error) {
+      console.error('Error rejecting invoice payment:', error);
     }
   };
   
@@ -708,6 +772,20 @@ export default function InvoiceManagementPage() {
                   {filteredInvoices.map((invoice: Invoice) => {
                     const customerName = getCustomerName(invoice.customerId);
                     const paymentMethod = invoice.paymentMethod || 'cash';
+                    const paymentStatus = invoice.paymentStatus || (paymentMethod === 'deferred' ? 'deferred' : '');
+                    
+                    // دالة مساعدة لعرض حالة الدفع بلون مميز
+                    const renderPaymentStatus = () => {
+                      if (paymentStatus === 'approved') {
+                        return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">{t('approved')}</span>;
+                      } else if (paymentStatus === 'deferred' || paymentMethod === 'deferred') {
+                        return <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded-full text-xs font-medium">{t('pending')}</span>;
+                      } else if (paymentStatus === 'rejected') {
+                        return <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">{t('rejected')}</span>;
+                      } else {
+                        return <span className="text-gray-500">-</span>;
+                      }
+                    };
                     
                     return (
                       <TableRow key={invoice.id}>
@@ -715,6 +793,30 @@ export default function InvoiceManagementPage() {
                         <TableCell className="text-center">{formatDate(invoice.createdAt || invoice.date)}</TableCell>
                         <TableCell className="text-center">{customerName || t('unknown_customer')}</TableCell>
                         <TableCell className="text-center">{t(paymentMethod)}</TableCell>
+                        <TableCell className="text-center">
+                          {renderPaymentStatus()}
+                          {/* أزرار الموافقة/الرفض للمدير فقط وللفواتير الآجلة المعلقة فقط */}
+                          {isAdmin && (paymentMethod === 'deferred' && paymentStatus === 'deferred') && (
+                            <div className="flex justify-center gap-1 mt-1">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700 h-6 px-2 text-xs"
+                                onClick={() => approveInvoicePayment(invoice.id)}
+                              >
+                                {t('approve')}
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700 h-6 px-2 text-xs"
+                                onClick={() => rejectInvoicePayment(invoice.id)}
+                              >
+                                {t('reject')}
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="text-center">{invoice.total?.toLocaleString()}</TableCell>
                         <TableCell className="text-center">
                           <div className="flex justify-center gap-2">
