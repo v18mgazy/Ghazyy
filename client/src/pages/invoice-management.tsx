@@ -699,6 +699,7 @@ export default function InvoiceManagementPage() {
                     <TableHead className="text-center">{t('date')}</TableHead>
                     <TableHead className="text-center">{t('customer')}</TableHead>
                     <TableHead className="text-center">{t('payment_method')}</TableHead>
+                    <TableHead className="text-center">{t('payment_status')}</TableHead>
                     <TableHead className="text-center">{t('total')}</TableHead>
                     <TableHead className="text-center">{t('actions')}</TableHead>
                   </TableRow>
