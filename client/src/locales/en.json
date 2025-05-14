@@ -514,6 +514,8 @@
   "whatsapp_reminder_sent": "WhatsApp reminder has been sent successfully",
   "customer_has_no_phone": "Customer has no phone number",
   "deferred_payment_reminder_template": "Dear {{customerName}},\n\nThis is a friendly reminder about your outstanding payment for invoice #{{invoiceNumber}} with a balance of {{amount}}.\n\nPlease contact us to arrange payment.\n\nThank you,\n{{storeName}}",
+  "total_debt": "Total Debt",
+  "total_debt_description": "Total debt includes deferred invoices and registered debts",
   "approved": "Approved",
   "pending": "Pending",
   "partially_paid": "Partially Paid",
