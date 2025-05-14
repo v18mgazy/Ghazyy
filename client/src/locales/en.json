@@ -199,6 +199,7 @@
   "light_mode": "Light Mode",
   "language": "Language",
   "create_new_invoice": "Create New Invoice",
+  "create_invoice_description": "Create a new invoice by selecting customer, products and payment method",
   "invoice_list": "Invoice List",
   "active_invoice": "Active Invoice",
   "invoice_details": "Invoice Details",

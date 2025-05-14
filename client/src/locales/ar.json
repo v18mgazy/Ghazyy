@@ -197,6 +197,7 @@
   "light_mode": "الوضع الفاتح",
   "language": "اللغة",
   "create_new_invoice": "إنشاء فاتورة جديدة",
+  "create_invoice_description": "قم بإنشاء فاتورة جديدة مع اختيار العميل والمنتجات وطريقة الدفع",
   "invoice_list": "قائمة الفواتير",
   "active_invoice": "الفاتورة النشطة",
   "invoice_details": "تفاصيل الفاتورة",

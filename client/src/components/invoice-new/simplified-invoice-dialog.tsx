@@ -607,21 +607,24 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-full sm:max-w-4xl max-h-[95vh] p-0 overflow-hidden">
-        <DialogHeader className="p-4 pb-1 bg-gradient-to-r from-purple-600/20 to-pink-600/10">
-          <DialogTitle className="flex items-center text-xl font-bold bg-gradient-to-r from-primary to-pink-500 bg-clip-text text-transparent">
-            <ReceiptText className="h-6 w-6 text-primary mr-2" />
+      <DialogContent className="max-w-full sm:max-w-4xl max-h-[95vh] p-0 overflow-hidden bg-gradient-to-b from-gray-50 to-white dark:from-gray-900/20 dark:to-gray-900/5">
+        <DialogHeader className="p-6 pb-4 bg-gradient-to-r from-primary/20 to-pink-600/20 dark:from-primary/30 dark:to-pink-600/20 border-b border-primary/10">
+          <DialogTitle className="flex items-center text-2xl font-bold bg-gradient-to-r from-primary to-pink-500 bg-clip-text text-transparent">
+            <ReceiptText className="h-7 w-7 text-primary mr-3" />
             {t('create_new_invoice')}
           </DialogTitle>
+          <DialogDescription className="text-muted-foreground mt-2 text-base">
+            {t('create_invoice_description')}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="p-3 bg-white overflow-y-auto" style={{maxHeight: "calc(95vh - 160px)"}}>
+        <div className="p-6 overflow-y-auto" style={{maxHeight: "calc(95vh - 190px)"}}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4 h-auto py-2 bg-gradient-to-r from-primary/10 to-pink-500/10 p-1 rounded-lg">
+            <TabsList className="grid w-full grid-cols-2 mb-6 h-auto py-2 bg-gradient-to-r from-primary/10 to-pink-500/10 p-1 rounded-xl shadow-sm">
               <TabsTrigger 
                 value="customer" 
                 disabled={activeTab === 'products' && selectedCustomer} 
-                className="text-base py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-pink-500 data-[state=active]:text-white transition-all duration-200"
+                className="text-base py-3 font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-pink-500 data-[state=active]:text-white transition-all duration-200"
               >
                 <User className="mr-2 h-5 w-5" />
                 {t('customer')}
@@ -629,27 +632,27 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
               <TabsTrigger 
                 value="products" 
                 disabled={!selectedCustomer} 
-                className="text-base py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-pink-500 data-[state=active]:text-white transition-all duration-200"
+                className="text-base py-3 font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-pink-500 data-[state=active]:text-white transition-all duration-200"
               >
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 {t('products')}
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="customer" className="py-1">
+            <TabsContent value="customer" className="py-2">
               {/* إضافة عنصر اختيار التاريخ */}
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-3 mb-5">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
                   <Input
                     placeholder={t('search_customers')}
                     value={customerSearchTerm}
                     onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                    className="pl-10 border-primary/20 focus:border-primary"
+                    className="pl-10 h-12 text-base border-primary/20 focus:border-primary rounded-lg shadow-sm"
                   />
                 </div>
                 <Button 
-                  className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-md hover:shadow-lg rounded-lg transition-all" 
+                  className="h-12 px-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-md hover:shadow-lg rounded-lg transition-all" 
                   size="default"
                   onClick={() => setShowAddCustomer(true)}
                 >
