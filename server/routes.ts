@@ -4175,12 +4175,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const debts = await storage.getCustomerDebts(customerId);
       console.log(`Found ${debts.length} manual debt records for customer`);
 
-      // 2. الحصول على جميع الفواتير الآجلة للعميل
+      // 2. الحصول على جميع الفواتير الآجلة للعميل (سواء المنتظرة أو الموافق عليها)
       const allInvoices = await storage.getAllInvoices();
       const deferredInvoices = allInvoices.filter(invoice => 
         !invoice.isDeleted && 
         invoice.customerId === customerId && 
-        invoice.paymentStatus === 'deferred'
+        (invoice.paymentStatus === 'deferred' || invoice.paymentStatus === 'approved' || invoice.paymentMethod === 'deferred')
       );
       
       console.log(`Found ${deferredInvoices.length} deferred invoices for customer`);
@@ -4246,11 +4246,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 1. الديون المسجلة يدويًا من سجل العميل
         const manualDebtTotal = customer.totalDebt || 0;
         
-        // 2. البحث عن الفواتير الآجلة للعميل
+        // 2. البحث عن الفواتير الآجلة للعميل (سواء المنتظرة أو الموافق عليها)
         const deferredInvoices = allInvoices.filter(invoice => 
           !invoice.isDeleted && 
           invoice.customerId === customer.id && 
-          invoice.paymentStatus === 'deferred'
+          (invoice.paymentStatus === 'deferred' || invoice.paymentStatus === 'approved' || invoice.paymentMethod === 'deferred')
         );
         
         // حساب إجمالي الفواتير الآجلة

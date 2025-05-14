@@ -108,17 +108,23 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
   // وذلك لأن الفواتير المحذوفة تمت تصفيتها بالفعل في الخادم (server)
   const deferredInvoiceDebts = data.deferredInvoices ? data.deferredInvoices.map(invoice => {
     console.log("Processing deferred invoice:", invoice);
+    // التحقق مما إذا كانت الفاتورة معلقة (pending) أم موافق عليها (approved)
+    const isPending = invoice.paymentStatus === 'deferred';
+    const isApproved = invoice.paymentStatus === 'approved';
+    
     return {
       id: `invoice-${invoice.id}`, // معرف فريد لتجنب تعارض المعرفات
       customerId: Number(customerId),
-      amount: invoice.amount, // قيمة الفاتورة الآجلة (دائماً إيجابية/إضافة دين)
+      amount: invoice.total || 0, // قيمة الفاتورة الآجلة (دائماً إيجابية/إضافة دين)
       reason: `${t('deferred_invoice')} #${invoice.invoiceNumber}`, // سبب الدين: "فاتورة آجلة #رقم_الفاتورة"
       date: invoice.date,
       createdAt: invoice.date,
       invoiceId: invoice.id,
       createdBy: 0, // لا يوجد مستخدم محدد للفواتير الآجلة
       isDeferred: true, // علامة لتحديد أن هذا العنصر هو فاتورة آجلة وليس دين يدوي
-      isPending: invoice.isPending // حالة الفاتورة (معلقة أو مدفوعة)
+      isPending: isPending, // حالة الفاتورة (معلقة)
+      isApproved: isApproved, // حالة الفاتورة (موافق عليها)
+      paymentStatus: invoice.paymentStatus // حالة الدفع الأصلية
     };
   }) : [];
 
@@ -180,10 +186,12 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
                 const transaction = debt.isDeferred
                   ? {
                       icon: <Receipt className="h-3 w-3 mr-1" />,
-                      label: `${t('deferred_invoice')}${debt.isPending ? ` (${t('pending')})` : ''}`,
-                      color: debt.isPending 
+                      label: `${t('deferred_invoice')}${debt.paymentStatus === 'deferred' ? ` (${t('pending')})` : debt.paymentStatus === 'approved' ? ` (${t('approved')})` : ''}`,
+                      color: debt.paymentStatus === 'deferred'
                         ? 'bg-orange-50 text-orange-700 border-orange-200'
-                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                        : debt.paymentStatus === 'approved'
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : 'bg-gray-50 text-gray-700 border-gray-200'
                     }
                   : getTransactionType(debt.amount, debt.invoiceId);
                 
