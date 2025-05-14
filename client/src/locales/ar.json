@@ -18,7 +18,6 @@
   "deferred_invoices_count": "عدد الفواتير الآجلة",
   "manual_debt_history": "سجل الديون اليدوية",
   "no_manual_debt_records": "لا يوجد سجلات ديون يدوية",
-  "no_debt_records": "لا يوجد سجلات ديون",
   "add_debt_description": "إضافة مبلغ دين جديد للعميل",
   "reduce_debt_description": "تسجيل دفعة لتخفيض دين العميل",
   "amount": "المبلغ",

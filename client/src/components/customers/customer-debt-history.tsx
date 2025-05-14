@@ -82,18 +82,23 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
     );
   }
 
+  console.log("Data received:", data);
+  
   // إنشاء "ديون" وهمية من الفواتير الآجلة لعرضهم في نفس الجدول
-  const deferredInvoiceDebts = data.deferredInvoices.map(invoice => ({
-    id: `invoice-${invoice.id}`, // معرف فريد لتجنب تعارض المعرفات
-    customerId: Number(customerId),
-    amount: invoice.amount, // قيمة الفاتورة الآجلة (دائماً إيجابية/إضافة دين)
-    reason: t('deferred_invoice'), // سبب الدين: "فاتورة آجلة"
-    date: invoice.date,
-    createdAt: invoice.date,
-    invoiceId: invoice.id,
-    createdBy: 0, // لا يوجد مستخدم محدد للفواتير الآجلة
-    isDeferred: true // علامة لتحديد أن هذا العنصر هو فاتورة آجلة وليس دين يدوي
-  }));
+  const deferredInvoiceDebts = data.deferredInvoices ? data.deferredInvoices.map(invoice => {
+    console.log("Processing deferred invoice:", invoice);
+    return {
+      id: `invoice-${invoice.id}`, // معرف فريد لتجنب تعارض المعرفات
+      customerId: Number(customerId),
+      amount: invoice.amount, // قيمة الفاتورة الآجلة (دائماً إيجابية/إضافة دين)
+      reason: `${t('deferred_invoice')} #${invoice.invoiceNumber}`, // سبب الدين: "فاتورة آجلة #رقم_الفاتورة"
+      date: invoice.date,
+      createdAt: invoice.date,
+      invoiceId: invoice.id,
+      createdBy: 0, // لا يوجد مستخدم محدد للفواتير الآجلة
+      isDeferred: true // علامة لتحديد أن هذا العنصر هو فاتورة آجلة وليس دين يدوي
+    };
+  }) : [];
 
   // دمج الديون اليدوية والفواتير الآجلة في قائمة واحدة
   const allDebts = [...data.debts, ...deferredInvoiceDebts];
@@ -111,9 +116,16 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
             {formatCurrency(data.totalDebt)}
           </span>
         </div>
-        <Badge variant="outline" className="text-xs px-2 py-0">
-          {t('transactions_count')}: {sortedDebts.length}
-        </Badge>
+        <div className="flex gap-2">
+          <Badge variant="outline" className="text-xs px-2 py-0">
+            {t('transactions_count')}: {sortedDebts.length}
+          </Badge>
+          {data.deferredInvoices && data.deferredInvoices.length > 0 && (
+            <Badge variant="outline" className="text-xs px-2 py-0 bg-orange-50 text-orange-700">
+              {t('deferred_invoices_count')}: {data.deferredInvoices.length}
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* سجل المديونية الموحد (يشمل كل من الديون اليدوية والفواتير الآجلة) */}

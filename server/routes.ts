@@ -993,15 +993,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/customer-debts/:customerId', async (req, res) => {
     try {
       const { customerId } = req.params;
-      const debts = await storage.getCustomerDebts(parseInt(customerId));
+      const customerId_int = parseInt(customerId);
+      const debts = await storage.getCustomerDebts(customerId_int);
+      
+      // جلب الفواتير المؤجلة
+      const allInvoices = await storage.getAllInvoices();
+      const deferredInvoices = allInvoices.filter(inv => 
+        inv.customerId === customerId_int && 
+        inv.paymentStatus === 'deferred'
+      ).map(inv => ({
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        date: inv.date.toISOString(), // تحويل التاريخ إلى نص
+        amount: inv.total,
+        isPending: true
+      }));
       
       // حساب إجمالي الديون
-      const totalDebt = await calculateCustomerTotalDebt(parseInt(customerId));
+      const totalDebt = await calculateCustomerTotalDebt(customerId_int);
+      
+      // حساب إجمالي الفواتير المؤجلة
+      const deferredInvoicesTotal = deferredInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+      
+      // حساب إجمالي الديون اليدوية (إجمالي الديون - الفواتير المؤجلة)
+      const manualDebtTotal = totalDebt - deferredInvoicesTotal;
       
       // إرسال البيانات إلى العميل
       res.json({
         debts,
-        totalDebt
+        deferredInvoices,
+        totalDebt,
+        manualDebtTotal,
+        deferredInvoicesTotal
       });
     } catch (err) {
       console.error('Error fetching customer debts:', err);
