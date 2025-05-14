@@ -72,7 +72,18 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
     );
   }
 
-  if (!data || !data.debts || data.debts.length === 0) {
+  if (!data) {
+    return (
+      <Card className={`${className} border-gray-200`}>
+        <CardContent className="p-6 text-center text-muted-foreground">
+          <p>{t('no_debt_history')}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // التحقق من عدم وجود ديون يدوية أو فواتير آجلة
+  if ((!data.debts || data.debts.length === 0) && (!data.deferredInvoices || data.deferredInvoices.length === 0)) {
     return (
       <Card className={`${className} border-gray-200`}>
         <CardContent className="p-6 text-center text-muted-foreground">
@@ -83,6 +94,14 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
   }
 
   console.log("Data received:", data);
+  
+  // طباعة بيانات التشخيص
+  console.log("Data received in debt history:", data);
+  console.log("Manual debts:", data.debts);
+  console.log("Deferred invoices:", data.deferredInvoices);
+  console.log("Total debt:", data.totalDebt);
+  console.log("Manual debt total:", data.manualDebtTotal);
+  console.log("Deferred invoices total:", data.deferredInvoicesTotal);
   
   // إنشاء "ديون" وهمية من الفواتير الآجلة لعرضهم في نفس الجدول
   const deferredInvoiceDebts = data.deferredInvoices ? data.deferredInvoices.map(invoice => {
@@ -101,11 +120,14 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
   }) : [];
 
   // دمج الديون اليدوية والفواتير الآجلة في قائمة واحدة
-  console.log("Manual debts count:", data.debts.length);
+  console.log("Manual debts count:", data.debts?.length || 0);
   console.log("Deferred invoices count:", deferredInvoiceDebts.length);
   
-  const allDebts = [...data.debts, ...deferredInvoiceDebts];
+  // التأكد من أن data.debts موجود قبل استخدامه
+  const manualDebts = data.debts || [];
+  const allDebts = [...manualDebts, ...deferredInvoiceDebts];
   console.log("Total combined debt records:", allDebts.length);
+  
   // ترتيب جميع الديون حسب التاريخ (الأحدث أولاً)
   const sortedDebts = allDebts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
