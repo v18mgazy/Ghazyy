@@ -7,7 +7,8 @@ import {
   ReceiptText, Search, User, X, ShoppingCart, Check, Scan, ChevronRight,
   Printer, Plus, Minus, DollarSign, Percent, Package2, Calculator, Trash2,
   RefreshCcw, RotateCcw, ArrowLeft, CheckCircle, QrCode, Keyboard,
-  CreditCard, Clock, Smartphone, MessageSquare
+  CreditCard, Clock, Smartphone, MessageSquare, Tag as TagIcon, Percent as PercentIcon,
+  Info as InfoIcon
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -1098,12 +1099,12 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                       </div>
                       
                       {/* خصم الفاتورة والمجاميع */}
-                      <div className="mt-3 space-y-2 border-t pt-3">
+                      <div className="mt-4 space-y-3 border-t pt-4">
                         <div className="flex items-center gap-3">
-                          <Label htmlFor="invoice-discount" className="text-base text-muted-foreground font-medium">
+                          <Label htmlFor="invoice-discount" className="text-base font-medium text-gray-700">
                             {t('invoice_discount')}:
                           </Label>
-                          <div className="relative w-24">
+                          <div className="relative w-32">
                             <Input
                               id="invoice-discount"
                               type="number"
@@ -1115,42 +1116,51 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                                 setInvoiceDiscount(newDiscount);
                                 calculateTotals(invoiceProducts, newDiscount);
                               }}
-                              className="pr-8 py-1 h-10 text-base"
+                              className="pr-9 h-10 text-base border-primary/20 focus:border-primary rounded-lg transition-all duration-150 focus:shadow-sm"
                             />
-                            <DollarSign className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <PercentIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                           </div>
                         </div>
                         
-                        <div className="space-y-2 pt-3 px-2">
-                          <div className="flex justify-between text-base">
-                            <span className="text-muted-foreground font-medium">{t('subtotal')}:</span>
+                        <div className="space-y-3 pt-3 px-3 bg-gray-50 rounded-lg p-3">
+                          <div className="flex justify-between text-base items-center">
+                            <span className="text-gray-600 font-medium">{t('subtotal')}:</span>
                             <span className="font-medium">{formatCurrency(subtotal)}</span>
                           </div>
                           
                           {totalDiscount > 0 && (
-                            <div className="flex justify-between text-base">
-                              <span className="text-muted-foreground font-medium">{t('item_discounts')}:</span>
-                              <span className="text-destructive/90 font-medium">- {formatCurrency(totalDiscount)}</span>
+                            <div className="flex justify-between text-base items-center">
+                              <div className="flex items-center">
+                                <TagIcon className="h-4 w-4 mr-1.5 text-amber-500" />
+                                <span className="text-gray-600 font-medium">{t('item_discounts')}:</span>
+                              </div>
+                              <span className="text-amber-600 font-medium">- {formatCurrency(totalDiscount)}</span>
                             </div>
                           )}
                           
                           {invoiceDiscount > 0 && (
-                            <div className="flex justify-between text-base">
-                              <span className="text-muted-foreground font-medium">{t('invoice_discount')}:</span>
-                              <span className="text-destructive/90 font-medium">- {formatCurrency(invoiceDiscount)}</span>
+                            <div className="flex justify-between text-base items-center">
+                              <div className="flex items-center">
+                                <PercentIcon className="h-4 w-4 mr-1.5 text-amber-500" />
+                                <span className="text-gray-600 font-medium">{t('invoice_discount')}:</span>
+                              </div>
+                              <span className="text-amber-600 font-medium">- {formatCurrency(invoiceDiscount)}</span>
                             </div>
                           )}
                           
-                          <Separator className="my-2" />
+                          <Separator className="my-2 bg-gray-300" />
                           <div className="flex justify-between font-bold text-lg pt-1">
-                            <span>{t('total')}:</span>
-                            <span className="text-primary">{formatCurrency(total)}</span>
+                            <span className="text-gray-800">{t('total')}:</span>
+                            <span className="text-primary bg-primary/10 px-3 py-1 rounded-md">{formatCurrency(total)}</span>
                           </div>
                           
                           {/* تظهر فقط عند وجود خصومات */}
                           {(totalDiscount > 0 || invoiceDiscount > 0) && (
-                            <div className="mt-1 text-xs text-muted-foreground italic">
-                              {t('total_after_all_discounts')}
+                            <div className="mt-2 text-xs flex items-center gap-1.5 bg-amber-50 p-1.5 rounded-md border border-amber-100">
+                              <InfoIcon className="h-3.5 w-3.5 text-amber-500" />
+                              <span className="text-amber-700">
+                                {t('total_after_all_discounts')}
+                              </span>
                             </div>
                           )}
                         </div>
