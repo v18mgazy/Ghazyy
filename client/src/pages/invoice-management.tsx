@@ -370,8 +370,17 @@ export default function InvoiceManagementPage() {
   const approveInvoicePayment = async (invoiceId: number) => {
     try {
       await approveInvoiceMutation.mutateAsync(invoiceId);
+      toast({
+        title: t('success'),
+        description: t('invoice_approved_successfully')
+      });
     } catch (error) {
       console.error('Error approving invoice payment:', error);
+      toast({
+        title: t('error'),
+        description: t('error_approving_invoice'),
+        variant: 'destructive'
+      });
     }
   };
   
@@ -379,8 +388,17 @@ export default function InvoiceManagementPage() {
   const rejectInvoicePayment = async (invoiceId: number) => {
     try {
       await rejectInvoiceMutation.mutateAsync(invoiceId);
+      toast({
+        title: t('success'),
+        description: t('invoice_rejected_successfully')
+      });
     } catch (error) {
       console.error('Error rejecting invoice payment:', error);
+      toast({
+        title: t('error'),
+        description: t('error_rejecting_invoice'),
+        variant: 'destructive'
+      });
     }
   };
   

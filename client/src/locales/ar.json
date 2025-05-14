@@ -103,6 +103,10 @@
     "reject_error": "حدث خطأ أثناء رفض طلب الدفع الآجل",
     "not_found": "لم يتم العثور على الفاتورة"
   },
+  "invoice_approved_successfully": "تمت الموافقة على الفاتورة الآجلة بنجاح",
+  "invoice_rejected_successfully": "تم رفض الفاتورة الآجلة بنجاح",
+  "error_approving_invoice": "حدث خطأ أثناء الموافقة على الفاتورة",
+  "error_rejecting_invoice": "حدث خطأ أثناء رفض الفاتورة",
   "awaiting_approval": "بانتظار الموافقة",
   "dashboard": "لوحة التحكم",
   "sales": "المبيعات",

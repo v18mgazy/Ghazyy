@@ -105,6 +105,10 @@
     "reject_error": "Error rejecting deferred payment request",
     "not_found": "Invoice not found"
   },
+  "invoice_approved_successfully": "Invoice approved successfully",
+  "invoice_rejected_successfully": "Invoice rejected successfully",
+  "error_approving_invoice": "Error approving invoice",
+  "error_rejecting_invoice": "Error rejecting invoice",
   "awaiting_approval": "Awaiting approval",
   "dashboard": "Dashboard",
   "sales": "Sales",
