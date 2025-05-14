@@ -662,33 +662,34 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
               </div>
               
               {/* إضافة حقل اختيار التاريخ */}
-              <div className="mb-3">
-                <Label htmlFor="invoice-date" className="text-sm font-medium mb-1 block">
+              <div className="mb-5">
+                <Label htmlFor="invoice-date" className="text-base font-medium mb-2 block text-gray-700">
                   {t('invoice_date')}
                 </Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal"
+                      className="w-full h-12 justify-start text-left font-medium text-base border-primary/20 hover:bg-primary/5 hover:text-primary hover:border-primary/30 rounded-lg shadow-sm"
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      <CalendarIcon className="mr-2 h-5 w-5 text-primary" />
                       {invoiceDate ? format(invoiceDate, 'PPP') : <span>{t('select_date')}</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 rounded-lg shadow-lg border-primary/20" align="start">
                     <Calendar
                       mode="single"
                       selected={invoiceDate}
                       onSelect={(date) => date && setInvoiceDate(date)}
                       initialFocus
+                      className="rounded-lg"
                     />
                   </PopoverContent>
                 </Popover>
               </div>
 
-              <ScrollArea className="h-[300px]">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-1">
+              <ScrollArea className="h-[350px] pr-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-1">
                   {filteredCustomers.map((customer: any) => (
                     <div
                       key={customer.id}
@@ -716,21 +717,30 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                           setActiveTab('products');
                         }
                       }}
-                      className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+                      className={`p-5 border rounded-xl cursor-pointer transition-all duration-200 ${
                         selectedCustomer?.id === customer.id 
                           ? 'border-2 border-primary bg-gradient-to-r from-primary/10 to-secondary/10 shadow-md' 
-                          : 'border-primary/10 hover:border-primary/30 bg-gradient-to-r from-white to-gray-50 hover:from-primary/5 hover:to-secondary/5 shadow-sm hover:shadow-md'
+                          : 'border-primary/10 hover:border-primary/30 bg-white hover:bg-gradient-to-r hover:from-primary/5 hover:to-secondary/5 shadow-sm hover:shadow-md'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg shadow-md">
+                      <div className="flex items-center gap-4">
+                        <div className="flex-shrink-0 w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-xl shadow-md">
                           {customer.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-foreground truncate text-base">{customer.name}</p>
-                          <p className="text-sm text-muted-foreground">{customer.phone || t('no_phone')}</p>
+                          <p className="font-semibold text-foreground truncate text-lg">{customer.name}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {customer.phone || t('no_phone')}
+                            {customer.address && <span className="mx-1">•</span>}
+                            {customer.address}
+                          </p>
+                          {customer.totalDebt > 0 && (
+                            <p className="text-sm font-medium mt-1 text-red-500">
+                              {t('debt')}: {formatCurrency(customer.totalDebt)}
+                            </p>
+                          )}
                         </div>
-                        <div className="bg-gradient-to-r from-primary/20 to-secondary/20 rounded-full p-1.5 shadow-sm">
+                        <div className="bg-gradient-to-r from-primary/20 to-secondary/20 rounded-full p-2 shadow-sm">
                           <ChevronRight className="h-5 w-5 text-primary" />
                         </div>
                       </div>
@@ -913,25 +923,31 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                               const finalTotal = productTotal - discountAmount;
                               
                               return (
-                                <div key={`${product.id}-${index}`} className="flex items-center p-3 rounded-lg border border-primary/20 shadow-md bg-gradient-to-r from-white to-primary/5 mb-2">
+                                <div key={`${product.id}-${index}`} className="flex items-center p-4 rounded-xl border border-primary/20 shadow-md bg-gradient-to-r from-white to-primary/5 mb-4">
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-medium truncate text-base">{product.name}</p>
-                                    <div className="flex items-center text-sm text-muted-foreground mt-1">
-                                      <span>{formatCurrency(product.sellingPrice)} × </span>
-                                      <div className="inline-flex items-center mx-2">
+                                    <div className="flex items-center">
+                                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center text-primary mr-3">
+                                        <Package className="h-5 w-5" />
+                                      </div>
+                                      <p className="font-semibold truncate text-lg">{product.name}</p>
+                                    </div>
+                                    
+                                    <div className="flex items-center text-sm text-muted-foreground mt-3 ml-1">
+                                      <span className="font-medium text-base text-foreground">{formatCurrency(product.sellingPrice)} × </span>
+                                      <div className="inline-flex items-center mx-3">
                                         <Button
                                           variant="outline"
                                           size="icon"
-                                          className="h-8 w-8 rounded-full bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 shadow-sm"
+                                          className="h-9 w-9 rounded-full bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 shadow-sm"
                                           onClick={() => handleUpdateQuantity(index, Math.max(1, product.quantity - 1))}
                                         >
                                           <Minus className="h-4 w-4" />
                                         </Button>
-                                        <span className="mx-2 min-w-8 text-center font-medium text-base">{product.quantity}</span>
+                                        <span className="mx-3 min-w-10 text-center font-medium text-lg">{product.quantity}</span>
                                         <Button
                                           variant="outline"
                                           size="icon"
-                                          className="h-8 w-8 rounded-full bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800 text-green-500 hover:bg-green-100 dark:hover:bg-green-900/30 shadow-sm"
+                                          className="h-9 w-9 rounded-full bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800 text-green-500 hover:bg-green-100 dark:hover:bg-green-900/30 shadow-sm"
                                           onClick={() => handleUpdateQuantity(index, product.quantity + 1)}
                                         >
                                           <Plus className="h-4 w-4" />
@@ -946,22 +962,22 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                                     </div>
                                   </div>
                                   
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-3 justify-between mt-2">
                                     <div className="flex items-center">
-                                      <Label className="sr-only">{t('discount')}</Label>
-                                      <div className="relative w-16">
+                                      <span className="text-sm text-muted-foreground mr-2 whitespace-nowrap">{t('discount')}:</span>
+                                      <div className="relative w-20">
                                         <Input
                                           type="number"
                                           min="0"
                                           max="100"
                                           value={product.discount || 0}
                                           onChange={(e) => handleUpdateDiscount(index, parseInt(e.target.value) || 0)}
-                                          className="pr-7 py-1 h-8 text-sm"
+                                          className="pr-8 py-1 h-9 text-base border-primary/20 focus:border-primary rounded-lg"
                                         />
                                         <Percent className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                       </div>
                                     </div>
-                                    <div className="text-right font-medium w-20 text-base text-primary">
+                                    <div className="text-right font-semibold w-24 text-lg bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                                       {formatCurrency(finalTotal)}
                                     </div>
                                     <Button
