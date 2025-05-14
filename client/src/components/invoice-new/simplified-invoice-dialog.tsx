@@ -732,65 +732,97 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
 
                   <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3">
                     <div className="md:col-span-4">
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        {/* قائمة المنتجات مع البحث */}
-                        <Popover open={productCommandOpen} onOpenChange={setProductCommandOpen}>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={productCommandOpen}
-                              className="w-full justify-between h-12 text-start font-normal text-base border-primary/30 shadow-sm bg-gradient-to-r from-primary/5 to-secondary/5 hover:bg-gradient-to-r hover:from-primary/10 hover:to-secondary/10"
-                            >
-                              {t('select_products')}
-                              <Search className="ml-2 h-5 w-5 shrink-0 text-primary/70" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[350px] p-0" align="start">
-                            <Command>
-                              <CommandInput 
-                                placeholder={t('search_products')} 
-                                className="h-12 text-base" 
-                              />
-                              <CommandList>
-                                <CommandEmpty>{t('no_products_found')}</CommandEmpty>
-                                <CommandGroup>
-                                  {products.map((product: any) => (
-                                    <CommandItem
-                                      key={product.id}
-                                      onSelect={() => handleAddProduct(product)}
-                                      className="flex justify-between items-center py-3"
-                                    >
-                                      <div>
-                                        <span className="font-medium text-base">{product.name}</span>
-                                        <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-                                          <Badge variant="outline" className="h-6 px-2">
-                                            {product.barcode || t('no_barcode')}
-                                          </Badge>
-                                          <span className="font-medium">{t('in_stock')}: {product.stock}</span>
+                      <div className="space-y-2">
+                        {/* قسم خيارات البحث عن المنتجات وإضافتها */}
+                        <div className="flex items-center justify-between gap-2">
+                          {/* قائمة المنتجات مع البحث */}
+                          <Popover open={productCommandOpen} onOpenChange={setProductCommandOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={productCommandOpen}
+                                className="w-full justify-between h-12 text-start font-normal text-base border-primary/30 shadow-sm bg-gradient-to-r from-primary/5 to-secondary/5 hover:bg-gradient-to-r hover:from-primary/10 hover:to-secondary/10"
+                              >
+                                {t('select_products')}
+                                <Search className="ml-2 h-5 w-5 shrink-0 text-primary/70" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[350px] p-0" align="start">
+                              <Command>
+                                <CommandInput 
+                                  placeholder={t('search_products')} 
+                                  className="h-12 text-base" 
+                                />
+                                <CommandList>
+                                  <CommandEmpty>{t('no_products_found')}</CommandEmpty>
+                                  <CommandGroup>
+                                    {products.map((product: any) => (
+                                      <CommandItem
+                                        key={product.id}
+                                        onSelect={() => handleAddProduct(product)}
+                                        className="flex justify-between items-center py-3"
+                                      >
+                                        <div>
+                                          <span className="font-medium text-base">{product.name}</span>
+                                          <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                                            <Badge variant="outline" className="h-6 px-2">
+                                              {product.barcode || t('no_barcode')}
+                                            </Badge>
+                                            <span className="font-medium">{t('in_stock')}: {product.stock}</span>
+                                          </div>
                                         </div>
-                                      </div>
-                                      <span className="text-primary font-semibold text-base">
-                                        {formatCurrency(product.sellingPrice)}
-                                      </span>
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
+                                        <span className="text-primary font-semibold text-base">
+                                          {formatCurrency(product.sellingPrice)}
+                                        </span>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
 
-                        {/* زر المسح الضوئي للباركود */}
-                        <Button 
-                          size="default" 
-                          variant="outline" 
-                          onClick={() => setShowBarcodeScanner(!showBarcodeScanner)}
-                          className="h-11 whitespace-nowrap bg-gradient-to-r from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200 font-medium"
-                        >
-                          <Scan className="h-5 w-5 mr-2 text-amber-700" />
-                          {t('scan')}
-                        </Button>
+                          {/* زر المسح الضوئي للباركود */}
+                          <Button 
+                            size="default" 
+                            variant="outline" 
+                            onClick={() => setShowBarcodeScanner(!showBarcodeScanner)}
+                            className="h-11 whitespace-nowrap bg-gradient-to-r from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200 font-medium"
+                          >
+                            <Scan className="h-5 w-5 mr-2 text-amber-700" />
+                            {t('scan')}
+                          </Button>
+                        </div>
+                      
+                        {/* قسم إدخال الباركود باستخدام ماسح خارجي */}
+                        <div className="bg-card border rounded-lg p-3 flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <Keyboard className="h-4 w-4 text-primary" />
+                            <h3 className="font-medium text-sm">{t('external_barcode_scanner')}</h3>
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              ref={barcodeInputRef}
+                              type="text"
+                              value={manualBarcode}
+                              onChange={(e) => setManualBarcode(e.target.value)}
+                              onKeyDown={handleBarcodeInputKeyDown}
+                              placeholder={t('barcode_input_placeholder')}
+                              className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                              autoComplete="off"
+                            />
+                            <Button 
+                              onClick={() => handleBarcodeSearch(manualBarcode)}
+                              type="button"
+                              size="sm"
+                              disabled={!manualBarcode.trim()}
+                              className="whitespace-nowrap"
+                            >
+                              {t('search')}
+                            </Button>
+                          </div>
+                        </div>
                       </div>
 
                       {/* عرض ماسح الباركود */}
