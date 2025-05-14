@@ -703,8 +703,8 @@ export default function InvoiceManagementPage() {
       
       {/* شريط الأدوات */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-        <div>
-          {isAdmin && (
+        {isAdmin && (
+          <div>
             <Button 
               variant="outline"
               onClick={() => setStoreInfoDialogOpen(true)}
@@ -712,8 +712,8 @@ export default function InvoiceManagementPage() {
               <Settings className="mr-2 h-4 w-4" />
               {t('store_settings')}
             </Button>
-          )}
-        </div>
+          </div>
+        )}
         
         {/* شريط البحث وزر الترتيب */}
         <div className="flex items-center gap-2">
