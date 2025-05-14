@@ -1,6 +1,7 @@
 {
   "product_ready": "المنتج جاهز للإضافة",
   "please_select_customer_first": "الرجاء اختيار العميل أولاً ثم سيتم إضافة المنتج للفاتورة",
+  "product_added": "تم إضافة المنتج",
   "total_debt_description": "إجمالي الديون يشمل الديون المضافة والفواتير المؤجلة",
   "add_debt": "إضافة دين",
   "reduce_debt": "تخفيض دين",

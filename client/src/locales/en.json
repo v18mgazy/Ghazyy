@@ -1,6 +1,7 @@
 {
   "product_ready": "Product Ready to Add",
   "please_select_customer_first": "Please select a customer first, then the product will be added to the invoice",
+  "product_added": "Product Added",
   "total_debt_description": "Total debt includes added debts and deferred invoices",
   "add_debt": "Add Debt",
   "reduce_debt": "Reduce Debt",

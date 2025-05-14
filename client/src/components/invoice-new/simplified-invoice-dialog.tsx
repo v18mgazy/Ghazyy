@@ -651,7 +651,27 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
                       key={customer.id}
                       onClick={() => {
                         setSelectedCustomer(customer);
-                        setActiveTab('products');
+                        
+                        // إضافة المنتج الممسوح بعد اختيار العميل إذا كان موجودًا
+                        if (preSelectedProduct && (preSelectedProduct.stock || 0) > 0) {
+                          setTimeout(() => {
+                            // تأكد من عدم وجود المنتج بالفعل في قائمة المنتجات
+                            const productExists = invoiceProducts.some(p => p.id === preSelectedProduct.id);
+                            if (!productExists) {
+                              handleAddProduct(preSelectedProduct);
+                              
+                              // إظهار تنبيه للمستخدم
+                              toast({
+                                title: t('product_added'),
+                                description: preSelectedProduct.name,
+                                duration: 2000
+                              });
+                            }
+                            setActiveTab('products');
+                          }, 100);
+                        } else {
+                          setActiveTab('products');
+                        }
                       }}
                       className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
                         selectedCustomer?.id === customer.id 
