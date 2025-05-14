@@ -104,6 +104,8 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
   console.log("Deferred invoices total:", data.deferredInvoicesTotal);
   
   // إنشاء "ديون" وهمية من الفواتير الآجلة لعرضهم في نفس الجدول
+  // ملاحظة: لاحظ أننا نستخدم فقط الفواتير الآجلة التي لم يتم حذفها
+  // وذلك لأن الفواتير المحذوفة تمت تصفيتها بالفعل في الخادم (server)
   const deferredInvoiceDebts = data.deferredInvoices ? data.deferredInvoices.map(invoice => {
     console.log("Processing deferred invoice:", invoice);
     return {
@@ -115,7 +117,8 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
       createdAt: invoice.date,
       invoiceId: invoice.id,
       createdBy: 0, // لا يوجد مستخدم محدد للفواتير الآجلة
-      isDeferred: true // علامة لتحديد أن هذا العنصر هو فاتورة آجلة وليس دين يدوي
+      isDeferred: true, // علامة لتحديد أن هذا العنصر هو فاتورة آجلة وليس دين يدوي
+      isPending: invoice.isPending // حالة الفاتورة (معلقة أو مدفوعة)
     };
   }) : [];
 
@@ -177,8 +180,10 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
                 const transaction = debt.isDeferred
                   ? {
                       icon: <Receipt className="h-3 w-3 mr-1" />,
-                      label: t('deferred_invoice'),
-                      color: 'bg-orange-50 text-orange-700 border-orange-200'
+                      label: `${t('deferred_invoice')}${debt.isPending ? ` (${t('pending')})` : ''}`,
+                      color: debt.isPending 
+                        ? 'bg-orange-50 text-orange-700 border-orange-200'
+                        : 'bg-blue-50 text-blue-700 border-blue-200'
                     }
                   : getTransactionType(debt.amount, debt.invoiceId);
                 

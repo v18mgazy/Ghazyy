@@ -4175,12 +4175,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const debts = await storage.getCustomerDebts(customerId);
       console.log(`Found ${debts.length} manual debt records for customer`);
 
-      // 2. الحصول على الفواتير الآجلة للعميل
+      // 2. الحصول على الفواتير الآجلة الموافق عليها فقط للعميل
       const allInvoices = await storage.getAllInvoices();
       const deferredInvoices = allInvoices.filter(invoice => 
         !invoice.isDeleted && 
         invoice.customerId === customerId && 
-        invoice.paymentStatus === 'deferred'
+        invoice.paymentStatus === 'deferred' &&
+        invoice.approved === true // إضافة شرط للتحقق من أن الفاتورة موافق عليها
       );
       
       console.log(`Found ${deferredInvoices.length} deferred invoices for customer`);
