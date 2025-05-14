@@ -914,12 +914,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // حساب إجمالي الديون للعميل بناءً على جميع العمليات المسجلة
+  async function calculateCustomerTotalDebt(customerId: number): Promise<number> {
+    try {
+      // استدعاء دالة الحصول على سجلات المديونية للعميل
+      const debts = await storage.getCustomerDebts(customerId);
+      
+      // حساب مجموع المديونيات المضافة والمخفضة
+      let totalDebt = 0;
+      
+      for (const debt of debts) {
+        // إضافة أو طرح قيمة الدين بناءً على نوع العملية
+        if (debt.reason?.includes('debt_added') || debt.amount > 0) {
+          totalDebt += debt.amount;
+        } else if (debt.reason?.includes('debt_reduced') || debt.amount < 0) {
+          totalDebt += debt.amount; // سيكون بالفعل قيمة سالبة
+        }
+      }
+      
+      // الحصول على الفواتير المؤجلة للعميل
+      const invoices = await storage.getAllInvoices();
+      const deferredInvoices = invoices.filter(inv => 
+        inv.customerId === customerId && 
+        inv.paymentStatus === 'deferred'
+      );
+      
+      // إضافة قيم الفواتير المؤجلة إلى إجمالي الديون
+      for (const invoice of deferredInvoices) {
+        totalDebt += invoice.total;
+      }
+      
+      return totalDebt;
+    } catch (error) {
+      console.error('Error calculating customer total debt:', error);
+      return 0;
+    }
+  }
+
   // الحصول على سجل المديونية لعميل محدد
   app.get('/api/customer-debts/:customerId', async (req, res) => {
     try {
       const { customerId } = req.params;
       const debts = await storage.getCustomerDebts(parseInt(customerId));
-      res.json(debts);
+      
+      // حساب إجمالي الديون
+      const totalDebt = await calculateCustomerTotalDebt(parseInt(customerId));
+      
+      // إرسال البيانات إلى العميل
+      res.json({
+        debts,
+        totalDebt
+      });
     } catch (err) {
       console.error('Error fetching customer debts:', err);
       res.status(500).json({ message: 'Failed to fetch customer debts' });

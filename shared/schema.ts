@@ -496,6 +496,4 @@ export const insertSupplierPaymentSchema = createInsertSchema(supplierPayments)
 export type SupplierPayment = typeof supplierPayments.$inferSelect;
 export type InsertSupplierPayment = z.infer<typeof insertSupplierPaymentSchema>;
 
-// أنواع المديونية
-export type CustomerDebt = typeof customerDebts.$inferSelect;
-export type InsertCustomerDebt = z.infer<typeof insertCustomerDebtSchema>;
+
