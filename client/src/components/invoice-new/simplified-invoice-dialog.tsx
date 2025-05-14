@@ -440,17 +440,34 @@ export default function SimplifiedInvoiceDialog({
               >
                 <CardContent className="p-3">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <div className="font-medium">{customer.name}</div>
-                      {customer.phone && (
-                        <div className="text-sm text-muted-foreground">
-                          {customer.phone}
-                        </div>
-                      )}
+                    <div className="flex-1">
+                      <div className="font-medium flex items-center gap-2">
+                        {customer.name}
+                        {selectedCustomer?.id === customer.id && (
+                          <Check className="h-4 w-4 text-primary" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        {customer.phone && (
+                          <div className="text-sm text-muted-foreground flex items-center">
+                            <Smartphone className="h-3 w-3 mr-1 text-muted-foreground" />
+                            {customer.phone}
+                          </div>
+                        )}
+                        {customer.totalDebt > 0 && (
+                          <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-xs">
+                            {t('debt')}: {formatCurrency(customer.totalDebt)}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    {selectedCustomer?.id === customer.id && (
-                      <Check className="h-5 w-5 text-primary" />
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`h-7 ${selectedCustomer?.id === customer.id ? 'bg-primary text-white hover:bg-primary/90 hover:text-white' : 'border border-primary/30 text-primary hover:bg-primary/10'}`}
+                    >
+                      {t('select')}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -771,10 +788,10 @@ export default function SimplifiedInvoiceDialog({
       </Dialog>
       
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-full sm:max-w-3xl max-h-[90vh] p-0 overflow-hidden bg-gradient-to-b from-gray-50 to-white dark:from-gray-900/20 dark:to-gray-900/5">
-        <DialogHeader className="p-6 pb-4 bg-gradient-to-r from-primary/20 to-pink-600/20 dark:from-primary/30 dark:to-pink-600/20 border-b border-primary/10">
+        <DialogContent className="max-w-full sm:max-w-4xl max-h-[90vh] p-0 overflow-hidden bg-gradient-to-b from-slate-50 to-white dark:from-gray-900/20 dark:to-gray-900/5">
+        <DialogHeader className="p-6 pb-4 bg-gradient-to-r from-primary/20 to-blue-600/20 dark:from-primary/30 dark:to-blue-600/20 border-b border-primary/10">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-primary to-pink-600 text-transparent bg-clip-text">
+            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 text-transparent bg-clip-text">
               {currentStep === 'customer'
                 ? t('create_new_invoice')
                 : t('invoice_for_customer')}
@@ -783,7 +800,7 @@ export default function SimplifiedInvoiceDialog({
               variant="ghost" 
               size="icon" 
               onClick={handleCloseDialog}
-              className="h-8 w-8"
+              className="h-8 w-8 rounded-full hover:bg-red-100 hover:text-red-600 transition-colors"
             >
               <X className="h-5 w-5" />
             </Button>
