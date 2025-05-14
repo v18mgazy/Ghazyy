@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { 
@@ -82,6 +82,12 @@ export default function CustomerList({
   
   const perPage = 10;
   
+  // استخدام استعلام React Query للحصول على جميع الفواتير لحساب إجمالي المشتريات
+  const { data: allInvoices = [] } = useQuery<any[]>({
+    queryKey: ['/api/invoices'],
+    staleTime: 30 * 1000, // تحديث كل 30 ثانية
+  });
+  
   // استخدام استعلام React Query للحصول على تاريخ مشتريات العميل من قاعدة البيانات
   const [purchaseHistory, setPurchaseHistory] = useState<Array<{
     id: string;
@@ -89,11 +95,38 @@ export default function CustomerList({
     invoiceNumber: string;
     total: number;
   }>>([]);
+  
+  // دالة لحساب إجمالي مشتريات العميل من الفواتير
+  const calculateTotalPurchases = useCallback((customerId: string) => {
+    const customerInvoices = allInvoices.filter(invoice => 
+      // تطابق حسب معرف العميل أو اسم العميل مع عدم تضمين الفواتير المحذوفة
+      (invoice.customerId?.toString() === customerId ||
+       invoice.customerName === props.customers.find(c => c.id.toString() === customerId)?.name) &&
+      !invoice.isDeleted
+    );
+    
+    return customerInvoices.reduce((total, invoice) => {
+      const invoiceTotal = typeof invoice.total === 'number' 
+        ? invoice.total 
+        : (typeof invoice.total === 'string' ? parseFloat(invoice.total) : 0);
+      return total + invoiceTotal;
+    }, 0);
+  }, [allInvoices, props.customers]);
 
-  const filteredCustomers = customers.filter(customer => 
+  // تحويل البيانات من شكل الاستجابة إلى الشكل الذي يستخدمه المكون مع حساب إجمالي المشتريات
+  const processedCustomers = useMemo(() => {
+    return props.customers.map(customer => ({
+      ...customer,
+      id: customer.id.toString(),
+      // حساب إجمالي المشتريات لكل عميل
+      totalPurchases: calculateTotalPurchases(customer.id.toString()),
+    }));
+  }, [props.customers, calculateTotalPurchases]);
+
+  const filteredCustomers = processedCustomers.filter(customer => 
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm) ||
-    customer.address.toLowerCase().includes(searchTerm)
+    (customer.phone && customer.phone.includes(searchTerm)) ||
+    (customer.address && customer.address.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const totalPages = Math.ceil(filteredCustomers.length / perPage);
