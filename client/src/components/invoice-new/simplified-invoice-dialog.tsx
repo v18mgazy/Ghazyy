@@ -609,7 +609,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-full sm:max-w-4xl max-h-[95vh] p-0 overflow-hidden bg-gradient-to-b from-gray-50 to-white dark:from-gray-900/20 dark:to-gray-900/5">
+      <DialogContent className="max-w-full sm:max-w-3xl max-h-[90vh] p-0 overflow-hidden bg-gradient-to-b from-gray-50 to-white dark:from-gray-900/20 dark:to-gray-900/5">
         <DialogHeader className="p-6 pb-4 bg-gradient-to-r from-primary/20 to-pink-600/20 dark:from-primary/30 dark:to-pink-600/20 border-b border-primary/10">
           <DialogTitle className="flex items-center text-2xl font-bold bg-gradient-to-r from-primary to-pink-500 bg-clip-text text-transparent">
             <ReceiptText className="h-7 w-7 text-primary mr-3" />
