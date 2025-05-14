@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useLocale } from '@/hooks/use-locale';
@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   ReceiptText, Search, User, X, ShoppingCart, Check, Scan, ChevronRight,
   Printer, Plus, Minus, DollarSign, Percent, Package2, Calculator, Trash2,
-  RefreshCcw, RotateCcw, ArrowLeft, CheckCircle, QrCode
+  RefreshCcw, RotateCcw, ArrowLeft, CheckCircle, QrCode, Keyboard
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -69,6 +69,7 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
   const [productSearchTerm, setProductSearchTerm] = useState('');
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [productCommandOpen, setProductCommandOpen] = useState(false);
+  const [manualBarcode, setManualBarcode] = useState('');
 
   // حالة معاينة الفاتورة
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
