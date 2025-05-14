@@ -75,7 +75,11 @@ export default function CustomersPage() {
   };
   
   // استدعاء بيانات العملاء من الخادم
-  const { data: customersResponse = [], isLoading: isLoadingCustomers } = useQuery<CustomerResponse[]>({
+  const { 
+    data: customersResponse = [], 
+    isLoading: isLoadingCustomers,
+    refetch    // استخراج دالة refetch للتحديث اليدوي
+  } = useQuery<CustomerResponse[]>({
     queryKey: ['/api/customers'],
     refetchInterval: 30 * 1000,     // تحديث البيانات كل 30 ثانية
     refetchOnWindowFocus: true,     // تحديث البيانات عند العودة للصفحة
