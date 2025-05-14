@@ -78,7 +78,7 @@ export function AddDebtDialog({
             <Input
               id="amount"
               type="number"
-              min="0"
+              min="0.01"
               step="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : "")}

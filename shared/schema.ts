@@ -301,6 +301,9 @@ export type InsertEmployeeDeduction = z.infer<typeof insertEmployeeDeductionSche
 export type ReportData = typeof reportData.$inferSelect;
 export type InsertReportData = z.infer<typeof insertReportDataSchema>;
 
+export type CustomerDebt = typeof customerDebts.$inferSelect;
+export type InsertCustomerDebt = z.infer<typeof insertCustomerDebtSchema>;
+
 // Notifications
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
