@@ -4177,10 +4177,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 2. الحصول على جميع الفواتير الآجلة للعميل (سواء المنتظرة أو الموافق عليها)
       const allInvoices = await storage.getAllInvoices();
+      
+      // الفواتير الآجلة (معلقة + موافق عليها) - لعرضها في سجل الديون
       const deferredInvoices = allInvoices.filter(invoice => 
         !invoice.isDeleted && 
         invoice.customerId === customerId && 
         (invoice.paymentStatus === 'deferred' || invoice.paymentStatus === 'approved' || invoice.paymentMethod === 'deferred')
+      );
+      
+      // الفواتير الآجلة الموافق عليها فقط - للاحتساب في إجمالي الديون
+      const approvedDeferredInvoices = deferredInvoices.filter(invoice => 
+        invoice.paymentStatus === 'approved'
       );
       
       console.log(`Found ${deferredInvoices.length} deferred invoices for customer`);
@@ -4246,11 +4253,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 1. الديون المسجلة يدويًا من سجل العميل
         const manualDebtTotal = customer.totalDebt || 0;
         
-        // 2. البحث عن الفواتير الآجلة للعميل (سواء المنتظرة أو الموافق عليها)
+        // 2. البحث عن الفواتير الآجلة الموافق عليها فقط للعميل
         const deferredInvoices = allInvoices.filter(invoice => 
           !invoice.isDeleted && 
           invoice.customerId === customer.id && 
-          (invoice.paymentStatus === 'deferred' || invoice.paymentStatus === 'approved' || invoice.paymentMethod === 'deferred')
+          (invoice.paymentStatus === 'approved')
         );
         
         // حساب إجمالي الفواتير الآجلة
