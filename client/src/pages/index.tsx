@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocale } from '@/hooks/use-locale';
 import { Button } from '@/components/ui/button';
-import { ReceiptText, Plus, ArrowRight, Loader2, ShoppingCart, Scan } from 'lucide-react';
+import { ReceiptText, Plus, ArrowRight, Loader2, ShoppingCart, Scan, Keyboard } from 'lucide-react';
 import SmallBarcodeScannerModal from '@/components/small-barcode-scanner-modal';
 // استيراد مكون إنشاء الفاتورة المبسط
 import SimplifiedInvoiceDialog from '@/components/invoice-new/simplified-invoice-dialog';
