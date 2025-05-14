@@ -4192,9 +4192,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Found ${deferredInvoices.length} deferred invoices for customer`);
       
-      // 3. حساب قيمة الفواتير الآجلة
-      const deferredInvoicesTotal = deferredInvoices.reduce((total, invoice) => total + invoice.total, 0);
-      console.log(`Total deferred invoices amount: ${deferredInvoicesTotal}`);
+      // 3. حساب قيمة الفواتير الآجلة الموافق عليها فقط
+      const deferredInvoicesTotal = approvedDeferredInvoices.reduce((total, invoice) => total + invoice.total, 0);
+      console.log(`Total approved deferred invoices amount: ${deferredInvoicesTotal}`);
       
       // 4. إضافة الديون المسجلة يدويًا (في totalDebt) + قيمة الفواتير الآجلة
       const totalManualDebt = customer.totalDebt || 0;
@@ -4210,7 +4210,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           invoiceNumber: invoice.invoiceNumber,
           date: typeof invoice.date === 'object' ? invoice.date.toISOString() : invoice.date.toString(),
           amount: invoice.total,
-          isPending: invoice.paymentStatus === 'deferred'
+          paymentStatus: invoice.paymentStatus || (invoice.paymentMethod === 'deferred' ? 'deferred' : 'approved'),
+          isDeferred: true // تستخدم لتحديد أن هذا البند هو فاتورة آجلة وليست دين يدوي
         };
         console.log(`Processed deferred invoice: #${invoiceInfo.invoiceNumber}, amount: ${invoiceInfo.amount}`);
         return invoiceInfo;

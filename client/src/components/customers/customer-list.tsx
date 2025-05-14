@@ -110,7 +110,9 @@ export default function CustomerList({
       // تطابق حسب معرف العميل أو اسم العميل مع عدم تضمين الفواتير المحذوفة
       (invoice.customerId?.toString() === customerId ||
        invoice.customerName === customers.find(c => c.id.toString() === customerId)?.name) &&
-      !invoice.isDeleted
+      !invoice.isDeleted &&
+      // استبعاد الفواتير الآجلة غير الموافق عليها
+      (invoice.paymentMethod !== 'deferred' || invoice.paymentStatus === 'approved')
     );
     
     return customerInvoices.reduce((total, invoice) => {
@@ -149,13 +151,13 @@ export default function CustomerList({
     }
     
     // طريقة احتياطية في حال عدم توفر البيانات من API الديون
-    // 1. حساب الديون من الفواتير الآجلة
+    // 1. حساب الديون من الفواتير الآجلة الموافق عليها فقط
     const deferredInvoices = allInvoices.filter(invoice => 
       // تطابق حسب معرف العميل أو اسم العميل
       (invoice.customerId?.toString() === customerId ||
        invoice.customerName === customers.find(c => c.id.toString() === customerId)?.name) &&
-      // فقط الفواتير الآجلة (بالتقسيط) وغير المحذوفة
-      invoice.paymentMethod === 'deferred' && !invoice.isDeleted
+      // فقط الفواتير الآجلة الموافق عليها وغير المحذوفة
+      invoice.paymentMethod === 'deferred' && invoice.paymentStatus === 'approved' && !invoice.isDeleted
     );
     
     const deferredDebt = deferredInvoices.reduce((total, invoice) => {
@@ -332,17 +334,22 @@ export default function CustomerList({
         return;
       }
       
-      // تحويل البيانات إلى النموذج المطلوب
-      const formattedHistory = invoices.map((invoice: any) => {
-        console.log('Processing invoice for display:', invoice);
-        return {
-          id: invoice.id.toString(),
-          date: new Date(invoice.date || invoice.createdAt || Date.now()).toLocaleDateString(),
-          invoiceNumber: invoice.invoiceNumber || `INV-${invoice.id.toString().padStart(5, '0')}`,
-          total: typeof invoice.total === 'number' ? invoice.total : 
-                (typeof invoice.total === 'string' ? parseFloat(invoice.total) : 0)
-        };
-      });
+      // تحويل البيانات إلى النموذج المطلوب - استبعاد الفواتير الآجلة غير الموافق عليها
+      const formattedHistory = invoices
+        // فلترة الفواتير لإزالة الفواتير الآجلة غير الموافق عليها
+        .filter((invoice: any) => 
+          invoice.paymentMethod !== 'deferred' || invoice.paymentStatus === 'approved'
+        )
+        .map((invoice: any) => {
+          console.log('Processing invoice for display:', invoice);
+          return {
+            id: invoice.id.toString(),
+            date: new Date(invoice.date || invoice.createdAt || Date.now()).toLocaleDateString(),
+            invoiceNumber: invoice.invoiceNumber || `INV-${invoice.id.toString().padStart(5, '0')}`,
+            total: typeof invoice.total === 'number' ? invoice.total : 
+                  (typeof invoice.total === 'string' ? parseFloat(invoice.total) : 0)
+          };
+        });
       
       console.log('Formatted history for display:', formattedHistory);
       
