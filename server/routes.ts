@@ -878,7 +878,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // مسارات إدارة ديون العملاء
   
   // إضافة مديونية جديدة للعميل
-  app.post('/api/customer-debts', async (req, res) => {
+  app.post('/api/customer-debts/add', async (req, res) => {
     try {
       // طباعة البيانات المستلمة للتصحيح
       console.log('Received debt data:', req.body);
@@ -911,6 +911,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err) {
       console.error('Error adding customer debt:', err);
       res.status(500).json({ message: 'Failed to add customer debt' });
+    }
+  });
+  
+  // تخفيض مديونية العميل (تسجيل دفعة)
+  app.post('/api/customer-debts/reduce', async (req, res) => {
+    try {
+      // طباعة البيانات المستلمة للتصحيح
+      console.log('Received debt reduction data:', req.body);
+      
+      // التحقق من صحة البيانات بطريقة يدوية
+      const { customerId, amount, reason, createdBy } = req.body;
+      
+      if (!customerId || amount === undefined || !reason || !createdBy) {
+        return res.status(400).json({
+          message: 'Validation error',
+          errors: 'Missing required fields (customerId, amount, reason, createdBy)'
+        });
+      }
+      
+      // تأكد من أن المبلغ موجب للطرح بشكل صحيح
+      let amountValue = Math.abs(Number(amount));
+      
+      // إعداد بيانات تخفيض المديونية بشكل صحيح (المبلغ سالب للتخفيض)
+      const debtData = {
+        customerId: Number(customerId),
+        amount: -amountValue, // سالب للإشارة إلى أنه تخفيض للدين
+        reason: `debt_reduced: ${reason}`,
+        date: new Date(),
+        createdBy: Number(createdBy)
+      };
+      
+      // إنشاء سجل تخفيض المديونية الجديد
+      const debt = await storage.createCustomerDebt(debtData);
+      
+      res.status(201).json(debt);
+    } catch (err) {
+      console.error('Error reducing customer debt:', err);
+      res.status(500).json({ message: 'Failed to reduce customer debt' });
     }
   });
   
