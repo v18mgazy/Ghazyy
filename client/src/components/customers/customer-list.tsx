@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { 
   Search, FileSpreadsheet, Edit, History, Loader2,
-  MessageSquareShare, Filter
+  MessageSquareShare, Filter, Info
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,12 @@ import {
   DialogDescription
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { createWhatsAppLink, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -526,14 +532,16 @@ export default function CustomerList({
                         <TableCell className={customer.totalDebt > 0 ? "font-medium text-red-700" : "font-medium"}>
                           {formatCurrency(customer.totalDebt || 0)}
                           {customer.totalDebt > 0 && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <InfoCircle className="inline-block h-4 w-4 ml-1 text-muted-foreground" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{t('total_debt_description')}</p>
-                              </TooltipContent>
-                            </Tooltip>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="inline-block h-4 w-4 ml-1 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{t('total_debt_description')}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
                         </TableCell>
                         <TableCell className="font-medium">{formatCurrency(customer.totalPurchases || 0)}</TableCell>
