@@ -73,7 +73,7 @@ export default function BarcodeScannerModal({
               </Button>
             </div>
           </DialogHeader>
-          
+
           <div className="px-4 pb-4">
             <BarcodeScanner 
               onProductScanned={handleProductScanned} 
@@ -91,12 +91,12 @@ export default function BarcodeScannerModal({
           <DialogHeader>
             <DialogTitle className="gradient-heading">{t('scanned_product')}</DialogTitle>
           </DialogHeader>
-          
+
           {scannedProduct && (
             <div className="space-y-4">
               <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
                 <h3 className="text-xl font-bold mb-3">{scannedProduct.name}</h3>
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center">
                     <DollarSign className="h-4 w-4 text-muted-foreground mr-2" />
@@ -105,7 +105,7 @@ export default function BarcodeScannerModal({
                       <p className="font-semibold text-primary">{formatCurrency(scannedProduct.sellingPrice)}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center">
                     <ShoppingCart className="h-4 w-4 text-muted-foreground mr-2" />
                     <div>
@@ -117,7 +117,7 @@ export default function BarcodeScannerModal({
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={handleClose}>
               {t('close')}

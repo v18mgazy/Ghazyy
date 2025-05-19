@@ -75,6 +75,7 @@ interface InvoiceProduct {
   barcode?: string;
   quantity: number;
   price: number;
+  sellingPrice?: number; // إضافة حقل sellingPrice للتوافق مع البيانات القادمة
   purchasePrice?: number;
   discount?: number;
   total: number;
@@ -98,21 +99,21 @@ export default function InvoiceManagementPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin } = useAuthContext();
-  
+
   // حالة تفاصيل الفاتورة
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  
+
   // حالة حذف الفاتورة
   const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  
+
   // حالة تحرير معلومات المتجر
   const [storeInfoDialogOpen, setStoreInfoDialogOpen] = useState(false);
   const [storeName, setStoreName] = useState('');
   const [storeAddress, setStoreAddress] = useState('');
   const [storePhone, setStorePhone] = useState('');
-  
+
   // حالة تعديل الفاتورة
   const [invoiceToEdit, setInvoiceToEdit] = useState<Invoice | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -121,13 +122,13 @@ export default function InvoiceManagementPage() {
   const [editedDiscount, setEditedDiscount] = useState<number>(0);
   const [editedPaymentMethod, setEditedPaymentMethod] = useState<string>('cash');
   const [editedNotes, setEditedNotes] = useState<string>('');
-  
+
   // حالة البحث
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // حالة الترتيب
   const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc');
-  
+
   // استعلام لجلب الفواتير
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['/api/invoices'],
@@ -139,7 +140,7 @@ export default function InvoiceManagementPage() {
   const { data: storeInfo } = useQuery({
     queryKey: ['/api/store-info'],
   });
-  
+
   // تعيين بيانات المتجر عند استلامها
   useEffect(() => {
     if (storeInfo) {
@@ -148,7 +149,7 @@ export default function InvoiceManagementPage() {
       setStorePhone((storeInfo as any).phone || '');
     }
   }, [storeInfo]);
-  
+
   // mutation لتحديث معلومات المتجر
   const storeInfoMutation = useMutation({
     mutationFn: async (storeData: { name: string; address: string; phone: string }) => {
@@ -172,7 +173,7 @@ export default function InvoiceManagementPage() {
       });
     },
   });
-  
+
   // mutation لتحديث الفاتورة
   const updateInvoiceMutation = useMutation({
     mutationFn: async (updateData: {
@@ -185,32 +186,33 @@ export default function InvoiceManagementPage() {
     }) => {
       console.log('Updating invoice with data:', updateData);
       const { invoiceId, ...data } = updateData;
-      
-      // حساب إجماليات الفاتورة
-      const subtotal = data.products.reduce((sum, product) => sum + (product.price * product.quantity), 0);
+
+      // حساب إجماليات الفاتورة - تصحيح للتأكد من وجود قيم
+      const subtotal = data.products.reduce((sum, product) => sum + ((product.price || 0) * (product.quantity || 0)), 0);
       const itemsDiscount = data.products.reduce((sum, product) => sum + (product.discount || 0), 0);
-      const invoiceDiscount = data.discount;
+      const invoiceDiscount = data.discount || 0;
       const total = subtotal - itemsDiscount - invoiceDiscount;
-      
+
       // تحويل منتجات الفاتورة إلى JSON
       const productsData = JSON.stringify(data.products);
-      
+
       // تحويل بيانات المنتجات إلى تنسيق الحقول المنفصلة
       const productIds = data.products.map(p => p.productId).join(',');
       const productNames = data.products.map(p => p.productName).join(',');
       const productQuantities = data.products.map(p => p.quantity).join(',');
-      const productPrices = data.products.map(p => p.price).join(',');
+      const productPrices = data.products.map(p => p.price || 0).join(',');
       const productPurchasePrices = data.products.map(p => p.purchasePrice || 0).join(',');
       const productDiscounts = data.products.map(p => p.discount || 0).join(',');
-      const productTotals = data.products.map(p => p.total).join(',');
+      const productTotals = data.products.map(p => p.total || 0).join(',');
       const productProfits = data.products.map(p => {
         const purchasePrice = p.purchasePrice || 0;
-        const sellingPrice = p.price;
+        const sellingPrice = p.price || 0;
         const discount = p.discount || 0;
+        const quantity = p.quantity || 0;
         // حساب الربح = سعر البيع - سعر الشراء - الخصم
-        return (sellingPrice * p.quantity) - (purchasePrice * p.quantity) - discount;
+        return (sellingPrice * quantity) - (purchasePrice * quantity) - discount;
       }).join(',');
-      
+
       // إعداد بيانات التحديث
       const invoiceData = {
         customerId: data.customerId,
@@ -232,9 +234,9 @@ export default function InvoiceManagementPage() {
         productTotals,
         productProfits
       };
-      
+
       console.log('Sending invoice data to server:', invoiceData);
-      
+
       try {
         const res = await apiRequest('PUT', `/api/invoices/${invoiceId}`, invoiceData);
         const responseData = await res.json();
@@ -251,7 +253,7 @@ export default function InvoiceManagementPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
       setEditDialogOpen(false);
       setInvoiceToEdit(null);
-      
+
       toast({
         title: t('success'),
         description: t('invoice_updated_successfully'),
@@ -266,17 +268,17 @@ export default function InvoiceManagementPage() {
       });
     }
   });
-  
+
   // استعلام لجلب العملاء (للحصول على معلومات الاتصال)
   const { data: customers } = useQuery({
     queryKey: ['/api/customers'],
   });
-  
+
   // استعلام لجلب المنتجات (للتعديل)
   const { data: products } = useQuery({
     queryKey: ['/api/products'],
   });
-  
+
   // mutation للموافقة على الفاتورة الآجلة
   const approveInvoiceMutation = useMutation({
     mutationFn: async (invoiceId: number) => {
@@ -330,13 +332,13 @@ export default function InvoiceManagementPage() {
       // تحديث قائمة الفواتير بعد الحذف
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
       queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
-      
+
       // عرض رسالة نجاح
       toast({
         title: t('success'),
         description: t('invoice_deleted_successfully'),
       });
-      
+
       // إغلاق مربع الحوار
       setDeleteDialogOpen(false);
       setInvoiceToDelete(null);
@@ -350,7 +352,7 @@ export default function InvoiceManagementPage() {
       });
     },
   });
-  
+
   // تحميل تفاصيل الفاتورة عند اختيارها
   const loadInvoiceDetails = async (invoice: Invoice) => {
     try {
@@ -365,7 +367,7 @@ export default function InvoiceManagementPage() {
       });
     }
   };
-  
+
   // الموافقة على الفاتورة الآجلة
   const approveInvoicePayment = async (invoiceId: number) => {
     try {
@@ -383,7 +385,7 @@ export default function InvoiceManagementPage() {
       });
     }
   };
-  
+
   // رفض الفاتورة الآجلة
   const rejectInvoicePayment = async (invoiceId: number) => {
     try {
@@ -401,17 +403,19 @@ export default function InvoiceManagementPage() {
       });
     }
   };
-  
+
   // تحويل بيانات المنتجات من نص JSON إلى مصفوفة
   const parseProducts = (invoice: Invoice): InvoiceProduct[] => {
     try {
+      let products = [];
+
       // المحاولة الأولى: تحليل productsData كنص JSON
       if (typeof invoice.productsData === 'string') {
-        return JSON.parse(invoice.productsData);
+        products = JSON.parse(invoice.productsData);
       } 
       // المحاولة الثانية: استخدام productsData كمصفوفة مباشرة
       else if (Array.isArray(invoice.productsData)) {
-        return invoice.productsData;
+        products = invoice.productsData;
       }
       // المحاولة الثالثة: إعادة بناء المصفوفة من الحقول المنفصلة
       else if (invoice.productIds && invoice.productNames && invoice.productQuantities) {
@@ -422,9 +426,9 @@ export default function InvoiceManagementPage() {
         const productPurchasePrices = String(invoice.productPurchasePrices || '').split(',').map(Number);
         const productDiscounts = String(invoice.productDiscounts || '').split(',').map(Number);
         const productTotals = String(invoice.productTotals || '').split(',').map(Number);
-        
+
         // إنشاء مصفوفة من المنتجات باستخدام الحقول المنفصلة
-        return productIds.map((id, index) => ({
+        products = productIds.map((id, index) => ({
           productId: Number(id),
           productName: productNames[index] || '',
           quantity: productQuantities[index] || 0,
@@ -434,22 +438,39 @@ export default function InvoiceManagementPage() {
           total: productTotals[index] || 0
         }));
       }
-      // الحالة الافتراضية: مصفوفة فارغة
-      return [];
+
+      // معالجة البيانات للتأكد من وجود حقل price
+      return products.map(product => {
+        // إذا كان هناك sellingPrice ولكن لا يوجد price، استخدم sellingPrice كـ price
+        if (product.sellingPrice !== undefined && product.price === undefined) {
+          return {
+            ...product,
+            price: product.sellingPrice
+          };
+        }
+        // تأكد من أن price له قيمة افتراضية على الأقل
+        if (product.price === undefined || product.price === null) {
+          return {
+            ...product,
+            price: 0
+          };
+        }
+        return product;
+      });
     } catch (error) {
       console.error('Error parsing products data:', error);
       return [];
     }
   };
-  
+
   // تنسيق التاريخ حسب اللغة
   const formatDate = (dateStr: string | Date | null | undefined) => {
     if (!dateStr) return '';
-    
+
     try {
       const date = new Date(dateStr);
       if (isNaN(date.getTime())) return String(dateStr);
-      
+
       return format(date, 'PPpp', {
         locale: language === 'ar' ? ar : enUS,
       });
@@ -457,7 +478,7 @@ export default function InvoiceManagementPage() {
       return String(dateStr);
     }
   };
-  
+
   // العثور على معلومات العميل من رقم التعريف
   const getCustomerName = (customerId: number | null): string => {
     if (!customers || !customerId) return '';
@@ -466,7 +487,7 @@ export default function InvoiceManagementPage() {
     const customer = customersArray.find((c: Customer) => c.id === customerId);
     return customer ? customer.name : '';
   };
-  
+
   // الحصول على رقم هاتف العميل
   const getCustomerPhone = (customerId: number | null): string => {
     if (!customers || !customerId) return '';
@@ -475,41 +496,48 @@ export default function InvoiceManagementPage() {
     const customer = customersArray.find((c: Customer) => c.id === customerId);
     return customer?.phone || '';
   };
-  
+
   // ترتيب الفواتير حسب التاريخ
   const sortInvoices = (invoiceList: Invoice[]) => {
     if (!Array.isArray(invoiceList)) return [];
-    
+
     return [...invoiceList].sort((a, b) => {
       const dateA = new Date(a.createdAt || a.date || 0).getTime();
       const dateB = new Date(b.createdAt || b.date || 0).getTime();
-      
+
       return sortDirection === 'desc' ? dateB - dateA : dateA - dateB;
     });
   };
-  
+
   // فلترة الفواتير بناءً على البحث ثم ترتيبها
   const filteredInvoices = invoices
     ? sortInvoices(
         (Array.isArray(invoices) ? invoices : []).filter((invoice: Invoice) => {
-          const customerName = getCustomerName(invoice.customerId);
+          if (!searchTerm) return true;
+
           const searchLower = searchTerm.toLowerCase();
+          const invoiceNumber = String(invoice.invoiceNumber || '').toLowerCase();
+          const customerName = getCustomerName(invoice.customerId).toLowerCase();
+          const total = String(invoice.total || '').toLowerCase();
+          const date = formatDate(invoice.createdAt || invoice.date).toLowerCase();
+
           return (
-            invoice.invoiceNumber?.toLowerCase().includes(searchLower) ||
-            customerName.toLowerCase().includes(searchLower) ||
-            String(invoice.total).includes(searchTerm)
+            invoiceNumber.includes(searchLower) ||
+            customerName.includes(searchLower) ||
+            total.includes(searchLower) ||
+            date.includes(searchLower)
           );
         })
       )
     : [];
-  
+
   // طباعة الفاتورة كملف PDF
   const printInvoice = () => {
     if (!selectedInvoice) return;
-    
+
     const invoiceElement = document.getElementById('invoice-preview');
     if (!invoiceElement) return;
-    
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       toast({
@@ -519,7 +547,7 @@ export default function InvoiceManagementPage() {
       });
       return;
     }
-    
+
     // نسخ أنماط CSS إلى النافذة الجديدة
     const styles = Array.from(document.styleSheets)
       .map(styleSheet => {
@@ -532,7 +560,7 @@ export default function InvoiceManagementPage() {
         }
       })
       .join('\\n');
-    
+
     // إعداد محتوى النافذة الجديدة
     printWindow.document.write(`
       <html>
@@ -553,18 +581,18 @@ export default function InvoiceManagementPage() {
         </body>
       </html>
     `);
-    
+
     printWindow.document.close();
   };
-  
+
   // مشاركة الفاتورة كملف PDF
   const shareInvoicePDF = async () => {
     if (!selectedInvoice) return;
-    
+
     try {
       const invoiceElement = document.getElementById('invoice-preview');
       if (!invoiceElement) return;
-      
+
       // الحصول على هاتف العميل
       const customerId = selectedInvoice.customerId || 0;
       const customerPhone = getCustomerPhone(customerId);
@@ -576,7 +604,7 @@ export default function InvoiceManagementPage() {
         });
         return;
       }
-      
+
       // قم بإنشاء لقطة للعنصر
       const canvas = await html2canvas(invoiceElement, {
         scale: 2,
@@ -584,7 +612,7 @@ export default function InvoiceManagementPage() {
         useCORS: true,
         allowTaint: true,
       });
-      
+
       // تحويل اللقطة إلى PDF
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
@@ -592,31 +620,31 @@ export default function InvoiceManagementPage() {
         unit: 'mm',
         format: 'a4',
       });
-      
+
       // حساب الأبعاد للحفاظ على النسبة الصحيحة
       const imgWidth = 210; // عرض A4 بالملم
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
+
       // إضافة الصورة إلى ملف PDF
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      
+
       // حفظ الملف كبلوب
       const pdfBlob = pdf.output('blob');
-      
+
       // إنشاء رابط لفتح WhatsApp
       const invoiceNumber = selectedInvoice.invoiceNumber || '';
       const whatsappMessage = `${t('invoice')} ${invoiceNumber}`;
       const whatsappUrl = `https://wa.me/${customerPhone}?text=${encodeURIComponent(whatsappMessage)}`;
-      
+
       // فتح WhatsApp
       window.open(whatsappUrl, '_blank');
-      
+
       // تنزيل الملف
       const link = document.createElement('a');
       link.href = URL.createObjectURL(pdfBlob);
       link.download = `${t('invoice')}_${invoiceNumber}.pdf`;
       link.click();
-      
+
       toast({
         title: t('success'),
         description: t('invoice_shared'),
@@ -630,47 +658,47 @@ export default function InvoiceManagementPage() {
       });
     }
   };
-  
+
   // حذف الفاتورة
   const handleDeleteInvoice = (invoice: Invoice) => {
     setInvoiceToDelete(invoice);
     setDeleteDialogOpen(true);
   };
-  
+
   // تأكيد حذف الفاتورة
   const confirmDelete = () => {
     if (invoiceToDelete) {
       deleteMutation.mutate(invoiceToDelete.id);
     }
   };
-  
+
   // تغيير اتجاه الترتيب
   const toggleSortDirection = () => {
     setSortDirection(prev => prev === 'desc' ? 'asc' : 'desc');
   };
-  
+
   // فتح صفحة تعديل الفاتورة
   const handleEditInvoice = (invoice: Invoice) => {
     setInvoiceToEdit(invoice);
-    
+
     // تحميل منتجات الفاتورة
     const products = parseProducts(invoice);
     setEditedProducts(products);
-    
+
     // تعيين بيانات الفاتورة الأخرى
     setEditedCustomerId(invoice.customerId);
     setEditedDiscount(invoice.invoiceDiscount || invoice.discount || 0);
     setEditedPaymentMethod(invoice.paymentMethod || 'cash');
     setEditedNotes(invoice.notes || '');
-    
+
     // فتح مربع الحوار
     setEditDialogOpen(true);
   };
-  
+
   // حفظ تعديلات الفاتورة
   const saveInvoiceChanges = () => {
     if (!invoiceToEdit) return;
-    
+
     updateInvoiceMutation.mutate({
       invoiceId: invoiceToEdit.id,
       customerId: editedCustomerId,
@@ -680,7 +708,7 @@ export default function InvoiceManagementPage() {
       products: editedProducts
     });
   };
-  
+
   // حفظ معلومات المتجر
   const saveStoreInfo = () => {
     storeInfoMutation.mutate({
@@ -689,18 +717,21 @@ export default function InvoiceManagementPage() {
       phone: storePhone
     });
   };
-  
+
   // حساب إجمالي المنتج
   const calculateProductTotal = (product: InvoiceProduct): number => {
-    return (product.price * product.quantity) - (product.discount || 0);
+    const price = product.price || 0;
+    const quantity = product.quantity || 0;
+    const discount = product.discount || 0;
+    return (price * quantity) - discount;
   };
-  
+
   return (
     <div className="container p-4 mx-auto">
       <h1 className="mb-6 text-3xl font-bold text-center">
         {t('invoices_management')}
       </h1>
-      
+
       {/* شريط الأدوات */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
         {isAdmin && (
@@ -714,7 +745,7 @@ export default function InvoiceManagementPage() {
             </Button>
           </div>
         )}
-        
+
         {/* شريط البحث وزر الترتيب */}
         <div className="flex items-center gap-2">
           <div className="relative w-full sm:w-auto min-w-[300px]">
@@ -733,7 +764,7 @@ export default function InvoiceManagementPage() {
               />
             )}
           </div>
-          
+
           {/* زر ترتيب الفواتير */}
           <Button
             variant="outline"
@@ -750,7 +781,7 @@ export default function InvoiceManagementPage() {
           </Button>
         </div>
       </div>
-      
+
       {/* جدول الفواتير */}
       <Card>
         <CardContent className="p-0">
@@ -793,7 +824,7 @@ export default function InvoiceManagementPage() {
                     const customerName = getCustomerName(invoice.customerId);
                     const paymentMethod = invoice.paymentMethod || 'cash';
                     const paymentStatus = invoice.paymentStatus || (paymentMethod === 'deferred' ? 'deferred' : '');
-                    
+
                     // دالة مساعدة لعرض حالة الدفع بلون مميز
                     const renderPaymentStatus = () => {
                       if (paymentStatus === 'approved') {
@@ -806,7 +837,7 @@ export default function InvoiceManagementPage() {
                         return <span className="text-gray-500">-</span>;
                       }
                     };
-                    
+
                     return (
                       <TableRow key={invoice.id}>
                         <TableCell className="text-center font-medium">{invoice.invoiceNumber}</TableCell>
@@ -837,7 +868,7 @@ export default function InvoiceManagementPage() {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="text-center">{invoice.total?.toLocaleString()}</TableCell>
+                        <TableCell className="text-center">{(invoice.total || 0).toLocaleString()}</TableCell>
                         <TableCell className="text-center">
                           <div className="flex justify-center gap-2">
                             <Button 
@@ -875,7 +906,7 @@ export default function InvoiceManagementPage() {
           )}
         </CardContent>
       </Card>
-      
+
       {/* مربع حوار تفاصيل الفاتورة */}
       <Dialog
         open={detailsDialogOpen}
@@ -885,7 +916,7 @@ export default function InvoiceManagementPage() {
           <DialogHeader>
             <DialogTitle>{t('invoice_details')}</DialogTitle>
           </DialogHeader>
-          
+
           {selectedInvoice && (
             <div id="invoice-preview" className="bg-white p-6 rounded-lg shadow">
               {/* بيانات المتجر */}
@@ -894,7 +925,7 @@ export default function InvoiceManagementPage() {
                 <p className="text-muted-foreground">{storeInfo && typeof storeInfo === 'object' && 'address' in storeInfo ? (storeInfo as any).address : t('store_address')}</p>
                 <p className="text-muted-foreground">{storeInfo && typeof storeInfo === 'object' && 'phone' in storeInfo ? (storeInfo as any).phone : t('store_phone')}</p>
               </div>
-              
+
               {/* معلومات الفاتورة */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
@@ -906,7 +937,7 @@ export default function InvoiceManagementPage() {
                   <p><strong>{t('payment_method')}:</strong> {t(selectedInvoice.paymentMethod || 'cash')}</p>
                 </div>
               </div>
-              
+
               {/* جدول المنتجات */}
               <div className="border rounded-lg overflow-hidden mb-6">
                 <table className="min-w-full divide-y divide-border">
@@ -924,74 +955,83 @@ export default function InvoiceManagementPage() {
                       <tr key={index}>
                         <td className="px-4 py-2 text-start">{product.productName}</td>
                         <td className="px-4 py-2 text-center">{product.quantity}</td>
-                        <td className="px-4 py-2 text-center">{product.price.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-center">{(product.sellingPrice || product.price || 0).toLocaleString()}</td>
                         <td className="px-4 py-2 text-center">{(product.discount || 0).toLocaleString()}</td>
-                        <td className="px-4 py-2 text-end">{calculateProductTotal(product).toLocaleString()}</td>
+                        <td className="px-4 py-2 text-end">{(product.total || 0).toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              
+
               {/* الإجماليات */}
-              <div className="flex flex-col items-end space-y-1 mb-6">
+              <div className="flex flex-col items-end space-y-1">
                 <div className="flex justify-between w-64">
                   <span>{t('subtotal')}:</span>
                   <span>{(selectedInvoice.subtotal || 0).toLocaleString()}</span>
                 </div>
+
                 {(selectedInvoice.itemsDiscount || 0) > 0 && (
                   <div className="flex justify-between w-64 text-muted-foreground">
                     <span>{t('items_discount')}:</span>
                     <span>- {(selectedInvoice.itemsDiscount || 0).toLocaleString()}</span>
                   </div>
                 )}
-                {(selectedInvoice.invoiceDiscount || 0) > 0 && (
+
+                {(selectedInvoice.invoiceDiscount || selectedInvoice.discount || 0) > 0 && (
                   <div className="flex justify-between w-64 text-muted-foreground">
                     <span>{t('invoice_discount')}:</span>
-                    <span>- {(selectedInvoice.invoiceDiscount || 0).toLocaleString()}</span>
+                    <span>- {(selectedInvoice.invoiceDiscount || selectedInvoice.discount || 0).toLocaleString()}</span>
                   </div>
                 )}
+
                 <div className="flex justify-between w-64 font-bold border-t pt-1 mt-1">
                   <span>{t('total')}:</span>
                   <span>{(selectedInvoice.total || 0).toLocaleString()}</span>
                 </div>
               </div>
-              
+
               {/* ملاحظات */}
               {selectedInvoice.notes && (
-                <div className="mb-6">
-                  <p className="font-semibold">{t('notes')}:</p>
-                  <p className="text-muted-foreground">{selectedInvoice.notes}</p>
+                <div className="mt-6 pt-4 border-t">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>{t('notes')}:</strong> {selectedInvoice.notes}
+                  </p>
                 </div>
               )}
             </div>
           )}
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setDetailsDialogOpen(false)}
-            >
-              {t('close')}
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={printInvoice}
-            >
-              <Printer className="mr-2 h-4 w-4" />
-              {t('print')}
-            </Button>
-            <Button 
-              onClick={shareInvoicePDF}
-            >
-              <Share2 className="mr-2 h-4 w-4" />
-              {t('share')}
-            </Button>
-          </DialogFooter>
+
+          {/* أزرار الإجراءات */}
+          <div className="flex justify-between mt-4">
+            <div>
+              <Button 
+                variant="outline" 
+                onClick={() => setDetailsDialogOpen(false)}
+              >
+                {t('close')}
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={printInvoice}
+              >
+                <Printer className="mr-2 h-4 w-4" />
+                {t('print')}
+              </Button>
+              <Button 
+                onClick={shareInvoicePDF}
+              >
+                <Share2 className="mr-2 h-4 w-4" />
+                {t('share')}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
-      
-      {/* مربع حوار حذف الفاتورة */}
+
+      {/* مربع حوار تأكيد الحذف */}
       <AlertDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
@@ -1014,7 +1054,7 @@ export default function InvoiceManagementPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       {/* مربع حوار إعدادات المتجر */}
       <Dialog
         open={storeInfoDialogOpen}
@@ -1027,7 +1067,7 @@ export default function InvoiceManagementPage() {
               {t('store_settings_description')}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <label htmlFor="store-name" className="text-sm font-medium">
@@ -1040,7 +1080,7 @@ export default function InvoiceManagementPage() {
                 placeholder={t('enter_store_name')}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <label htmlFor="store-address" className="text-sm font-medium">
                 {t('store_address')}
@@ -1052,7 +1092,7 @@ export default function InvoiceManagementPage() {
                 placeholder={t('enter_store_address')}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <label htmlFor="store-phone" className="text-sm font-medium">
                 {t('store_phone')}
@@ -1065,7 +1105,7 @@ export default function InvoiceManagementPage() {
               />
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button 
               variant="outline" 
@@ -1092,7 +1132,7 @@ export default function InvoiceManagementPage() {
               {t('edit_invoice_description')}
             </DialogDescription>
           </DialogHeader>
-          
+
           {invoiceToEdit && (
             <div className="grid gap-4 py-4">
               {/* بيانات العميل والفاتورة */}
@@ -1107,7 +1147,7 @@ export default function InvoiceManagementPage() {
                     disabled
                   />
                 </div>
-                
+
                 <div className="grid gap-2">
                   <label className="text-sm font-medium">
                     {t('customer')}
@@ -1125,7 +1165,7 @@ export default function InvoiceManagementPage() {
                     ))}
                   </select>
                 </div>
-                
+
                 <div className="grid gap-2">
                   <label className="text-sm font-medium">
                     {t('discount')}
@@ -1138,7 +1178,7 @@ export default function InvoiceManagementPage() {
                     placeholder={t('enter_discount')}
                   />
                 </div>
-                
+
                 <div className="grid gap-2">
                   <label className="text-sm font-medium">
                     {t('payment_method')}
@@ -1153,7 +1193,7 @@ export default function InvoiceManagementPage() {
                     <option value="deferred">{t('deferred')}</option>
                   </select>
                 </div>
-                
+
                 <div className="grid gap-2 md:col-span-2">
                   <label className="text-sm font-medium">
                     {t('notes')}
@@ -1165,7 +1205,7 @@ export default function InvoiceManagementPage() {
                   />
                 </div>
               </div>
-              
+
               {/* جدول المنتجات */}
               <div className="border rounded-lg overflow-hidden">
                 <table className="min-w-full divide-y divide-border">
@@ -1196,7 +1236,7 @@ export default function InvoiceManagementPage() {
                             className="max-w-[80px] mx-auto text-center"
                           />
                         </td>
-                        <td className="px-4 py-2 text-center">{product.price.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-center">{(product.price || 0).toLocaleString()}</td>
                         <td className="px-4 py-2 text-center">
                           <Input
                             type="number"
@@ -1217,42 +1257,42 @@ export default function InvoiceManagementPage() {
                   </tbody>
                 </table>
               </div>
-              
+
               {/* الإجماليات */}
               <div className="flex flex-col items-end space-y-1">
                 <div className="flex justify-between w-64">
                   <span>{t('subtotal')}:</span>
                   <span>
-                    {editedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0).toLocaleString()}
+                    {editedProducts.reduce((sum, product) => sum + ((product.price || 0) * (product.quantity || 0)), 0).toLocaleString()}
                   </span>
                 </div>
-                
+
                 <div className="flex justify-between w-64 text-muted-foreground">
                   <span>{t('items_discount')}:</span>
                   <span>
                     - {editedProducts.reduce((sum, product) => sum + (product.discount || 0), 0).toLocaleString()}
                   </span>
                 </div>
-                
+
                 <div className="flex justify-between w-64 text-muted-foreground">
                   <span>{t('invoice_discount')}:</span>
-                  <span>- {editedDiscount.toLocaleString()}</span>
+                  <span>- {(editedDiscount || 0).toLocaleString()}</span>
                 </div>
-                
+
                 <div className="flex justify-between w-64 font-bold border-t pt-1 mt-1">
                   <span>{t('total')}:</span>
                   <span>
                     {(
-                      editedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0) - 
+                      editedProducts.reduce((sum, product) => sum + ((product.price || 0) * (product.quantity || 0)), 0) - 
                       editedProducts.reduce((sum, product) => sum + (product.discount || 0), 0) - 
-                      editedDiscount
+                      (editedDiscount || 0)
                     ).toLocaleString()}
                   </span>
                 </div>
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
             <Button 
               variant="outline" 

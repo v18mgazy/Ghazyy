@@ -1,179 +1,246 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'wouter';
 import { useAuthContext } from '@/context/auth-context';
 import { useLocale } from '@/hooks/use-locale';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { ShoppingCart, BarChart, Package, Users, CreditCard, ArrowRight, Loader2, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowRight, CheckCircle, Globe, Loader2, Lock, ShoppingCart, User } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-export default function Login() {
+export default function LoginPage() {
   const { t } = useTranslation();
   const { login } = useAuthContext();
   const [, navigate] = useLocation();
   const { toggleLanguage, language } = useLocale();
-  
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+  }, [darkMode]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    
     try {
       const success = await login(username, password);
-      
-      if (success) {
-        navigate('/');
-      } else {
-        setError(t('login_error'));
-      }
+      if (success) navigate('/');
+      else setError(t('login_error'));
     } catch (err) {
-      console.error("خطأ في تسجيل الدخول:", err);
       setError(t('login_error'));
     } finally {
       setIsLoading(false);
     }
   };
-  
+
+  // تأثيرات حركية
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.3
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.5
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-pattern p-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl card-glass rounded-2xl overflow-hidden">
-        {/* قسم جانبي للترحيب */}
-        <div className="hidden md:flex flex-col justify-between p-8 bg-gradient-to-br from-primary/90 to-indigo-600/90 text-white">
-          <div>
-            <div className="inline-flex items-center p-2 rounded-lg bg-white/10 backdrop-blur-sm text-white mb-6">
-              <ShoppingCart className="h-7 w-7 mr-2" />
-              <span className="text-xl font-bold">Sales Ghazy</span>
-            </div>
-            
-            <h1 className="text-3xl font-bold mb-6">{t('login_welcome')}</h1>
-            <p className="text-lg opacity-90 mb-8">{t('login_description')}</p>
-            
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 mr-3 text-white/80" />
-                <span>{t('feature_inventory')}</span>
-              </div>
-              <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 mr-3 text-white/80" />
-                <span>{t('feature_invoicing')}</span>
-              </div>
-              <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 mr-3 text-white/80" />
-                <span>{t('feature_reporting')}</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-auto pt-6 flex items-center text-white/80 text-sm">
-            <Globe className="h-4 w-4 mr-2" />
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-white hover:text-white hover:bg-white/10"
-              onClick={toggleLanguage}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="w-full max-w-6xl bg-white dark:bg-gray-900 rounded-xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2">
+        {/* الجانب الأيسر - الرسوم التوضيحية */}
+        <div className="hidden lg:flex bg-gradient-to-br from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-900 p-12 flex-col justify-between relative overflow-hidden">
+          {/* شعار النظام */}
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex items-center text-white"
+          >
+            <ShoppingCart className="h-8 w-8 mr-2" />
+            <span className="text-2xl font-bold">Sales Ghazy</span>
+          </motion.div>
+
+          {/* محتوى الجانب الأيسر */}
+          <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="space-y-8 relative z-10"
+          >
+            <motion.h2 
+              variants={itemVariants}
+              className="text-4xl font-bold text-white"
             >
-              {language === 'en' ? 'العربية' : 'English'}
-            </Button>
+              {t('welcome_back')}
+            </motion.h2>
+
+            <motion.p 
+              variants={itemVariants}
+              className="text-blue-100 text-lg"
+            >
+              {t('login_description')}
+            </motion.p>
+
+            <motion.div 
+              variants={itemVariants}
+              className="grid grid-cols-2 gap-4"
+            >
+              <div className="flex items-center space-x-3 bg-blue-500/20 p-3 rounded-lg">
+                <BarChart className="h-6 w-6 text-white" />
+                <span className="text-white text-sm">تقارير المبيعات</span>
+              </div>
+              <div className="flex items-center space-x-3 bg-blue-500/20 p-3 rounded-lg">
+                <Package className="h-6 w-6 text-white" />
+                <span className="text-white text-sm">إدارة المخزون</span>
+              </div>
+              <div className="flex items-center space-x-3 bg-blue-500/20 p-3 rounded-lg">
+                <Users className="h-6 w-6 text-white" />
+                <span className="text-white text-sm">إدارة العملاء</span>
+              </div>
+              <div className="flex items-center space-x-3 bg-blue-500/20 p-3 rounded-lg">
+                <CreditCard className="h-6 w-6 text-white" />
+                <span className="text-white text-sm">الفواتير</span>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* موجات تصميمية */}
+          <div className="absolute bottom-0 left-0 right-0">
+            <svg viewBox="0 0 1440 320" className="w-full">
+              <path 
+                fill="rgba(255,255,255,0.1)" 
+                d="M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
+              ></path>
+            </svg>
           </div>
         </div>
-        
-        {/* قسم تسجيل الدخول */}
-        <div className="p-8">
-          <div className="md:hidden text-center mb-8">
-            <ShoppingCart className="h-12 w-12 text-primary mx-auto" />
-            <h1 className="text-2xl font-bold gradient-heading">Sales Ghazy</h1>
-            <p className="text-muted-foreground mt-2">{t('login_description')}</p>
+
+        {/* الجانب الأيمن - نموذج تسجيل الدخول */}
+        <div className="p-8 md:p-12 flex flex-col justify-center">
+          <div className="flex justify-between items-center mb-8">
+            <div className="flex items-center space-x-2">
+              <ShoppingCart className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <span className="text-xl font-semibold text-gray-800 dark:text-white">Sales Ghazy</span>
+            </div>
+
+            <div className="flex space-x-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={toggleLanguage}
+                className="text-gray-600 dark:text-gray-300"
+              >
+                {language === 'en' ? 'العربية' : 'English'}
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setDarkMode(!darkMode)}
+                className="text-gray-600 dark:text-gray-300"
+              >
+                {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
+            </div>
           </div>
-          
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold">{t('login')}</h2>
-            <p className="text-muted-foreground mt-1">{t('login_to_access_dashboard')}</p>
-          </div>
-          
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="username" className="text-sm font-medium">
-                {t('username')}
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input 
-                  id="username" 
-                  type="text" 
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+              {t('login_to_account')}
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">
+              {t('enter_credentials')}
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-gray-700 dark:text-gray-300">
+                  {t('username')}
+                </Label>
+                <Input
+                  id="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="pl-10 py-6"
+                  className="py-6 px-4 border-gray-300 dark:border-gray-600 focus-visible:ring-blue-500"
                   placeholder={t('username_placeholder')}
                   required
                 />
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-medium">
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">
                   {t('password')}
                 </Label>
-                <Button variant="link" size="sm" className="p-0 h-auto text-xs">
-                  {t('forgot_password')}
-                </Button>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input 
-                  id="password" 
-                  type="password" 
+                <Input
+                  id="password"
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 py-6"
+                  className="py-6 px-4 border-gray-300 dark:border-gray-600 focus-visible:ring-blue-500"
                   placeholder={t('password_placeholder')}
                   required
                 />
               </div>
-            </div>
-            
-            {error && (
-              <div className="text-destructive text-sm p-2 bg-destructive/10 rounded-md">
-                {error}
-              </div>
-            )}
-            
-            <Button 
-              type="submit" 
-              className="w-full py-6 text-base btn-glow"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {t('logging_in')}
-                </>
-              ) : (
-                <>
-                  {t('login')}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
+
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 p-3 rounded-md text-sm"
+                >
+                  {error}
+                </motion.div>
               )}
-            </Button>
-          </form>
-          
-          <div className="mt-8 text-center text-sm text-muted-foreground md:hidden">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="flex items-center mx-auto"
-              onClick={toggleLanguage}
+
+              <Button 
+                type="submit" 
+                className="w-full py-6 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors duration-300"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    {t('logging_in')}
+                  </>
+                ) : (
+                  <>
+                    {t('login')} <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </form>
+          </motion.div>
+
+          <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+            {t('dont_have_account')}{' '}
+            <button 
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+              onClick={() => navigate('/register')}
             >
-              <Globe className="mr-2 h-4 w-4" />
-              {language === 'en' ? 'العربية' : 'English'}
-            </Button>
+              {t('contact_admin')}
+            </button>
           </div>
         </div>
       </div>

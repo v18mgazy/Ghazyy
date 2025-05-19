@@ -64,13 +64,13 @@ export default function CustomersPage() {
     notes: '',
     isPotential: true
   });
-  
+
   // عند النقر على زر تعديل العميل
   const handleEditCustomer = (customer: Customer) => {
     setCurrentCustomer(customer);
     setEditCustomerOpen(true);
   };
-  
+
   // استدعاء بيانات العملاء من الخادم
   const { 
     data: customersResponse = [], 
@@ -82,7 +82,7 @@ export default function CustomersPage() {
     refetchOnWindowFocus: true,     // تحديث البيانات عند العودة للصفحة
     staleTime: 15 * 1000,           // اعتبار البيانات قديمة بعد 15 ثانية
   });
-  
+
   // تحويل البيانات من شكل الاستجابة إلى الشكل الذي يستخدمه المكون
   const customers: Customer[] = customersResponse.map(customer => ({
     id: customer.id.toString(),
@@ -92,12 +92,12 @@ export default function CustomersPage() {
     isPotential: customer.isPotential || false,
     totalPurchases: 0 // قيمة افتراضية حيث لا نحتفظ بهذه البيانات في قاعدة البيانات الآن
   }));
-  
+
   // Export customers to Excel
   const exportToExcel = () => {
     try {
       console.log('Exporting customers to Excel');
-      
+
       // استيراد مكتبة xlsx
       import('xlsx').then(XLSX => {
         // تحويل البيانات إلى النموذج المناسب للتصدير
@@ -107,19 +107,19 @@ export default function CustomersPage() {
           [t('address')]: customer.address,
           [t('potential_customer')]: customer.isPotential ? t('yes') : t('no')
         }));
-        
+
         // إنشاء كتاب عمل جديد
         const workbook = XLSX.utils.book_new();
-        
+
         // إنشاء ورقة عمل جديدة
         const worksheet = XLSX.utils.json_to_sheet(customersForExport);
-        
+
         // إضافة الورقة إلى الكتاب
         XLSX.utils.book_append_sheet(workbook, worksheet, t('customers'));
-        
+
         // تحميل الملف
         XLSX.writeFile(workbook, 'customers.xlsx');
-        
+
         toast({
           title: t('export_successful'),
           description: t('customers_exported_to_excel'),
@@ -141,7 +141,7 @@ export default function CustomersPage() {
       });
     }
   };
-  
+
   // دالة إضافة عميل جديد - mutation
   const addCustomerMutation = useMutation({
     mutationFn: async (customer: Omit<Customer, 'id' | 'totalPurchases'>) => {
@@ -152,15 +152,15 @@ export default function CustomersPage() {
     },
     onSuccess: (newCustomer) => {
       console.log('Customer added successfully:', newCustomer);
-      
+
       // تحديث استعلام العملاء لجلب البيانات الجديدة
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
-      
+
       toast({
         title: t('customer_added'),
         description: t('customer_added_successfully'),
       });
-      
+
       setAddCustomerOpen(false);
       setNewCustomer({
         name: '',
@@ -178,7 +178,7 @@ export default function CustomersPage() {
       });
     }
   });
-  
+
   // دالة إضافة عميل جديد
   const handleAddCustomer = () => {
     if (!newCustomer.name) {
@@ -189,10 +189,10 @@ export default function CustomersPage() {
       });
       return;
     }
-    
+
     addCustomerMutation.mutate(newCustomer);
   };
-  
+
   // دالة تعديل العميل - mutation
   const updateCustomerMutation = useMutation({
     mutationFn: async (customerData: Omit<Customer, 'totalPurchases'>) => {
@@ -208,15 +208,15 @@ export default function CustomersPage() {
     },
     onSuccess: (updatedCustomer) => {
       console.log('Customer updated successfully:', updatedCustomer);
-      
+
       // تحديث استعلام العملاء لجلب البيانات المحدثة
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
-      
+
       toast({
         title: t('customer_updated'),
         description: t('customer_updated_successfully'),
       });
-      
+
       setEditCustomerOpen(false);
       setCurrentCustomer(null);
     },
@@ -229,11 +229,11 @@ export default function CustomersPage() {
       });
     }
   });
-  
+
   // تنفيذ عملية تعديل العميل
   const handleUpdateCustomer = () => {
     if (!currentCustomer) return;
-    
+
     if (!currentCustomer.name) {
       toast({
         title: t('validation_error'),
@@ -242,10 +242,10 @@ export default function CustomersPage() {
       });
       return;
     }
-    
+
     updateCustomerMutation.mutate(currentCustomer);
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -261,13 +261,13 @@ export default function CustomersPage() {
           </Button>
         </div>
       </div>
-      
+
       <Tabs defaultValue="all" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="all">{t('all_customers')}</TabsTrigger>
           <TabsTrigger value="deferred">{t('deferred_payments')}</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="all" className="mt-4">
           <CustomerList 
             customers={customers}
@@ -277,12 +277,12 @@ export default function CustomersPage() {
             onRefreshData={() => refetch()}
           />
         </TabsContent>
-        
+
         <TabsContent value="deferred" className="mt-4">
           <DeferredPaymentsTab />
         </TabsContent>
       </Tabs>
-      
+
       {/* Add Customer Dialog */}
       <Dialog open={addCustomerOpen} onOpenChange={setAddCustomerOpen}>
         <DialogContent>
@@ -292,7 +292,7 @@ export default function CustomersPage() {
               {t('add_customer_description')}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="name">{t('name')} <span className="text-destructive">*</span></Label>
@@ -303,7 +303,7 @@ export default function CustomersPage() {
                 placeholder={t('customer_name')}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="phone">{t('phone')}</Label>
               <Input
@@ -313,7 +313,7 @@ export default function CustomersPage() {
                 placeholder={t('phone_number')}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="address">{t('address')}</Label>
               <Input
@@ -323,7 +323,7 @@ export default function CustomersPage() {
                 placeholder={t('customer_address')}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="notes">{t('customer_notes')}</Label>
               <Input
@@ -333,7 +333,7 @@ export default function CustomersPage() {
                 placeholder={t('notes')}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="isPotential">{t('potential_client')}</Label>
               <Select
@@ -349,10 +349,10 @@ export default function CustomersPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
 
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddCustomerOpen(false)}>
               {t('cancel')}
@@ -363,7 +363,7 @@ export default function CustomersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Edit Customer Dialog */}
       <Dialog open={editCustomerOpen} onOpenChange={setEditCustomerOpen}>
         <DialogContent>
@@ -373,7 +373,7 @@ export default function CustomersPage() {
               {t('edit_customer_description')}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="edit-name">{t('name')} <span className="text-destructive">*</span></Label>
@@ -387,7 +387,7 @@ export default function CustomersPage() {
                 placeholder={t('customer_name')}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="edit-phone">{t('phone')}</Label>
               <Input
@@ -400,7 +400,7 @@ export default function CustomersPage() {
                 placeholder={t('phone_number')}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="edit-address">{t('address')}</Label>
               <Input
@@ -413,7 +413,7 @@ export default function CustomersPage() {
                 placeholder={t('customer_address')}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="edit-notes">{t('customer_notes')}</Label>
               <Input
@@ -426,7 +426,7 @@ export default function CustomersPage() {
                 placeholder={t('notes')}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="edit-isPotential">{t('potential_client')}</Label>
               <Select
@@ -445,10 +445,10 @@ export default function CustomersPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
 
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditCustomerOpen(false)}>
               {t('cancel')}

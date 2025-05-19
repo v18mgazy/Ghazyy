@@ -51,23 +51,23 @@ export default function BarcodeScanner({
       }
     };
   }, [isScanning]);
-  
+
   // تحديث شريط التقدم أثناء الانتظار
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
-    
+
     if (isWaiting) {
       // تقسيم فترة الانتظار إلى 20 خطوة لتحديث شريط التقدم
       const steps = 20;
       const stepTime = scanDelay / steps;
       let currentStep = 0;
-      
+
       setWaitProgress(0);
-      
+
       intervalId = setInterval(() => {
         currentStep++;
         setWaitProgress((currentStep / steps) * 100);
-        
+
         if (currentStep >= steps) {
           // انتهت فترة الانتظار
           setIsWaiting(false);
@@ -75,7 +75,7 @@ export default function BarcodeScanner({
         }
       }, stepTime);
     }
-    
+
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
@@ -104,7 +104,7 @@ export default function BarcodeScanner({
 
         setCameraStatus('ready');
         setIsScanning(true);
-        
+
         // إنشاء عنصر الكاميرا
         setTimeout(() => {
           if (scannerRef.current) {
@@ -143,26 +143,26 @@ export default function BarcodeScanner({
     if (isWaiting) {
       return;
     }
-    
+
     if (result && result.codeResult && result.codeResult.code) {
       const barcode = result.codeResult.code;
-      
+
       // إذا كنا نريد الاستمرار في المسح، لا نوقف الماسح
       if (!continueScanning) {
         stopScanner();
       }
-      
+
       try {
         console.log('Barcode detected:', barcode);
         // البحث عن المنتج بالباركود في قاعدة البيانات
         const response = await fetch(`/api/products/barcode/${barcode}`);
-        
+
         if (!response.ok) {
           throw new Error(`Product not found with barcode: ${barcode}`);
         }
-        
+
         const product = await response.json();
-        
+
         // التحقق من المخزون إذا كان مطلوبًا
         // نتحقق فقط إذا كانت الكمية صفر بشكل صريح، وليس إذا كانت غير محددة
         if (checkInventory && product.quantity !== undefined && product.quantity <= 0) {
@@ -178,20 +178,20 @@ export default function BarcodeScanner({
           }, 2000);
           return;
         }
-        
+
         // إضافة المنتج مباشرة إلى الفاتورة بدون تأكيد
         onProductScanned(product);
-        
+
         // إغلاق نافذة الماسح بشكل كامل وفوري
         stopScanner();
         setCameraStatus('idle');
-        
+
         // التأكد من إزالة أي آثار لحالة المسح
         setIsScanning(false);
-        
+
         // زيادة عدد المنتجات الممسوحة
         setScannedCount(prev => prev + 1);
-        
+
         console.log('Product found:', product.name);
       } catch (err) {
         setError(t('product_not_found'));
@@ -218,10 +218,10 @@ export default function BarcodeScanner({
       // استخدام باركود اختباري معروف "12345" وهو تنسيق Code 128 المطلوب
       const testBarcode = 'C128-12345';
       console.log('Testing with barcode:', testBarcode);
-      
+
       // البحث عن المنتج بالباركود في قاعدة البيانات
       const response = await fetch(`/api/products/barcode/${testBarcode}`);
-      
+
       if (!response.ok) {
         // إذا لم يتم العثور على المنتج، سنقوم بإنشاء منتج جديد للاختبار فقط
         console.warn(`No product found with barcode ${testBarcode}. Using test product.`);
@@ -234,7 +234,7 @@ export default function BarcodeScanner({
         setScannedProduct(testProduct);
         return;
       }
-      
+
       const product = await response.json();
       setScannedProduct(product);
     } catch (err) {
@@ -263,7 +263,7 @@ export default function BarcodeScanner({
           )}
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="p-3">
         {/* Mensaje de éxito y contador - Visible solo en modo continuo */}
         {continueScanning && (
@@ -278,7 +278,7 @@ export default function BarcodeScanner({
                 </div>
               </div>
             )}
-            
+
             {/* Mostrar botón de reset si ya se han escaneado productos */}
             {scannedCount > 0 && (
               <div className="flex justify-end">
@@ -295,7 +295,7 @@ export default function BarcodeScanner({
             )}
           </div>
         )}
-        
+
         {isScanning ? (
           <div 
             id="barcode-scanner" 
@@ -306,13 +306,13 @@ export default function BarcodeScanner({
               {/* بديل مؤقت للكاميرا مقيد في Replit */}
               <div className="absolute top-1/2 left-0 w-full h-1 bg-red-500 opacity-70 animate-pulse"></div>
               <div className="absolute top-0 left-1/2 w-1 h-full bg-red-500 opacity-70 animate-pulse"></div>
-              
+
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="p-2 rounded-full bg-black/50 backdrop-blur">
                   <ScanLine className="h-5 w-5 text-white animate-pulse" />
                 </div>
               </div>
-              
+
               {/* عرض حالة الانتظار بين المسح المتتالي */}
               {isWaiting && (
                 <div className="absolute top-3 left-0 right-0 flex flex-col items-center">
@@ -327,7 +327,7 @@ export default function BarcodeScanner({
                   </div>
                 </div>
               )}
-              
+
               {/* عداد المنتجات الممسوحة */}
               {continueScanning && scannedCount > 0 && !isWaiting && (
                 <div className="absolute top-3 right-3">
@@ -336,7 +336,7 @@ export default function BarcodeScanner({
                   </div>
                 </div>
               )}
-              
+
               <div className="absolute bottom-3 left-0 right-0 text-center text-sm text-white px-2 py-1 font-medium">
                 <p className="text-center text-xs px-4 py-1 rounded-full bg-primary/80 backdrop-blur-sm inline-block">
                   {isWaiting 
@@ -390,7 +390,7 @@ export default function BarcodeScanner({
                   <Camera className={`h-4 w-4 ${rtl ? 'ml-2' : 'mr-2'}`} />
                   {t('activate_camera')}
                 </Button>
-                
+
                 {!continueScanning && (
                   <div className="mt-3">
                     <Button 
@@ -407,7 +407,7 @@ export default function BarcodeScanner({
             )}
           </div>
         )}
-        
+
         {error && (
           <Alert variant="destructive" className="mt-3 mb-2">
             <AlertCircle className="h-4 w-4" />
@@ -415,10 +415,10 @@ export default function BarcodeScanner({
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        
+
         {/* تم إزالة عرض المنتج الممسوح ضوئيًا لأننا نضيفه تلقائيًا */}
       </CardContent>
-      
+
       {isScanning && (
         <CardFooter className="flex justify-center p-3 border-t border-border">
           <Button 
@@ -431,7 +431,7 @@ export default function BarcodeScanner({
           </Button>
         </CardFooter>
       )}
-      
+
       {cameraStatus === 'denied' && !scannedProduct && (
         <CardFooter className="flex justify-center p-3 border-t border-border">
           <Button 

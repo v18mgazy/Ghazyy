@@ -50,7 +50,7 @@ export default function SmallBarcodeScannerModal({
             </Button>
           </div>
         </DialogHeader>
-        
+
         <div className="p-4 pt-2 pb-4">
           <BarcodeScanner 
             onProductScanned={handleProductScanned}
