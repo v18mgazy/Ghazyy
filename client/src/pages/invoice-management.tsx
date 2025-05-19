@@ -728,9 +728,10 @@ export default function InvoiceManagementPage() {
 
   return (
     <div className="container p-4 mx-auto">
-      <h1 className="mb-6 text-3xl font-bold text-center">
-        {t('invoices_management')}
+      <h1 className="text-xl sm:text-3xl font-bold tracking-tight shadow-sm sm:shadow-md bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-6">
+        {t('invoices management')}
       </h1>
+
 
       {/* شريط الأدوات */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">

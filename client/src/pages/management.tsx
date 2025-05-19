@@ -10,6 +10,14 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { formatCurrency, generateBarcodeSVG } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { Menu } from "lucide-react";
 
 export default function ManagementPage() {
   const { t } = useTranslation();
@@ -1014,10 +1022,46 @@ export default function ManagementPage() {
   return (
     <div>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6 bg-white dark:bg-neutral-800 p-2 rounded-lg shadow-sm flex flex-wrap gap-2">
+        {/* مخصص للموبايل فقط: قائمة جانبية لعرض التبويبات */}
+        <div className="sm:hidden mb-4">
+          <Drawer>
+            <DrawerTrigger className="flex items-center gap-2 px-4 py-2 border rounded-md text-sm font-medium">
+              <Menu className="w-4 h-4" />
+              {t(activeTab)}
+            </DrawerTrigger>
+            <DrawerContent>
+              <DrawerHeader>
+                <DrawerTitle>{t("choose_section")}</DrawerTitle>
+              </DrawerHeader>
+              <div className="p-4 space-y-2">
+                {[
+                  { value: "products", label: t("products_inventory") },
+                  { value: "employees", label: t("employees_management") },
+                  { value: "damaged", label: t("damaged_items") },
+                  { value: "expenses", label: t("expenses_management") },
+                  { value: "users", label: t("users_management") },
+                ].map((tab) => (
+                  <button
+                    key={tab.value}
+                    onClick={() => setActiveTab(tab.value)}
+                    className={`w-full text-left px-4 py-2 rounded-md text-sm ${
+                      activeTab === tab.value ? "bg-blue-600 text-white" : "hover:bg-gray-100"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </DrawerContent>
+          </Drawer>
+        </div>
+
+        <TabsList className="hidden sm:flex mb-6 bg-white dark:bg-neutral-800 p-2 rounded-lg shadow-sm flex-wrap gap-2">
           <TabsTrigger 
             value="products" 
-            className="flex items-center gap-2 transition-all data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-blue-100 data-[state=active]:hover:bg-blue-700 relative overflow-hidden group"
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-3 rounded-md transition-all relative overflow-hidden group 
+            data-[state=active]:bg-blue-600 data-[state=active]:text-white 
+            hover:bg-blue-100 data-[state=active]:hover:bg-blue-700"
           >
             <span className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-blue-400/0 group-hover:opacity-100 opacity-0 transition-opacity duration-300"></span>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -1028,7 +1072,9 @@ export default function ManagementPage() {
           
           <TabsTrigger 
             value="employees" 
-            className="flex items-center gap-2 transition-all data-[state=active]:bg-emerald-600 data-[state=active]:text-white hover:bg-emerald-100 data-[state=active]:hover:bg-emerald-700 relative overflow-hidden group"
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-3 rounded-md transition-all relative overflow-hidden group 
+            data-[state=active]:bg-blue-600 data-[state=active]:text-white 
+            hover:bg-blue-100 data-[state=active]:hover:bg-blue-700"
           >
             <span className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-emerald-400/0 group-hover:opacity-100 opacity-0 transition-opacity duration-300"></span>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -1039,7 +1085,9 @@ export default function ManagementPage() {
           
           <TabsTrigger 
             value="damaged" 
-            className="flex items-center gap-2 transition-all data-[state=active]:bg-amber-600 data-[state=active]:text-white hover:bg-amber-100 data-[state=active]:hover:bg-amber-700 relative overflow-hidden group"
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-3 rounded-md transition-all relative overflow-hidden group 
+            data-[state=active]:bg-blue-600 data-[state=active]:text-white 
+            hover:bg-blue-100 data-[state=active]:hover:bg-blue-700"
           >
             <span className="absolute inset-0 bg-gradient-to-r from-amber-400/20 to-amber-400/0 group-hover:opacity-100 opacity-0 transition-opacity duration-300"></span>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -1050,7 +1098,9 @@ export default function ManagementPage() {
           
           <TabsTrigger 
             value="expenses" 
-            className="flex items-center gap-2 transition-all data-[state=active]:bg-indigo-600 data-[state=active]:text-white hover:bg-indigo-100 data-[state=active]:hover:bg-indigo-700 relative overflow-hidden group"
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-3 rounded-md transition-all relative overflow-hidden group 
+            data-[state=active]:bg-blue-600 data-[state=active]:text-white 
+            hover:bg-blue-100 data-[state=active]:hover:bg-blue-700"
           >
             <span className="absolute inset-0 bg-gradient-to-r from-indigo-400/20 to-indigo-400/0 group-hover:opacity-100 opacity-0 transition-opacity duration-300"></span>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -1061,7 +1111,9 @@ export default function ManagementPage() {
           
           <TabsTrigger 
             value="users" 
-            className="flex items-center gap-2 transition-all data-[state=active]:bg-purple-600 data-[state=active]:text-white hover:bg-purple-100 data-[state=active]:hover:bg-purple-700 relative overflow-hidden group"
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-3 rounded-md transition-all relative overflow-hidden group 
+            data-[state=active]:bg-blue-600 data-[state=active]:text-white 
+            hover:bg-blue-100 data-[state=active]:hover:bg-blue-700"
           >
             <span className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-purple-400/0 group-hover:opacity-100 opacity-0 transition-opacity duration-300"></span>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

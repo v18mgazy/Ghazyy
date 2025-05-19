@@ -247,20 +247,24 @@ export default function CustomersPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">{t('customers')}</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setAddCustomerOpen(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            {t('add_customer')}
-          </Button>
-          <Button variant="outline" onClick={exportToExcel}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" />
-            {t('export_to_excel')}
-          </Button>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            {t('customers')}
+          </h1>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button onClick={() => setAddCustomerOpen(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              {t('add_customer')}
+            </Button>
+            <Button variant="outline" onClick={exportToExcel}>
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              {t('export_to_excel')}
+            </Button>
+          </div>
         </div>
-      </div>
+
 
       <Tabs defaultValue="all" className="w-full">
         <TabsList className="grid w-full grid-cols-2">

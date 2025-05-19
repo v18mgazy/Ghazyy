@@ -1,4 +1,7 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
+import { ref, get, child } from "firebase/database";
+import { database } from "@/lib/firebase"; // ✅ استخدم الاتصال الجاهزfirebase.ts فيه إعدادات الاتصال
+import { useTranslation } from 'react-i18next';
 
 export interface User {
   id: string;
@@ -30,37 +33,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // المصادقة مع الخادم
   const login = async (username: string, password: string) => {
     setLoading(true);
-    console.log("محاولة تسجيل الدخول باستخدام:", username);
-    
     try {
-      // استخدام نقطة النهاية الجديدة المُصممة للتعامل مع جميع أنواع المستخدمين
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
-      
-      if (response.ok) {
-        const userData = await response.json();
-        console.log("تم تسجيل الدخول بنجاح:", userData);
-        
-        setUser({
-          id: userData.id.toString(),
-          email: userData.username,
-          name: userData.name || userData.username,
-          role: userData.role || 'cashier',
-          lastLogin: userData.lastLogin ? new Date(userData.lastLogin) : null
-        });
-        
-        return true;
+      const dbRef = ref(database);
+
+      const snapshot = await get(child(dbRef, `users/${username}`));
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        if (userData.password === password) {
+          setUser({
+            id: username,
+            email: username,
+            name: userData.name || username,
+            role: userData.role || 'cashier',
+            lastLogin: new Date()
+          });
+          return true;
+        } else {
+          console.warn("كلمة المرور غير صحيحة");
+        }
+      } else {
+        console.warn("المستخدم غير موجود");
       }
-      
-      console.log("بيانات المستخدم غير صحيحة");
+      return false;
+    } catch (error) {
+      console.error("خطأ أثناء تسجيل الدخول:", error);
       return false;
     } finally {
       setLoading(false);
@@ -68,34 +66,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    try {
-      // محاولة تسجيل الخروج عبر واجهة برمجة التطبيقات
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-    } catch (error) {
-      console.error("خطأ في تسجيل الخروج:", error);
-    } finally {
-      // مسح بيانات المستخدم المحلية بغض النظر عن نجاح أو فشل الطلب
-      setUser(null);
-    }
+    setUser(null);
   };
 
   const isAdmin = user?.role === 'admin';
 
-  const authValue: AuthContextType = {
-    user,
-    isAdmin,
-    loading,
-    login,
-    logout
-  };
-
   return (
-    <AuthContext.Provider value={authValue}>
+    <AuthContext.Provider value={{ user, isAdmin, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

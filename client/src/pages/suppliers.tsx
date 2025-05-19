@@ -520,20 +520,21 @@ export default function SuppliersPage() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-3 mb-4">
-              <TabsTrigger value="suppliers" className="text-base">
-                <Truck className="mr-2 h-5 w-5" />
+            <TabsList className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4 overflow-x-auto whitespace-nowrap scrollbar-none">
+              <TabsTrigger value="suppliers" className="text-xs sm:text-base flex items-center gap-1 py-1.5 px-3 rounded-md transition-all data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-blue-100">
+                <Truck className="h-3 w-3 sm:h-5 sm:w-5" />
                 {t("suppliers")}
               </TabsTrigger>
-              <TabsTrigger value="invoices" className="text-base" disabled={!selectedSupplier}>
-                <FileText className="mr-2 h-5 w-5" />
+              <TabsTrigger value="invoices" disabled={!selectedSupplier} className="text-xs sm:text-base flex items-center gap-1 py-1.5 px-3 rounded-md transition-all data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-blue-100">
+                <FileText className="h-3 w-3 sm:h-5 sm:w-5" />
                 {t("supplier_invoices")}
               </TabsTrigger>
-              <TabsTrigger value="payments_report" className="text-base" disabled={!selectedSupplier}>
-                <CalendarClock className="mr-2 h-5 w-5" />
+              <TabsTrigger value="payments_report" disabled={!selectedSupplier} className="text-xs sm:text-base flex items-center gap-1 py-1.5 px-3 rounded-md transition-all data-[state=active]:bg-blue-600 data-[state=active]:text-white hover:bg-blue-100">
+                <CalendarClock className="h-3 w-3 sm:h-5 sm:w-5" />
                 {t("supplier_payments_report")}
               </TabsTrigger>
             </TabsList>
+
 
             <TabsContent value="suppliers" className="space-y-4">
               <div className="grid gap-4 grid-cols-1 md:grid-cols-3 mb-4">
