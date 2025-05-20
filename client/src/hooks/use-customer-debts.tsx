@@ -24,9 +24,12 @@ export interface DeferredInvoice {
   id: number;
   invoiceNumber: string;
   date: string;
-  amount: number;
-  isPending: boolean;
+  paymentStatus: 'deferred' | 'approved' | 'paid'; // لو بتستخدمه
+  total: number; // ✅ هذا هو الحقل المطلوب
+  amount?: number; // إن وجد
+  isPending?: boolean;
 }
+
 
 /**
  * Interface for the response containing debts and total debt

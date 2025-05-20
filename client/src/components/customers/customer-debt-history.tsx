@@ -94,7 +94,7 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
   }
 
   console.log("Data received:", data);
-  
+
   // طباعة بيانات التشخيص
   console.log("Data received in debt history:", data);
   console.log("Manual debts:", data.debts);
@@ -102,7 +102,7 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
   console.log("Total debt:", data.totalDebt);
   console.log("Manual debt total:", data.manualDebtTotal);
   console.log("Deferred invoices total:", data.deferredInvoicesTotal);
-  
+
   // إنشاء "ديون" وهمية من الفواتير الآجلة لعرضهم في نفس الجدول
   // ملاحظة: لاحظ أننا نستخدم فقط الفواتير الآجلة التي لم يتم حذفها
   // وذلك لأن الفواتير المحذوفة تمت تصفيتها بالفعل في الخادم (server)
@@ -111,7 +111,7 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
     // التحقق مما إذا كانت الفاتورة معلقة (pending) أم موافق عليها (approved)
     const isPending = invoice.paymentStatus === 'deferred';
     const isApproved = invoice.paymentStatus === 'approved';
-    
+
     return {
       id: `invoice-${invoice.id}`, // معرف فريد لتجنب تعارض المعرفات
       customerId: Number(customerId),
@@ -131,12 +131,12 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
   // دمج الديون اليدوية والفواتير الآجلة في قائمة واحدة
   console.log("Manual debts count:", data.debts?.length || 0);
   console.log("Deferred invoices count:", deferredInvoiceDebts.length);
-  
+
   // التأكد من أن data.debts موجود قبل استخدامه
   const manualDebts = data.debts || [];
   const allDebts = [...manualDebts, ...deferredInvoiceDebts];
   console.log("Total combined debt records:", allDebts.length);
-  
+
   // ترتيب جميع الديون حسب التاريخ (الأحدث أولاً)
   const sortedDebts = allDebts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -194,7 +194,7 @@ export default function CustomerDebtHistory({ customerId, className = '' }: Cust
                         : 'bg-gray-50 text-gray-700 border-gray-200'
                     }
                   : getTransactionType(debt.amount, debt.invoiceId);
-                
+
                 return (
                   <TableRow key={debt.id}>
                     <TableCell className="font-medium text-xs">

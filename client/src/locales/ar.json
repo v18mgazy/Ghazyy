@@ -900,5 +900,13 @@
   "top_seller": "الأكثر مبيعًا",
   "low_stock_alert": "{{count}} منتج قرب ينفذ",
   "unsold_products": "منتجات لم تبع",
-  "you_can_ask_me": "اسألني أي شيء في أي وقت!"
+  "you_can_ask_me": "اسألني أي شيء في أي وقت!",
+  "login": "تسجيل الدخول",
+  "enter_credentials": "أدخل اسم المستخدم وكلمة المرور للمتابعة",
+  "username": "اسم المستخدم",
+  "username_placeholder": "مثال: admin",
+  "password": "كلمة المرور",
+  "password_placeholder": "********",
+  "remember_me": "تذكرني",
+  "login_error": "فشل في تسجيل الدخول. تأكد من صحة البيانات"
 }

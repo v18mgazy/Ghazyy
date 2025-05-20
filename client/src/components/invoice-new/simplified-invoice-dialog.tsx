@@ -1220,7 +1220,8 @@ const SimplifiedInvoiceDialog: React.FC<SimplifiedInvoiceDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <DialogContent className="w-full max-w-full sm:max-w-[900px] max-h-[90vh] overflow-y-auto custom-scrollbar rounded-none sm:rounded-xl px-2 sm:px-6">
+
         <DialogHeader>
           <DialogTitle className="flex items-center text-2xl">
             <ReceiptText className="mr-2 h-6 w-6 text-primary" />

@@ -857,26 +857,30 @@ export default function InvoiceManagementPage() {
                         <TableCell className="text-center">
                           {renderPaymentStatus()}
                           {/* أزرار الموافقة/الرفض للمدير فقط وللفواتير الآجلة المعلقة فقط */}
-                          {isAdmin && (paymentMethod === 'deferred' && paymentStatus === 'deferred') && (
-                            <div className="flex justify-center gap-1 mt-1">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700 h-6 px-2 text-xs"
-                                onClick={() => approveInvoicePayment(invoice.id)}
-                              >
-                                {t('approve')}
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700 h-6 px-2 text-xs"
-                                onClick={() => rejectInvoicePayment(invoice.id)}
-                              >
-                                {t('reject')}
-                              </Button>
-                            </div>
+                          {isAdmin &&
+                            invoice.paymentMethod === 'deferred' &&
+                            (!invoice.paymentStatus || invoice.paymentStatus === 'deferred' || invoice.paymentStatus === 'pending') && (
+                              <div className="flex justify-center gap-1 mt-1">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700 h-6 px-2 text-xs"
+                                  onClick={() => approveInvoicePayment(invoice.id)}
+                                >
+                                  {t('approve')}
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700 h-6 px-2 text-xs"
+                                  onClick={() => rejectInvoicePayment(invoice.id)}
+                                >
+                                  {t('reject')}
+                                </Button>
+                              </div>
                           )}
+
+
                         </TableCell>
                         <TableCell className="text-center">{(invoice.total || 0).toLocaleString()}</TableCell>
                         <TableCell className="text-center">
