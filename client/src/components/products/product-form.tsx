@@ -41,7 +41,7 @@ export default function ProductForm({
   const { toast } = useToast();
   const isEditing = !!product?.id;
   const scannerRef = useRef<HTMLDivElement>(null);
-  
+
   const [formData, setFormData] = useState<Product>({
     name: '',
     barcode: generateBarcodeNumber('code128'),
@@ -50,30 +50,21 @@ export default function ProductForm({
     sellingPrice: 0,
     stock: 0
   });
-  
+
   const [isScanning, setIsScanning] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [cameraStatus, setCameraStatus] = useState<'idle' | 'requesting' | 'denied' | 'ready'>('idle');
   const [barcodeMethod, setBarcodeMethod] = useState<'generate' | 'manual' | 'scan'>('generate');
-  // تخزين الباركود المكتشف لمنع حدوث حالات سباق
   const [detectedBarcodeValue, setDetectedBarcodeValue] = useState<string | null>(null);
-  
-  // تهيئة البيانات عند فتح النموذج للمرة الأولى أو تغيير المنتج
+
   useEffect(() => {
-    // فقط قم بالتهيئة عندما يكون النموذج مفتوحاً
     if (open) {
-      console.log('Dialog opened with product:', product);
-      
-      // إعادة تعيين قيمة الباركود المكتشف عند فتح النموذج
       setDetectedBarcodeValue(null);
-      
+
       if (product) {
-        // إذا كان المنتج موجودًا مسبقًا
         setFormData(product);
         setBarcodeMethod('manual');
-        console.log('Form initialized with existing product, barcode method set to manual');
       } else {
-        // إذا كان منتجًا جديدًا
         setFormData({
           name: '',
           barcode: generateBarcodeNumber('code128'),
@@ -83,33 +74,25 @@ export default function ProductForm({
           stock: 0
         });
         setBarcodeMethod('generate');
-        console.log('Form initialized for new product, barcode method set to generate');
       }
     }
   }, [product, open]);
-  
-  // استخدام الباركود المكتشف عندما يتغير
+
   useEffect(() => {
     if (detectedBarcodeValue) {
-      console.log('Using detected barcode value for form data:', detectedBarcodeValue);
-      
-      // تطبيق الباركود المكتشف على نموذج البيانات
       setFormData(prevData => ({
         ...prevData,
         barcode: detectedBarcodeValue
       }));
     }
   }, [detectedBarcodeValue]);
-  
-  // تنظيف الماسح عند إغلاق النموذج
+
   useEffect(() => {
     return () => {
-      // تأكد من إيقاف الماسح عند إغلاق المكون
       cleanupScanner();
-      console.log('Scanner cleanup on component unmount');
     };
   }, []);
-  
+
   const cleanupScanner = () => {
     try {
       stopBarcodeScanner();
@@ -118,44 +101,30 @@ export default function ProductForm({
       console.error('Error stopping scanner:', e);
     }
   };
-  
+
   const startScanner = () => {
-    console.log('Starting scanner, setting up camera...');
     setScannerError(null);
     setCameraStatus('requesting');
     setIsScanning(true);
 
-    // تأخير بسيط لضمان تحديث واجهة المستخدم قبل طلب الكاميرا
     setTimeout(() => {
-      // تحقق أولاً من إمكانية الوصول إلى الكاميرا
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
-          // إيقاف الدفق الأولي (سنستخدم Quagga للتحكم بالكاميرا)
           stream.getTracks().forEach(track => track.stop());
-          
-          console.log('Camera permission granted, waiting for scanner element...');
           setCameraStatus('ready');
-          
-          // إنشاء عنصر الكاميرا بعد تأخير بسيط للتأكد من تحديث DOM
+
           setTimeout(() => {
             if (scannerRef.current) {
-              console.log('Scanner element ready, initializing Quagga...');
-              
               startBarcodeScanner(
                 'barcode-scanner-product',
+                (result) => handleBarcodeDetection(result),
                 (result) => {
-                  // استدعاء مباشر لمعالج الباركود
-                  handleBarcodeDetection(result);
-                },
-                (result) => {
-                  // معالجة إطارات المسح (اختياري)
                   if (result && result.codeResult) {
-                    // يمكن إضافة معالجة بصرية هنا
+                    // Optional frame processing
                   }
                 }
               );
             } else {
-              console.error('Scanner element not found or not ready');
               setCameraStatus('idle');
               setIsScanning(false);
               setScannerError(t('scanner_initialization_failed'));
@@ -163,70 +132,53 @@ export default function ProductForm({
           }, 500);
         })
         .catch(err => {
-          console.error('Camera access error:', err);
           setCameraStatus('denied');
           setIsScanning(false);
           setScannerError(t('camera_access_denied'));
         });
     }, 100);
   };
-  
-  // وظيفة مساعدة منفصلة لإيقاف الماسح
+
   const stopScanner = () => {
-    console.log('Stopping scanner...');
-    // إيقاف الماسح
     cleanupScanner();
-    // إعادة تعيين الحالة
     setCameraStatus('idle');
     setIsScanning(false);
   };
-  
-  // معالجة نتيجة المسح بطريقة أكثر موثوقية
+
   const handleBarcodeDetection = (result: any) => {
-    // التحقق من وجود نتيجة صالحة
     if (result && result.codeResult && result.codeResult.code) {
       const detectedBarcode = result.codeResult.code;
-      console.log('Barcode detected:', detectedBarcode);
-      
-      // إيقاف الماسح فورًا
+
       stopScanner();
-      
-      // إظهار إشعار للمستخدم
+
       toast({
         title: t('barcode_scanned_successfully'),
         description: detectedBarcode
       });
-      
-      // تخزين الباركود المكتشف في الحالة
-      // سيتم تطبيقه على النموذج عبر useEffect
+
       setDetectedBarcodeValue(detectedBarcode);
-      
-      // تعيين وضع الإدخال اليدوي بعد اكتمال المسح
       setBarcodeMethod('manual');
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    
+
     if (id === 'purchasePrice' || id === 'sellingPrice' || id === 'stock') {
       setFormData({
         ...formData,
         [id]: parseFloat(value) || 0
       });
     } else {
-      // تحديث القيمة
       const updatedFormData = {
         ...formData,
         [id]: value
       };
-      
-      // إذا كان الحقل هو الباركود، نتحقق أنه صالح
+
       if (id === 'barcode' && value.trim() === '') {
-        // إذا كان فارغاً، نولد باركود جديد
         updatedFormData.barcode = generateBarcodeNumber('code128');
       }
-      
+
       setFormData(updatedFormData);
     }
   };
@@ -238,20 +190,14 @@ export default function ProductForm({
       barcode: generateBarcodeNumber('code128')
     });
   };
-  
+
   const enableManualBarcode = () => {
     setBarcodeMethod('manual');
-    // الاحتفاظ بالباركود الحالي وتمكين التعديل اليدوي
   };
 
   const prepareScanBarcode = () => {
-    // تأكد من تعيين وضع المسح أولاً قبل بدء الماسح
     setBarcodeMethod('scan');
-    
-    // تأخير قليل لضمان اكتمال تحديث الحالة
     setTimeout(() => {
-      console.log('Starting scanner after mode change to scan');
-      // بدء عملية المسح الضوئي للباركود
       startScanner();
     }, 50);
   };
@@ -265,17 +211,17 @@ export default function ProductForm({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="px-0 sm:px-0">
+          <DialogTitle className="flex items-center text-lg sm:text-xl">
             <QrCode className="mr-2 h-5 w-5" />
             {isEditing ? t('edit_product') : t('add_new_product')}
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 gap-4">
+            <div>
               <Label htmlFor="name" className="text-sm font-medium">
                 {t('product_name')} <span className="text-destructive">*</span>
               </Label>
@@ -284,10 +230,11 @@ export default function ProductForm({
                 value={formData.name}
                 onChange={handleChange}
                 required
+                className="w-full"
               />
             </div>
-            
-            <div className="col-span-1">
+
+            <div>
               <Label htmlFor="alternativeCode" className="text-sm font-medium">
                 {t('alternative_code')}
               </Label>
@@ -295,56 +242,61 @@ export default function ProductForm({
                 id="alternativeCode"
                 value={formData.alternativeCode || ''}
                 onChange={handleChange}
+                className="w-full"
               />
             </div>
 
-            <div className="col-span-1">
-              <Label htmlFor="stock" className="text-sm font-medium">
-                {t('initial_stock')} <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="stock"
-                type="number"
-                min="0"
-                value={formData.stock}
-                onChange={handleChange}
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="stock" className="text-sm font-medium">
+                  {t('initial_stock')} <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="stock"
+                  type="number"
+                  min="0"
+                  value={formData.stock}
+                  onChange={handleChange}
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="purchasePrice" className="text-sm font-medium">
+                  {t('purchase_price')} <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="purchasePrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.purchasePrice}
+                  onChange={handleChange}
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="sellingPrice" className="text-sm font-medium">
+                  {t('selling_price')} <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="sellingPrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.sellingPrice}
+                  onChange={handleChange}
+                  required
+                  className="w-full"
+                />
+              </div>
             </div>
-            
-            <div className="col-span-1">
-              <Label htmlFor="purchasePrice" className="text-sm font-medium">
-                {t('purchase_price')} <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="purchasePrice"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.purchasePrice}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            
-            <div className="col-span-1">
-              <Label htmlFor="sellingPrice" className="text-sm font-medium">
-                {t('selling_price')} <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="sellingPrice"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.sellingPrice}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            
-            <div className="col-span-2">
-              {/* خيارات الباركود */}
-              <div className="flex items-center justify-between mb-3">
+
+            <div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
                 <Label className="text-sm font-medium">{t('barcode')}</Label>
                 <div className="flex gap-2 border border-input rounded-md overflow-hidden">
                   <Button
@@ -355,7 +307,8 @@ export default function ProductForm({
                     className={`rounded-none ${barcodeMethod === 'generate' ? 'bg-primary text-primary-foreground' : ''}`}
                     title={t('auto_generate')}
                   >
-                    <RefreshCw className="h-4 w-4 mr-1" /> {t('auto_generate')}
+                    <RefreshCw className="h-4 w-4 sm:mr-1" />
+                    <span className="hidden sm:inline">{t('auto_generate')}</span>
                   </Button>
                   <Button
                     type="button"
@@ -365,7 +318,8 @@ export default function ProductForm({
                     className={`rounded-none ${barcodeMethod === 'manual' ? 'bg-primary text-primary-foreground' : ''}`}
                     title={t('manual_entry')}
                   >
-                    <Edit2 className="h-4 w-4 mr-1" /> {t('manual_entry')}
+                    <Edit2 className="h-4 w-4 sm:mr-1" />
+                    <span className="hidden sm:inline">{t('manual_entry')}</span>
                   </Button>
                   <Button
                     type="button"
@@ -376,19 +330,19 @@ export default function ProductForm({
                     className={`rounded-none ${barcodeMethod === 'scan' ? 'bg-primary text-primary-foreground' : ''}`}
                     title={t('scan_existing')}
                   >
-                    <Camera className="h-4 w-4 mr-1" /> {t('scan_existing')}
+                    <Camera className="h-4 w-4 sm:mr-1" />
+                    <span className="hidden sm:inline">{t('scan_existing')}</span>
                   </Button>
                 </div>
               </div>
-              
-              {/* حقل الباركود يتغير حسب الوضع المحدد */}
+
               {barcodeMethod === 'generate' ? (
                 <div className="relative">
                   <Input
                     id="barcode"
                     value={formData.barcode}
                     readOnly
-                    className="bg-muted pr-10"
+                    className="bg-muted pr-10 w-full"
                   />
                   <Button
                     type="button"
@@ -410,7 +364,7 @@ export default function ProductForm({
                     id="barcode"
                     value={formData.barcode}
                     onChange={handleChange}
-                    className="bg-background"
+                    className="bg-background w-full"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     {t('barcode_manual_edit_info')}
@@ -423,7 +377,7 @@ export default function ProductForm({
                     value={formData.barcode}
                     onChange={handleChange}
                     disabled={isScanning}
-                    className="bg-muted"
+                    className="bg-muted w-full"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     {isScanning ? t('scanning_barcode') : t('scanned_barcode_manual_edit')}
@@ -431,18 +385,18 @@ export default function ProductForm({
                 </div>
               )}
             </div>
-            
+
             {isScanning && (
-              <div className="col-span-2 mt-2">
+              <div className="mt-2">
                 <div 
                   id="barcode-scanner-product" 
                   ref={scannerRef} 
-                  className="border-2 border-dashed border-border rounded-lg overflow-hidden relative h-64 bg-black"
+                  className="border-2 border-dashed border-border rounded-lg overflow-hidden relative h-48 sm:h-64 bg-black"
                 >
                   <div className="absolute inset-0 z-10 pointer-events-none">
                     <div className="absolute top-1/2 left-0 w-full h-1 bg-red-500 opacity-70 animate-pulse"></div>
                     <div className="absolute top-0 left-1/2 w-1 h-full bg-red-500 opacity-70 animate-pulse"></div>
-                    
+
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="p-2 rounded-full bg-black/50 backdrop-blur">
                         <ScanLine className="h-5 w-5 text-white animate-pulse" />
@@ -450,7 +404,7 @@ export default function ProductForm({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="mt-2 flex justify-end">
                   <Button 
                     type="button"
@@ -463,9 +417,9 @@ export default function ProductForm({
                 </div>
               </div>
             )}
-            
+
             {scannerError && (
-              <div className="col-span-2 mt-2">
+              <div>
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>{t('error')}</AlertTitle>
@@ -473,27 +427,29 @@ export default function ProductForm({
                 </Alert>
               </div>
             )}
-            
-            <div className="col-span-2 flex justify-center">
+
+            <div className="flex justify-center overflow-x-auto">
               <div 
-                className="border border-neutral-200 dark:border-neutral-700 p-4 rounded-md"
+                className="border border-neutral-200 dark:border-neutral-700 p-2 rounded-md max-w-full"
                 dangerouslySetInnerHTML={{ __html: barcodeSvg }}
               />
             </div>
           </div>
-          
-          <DialogFooter>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button 
               type="button" 
               variant="outline" 
               onClick={onClose}
               disabled={isLoading}
+              className="w-full sm:w-auto"
             >
               {t('cancel')}
             </Button>
             <Button 
               type="submit"
               disabled={isLoading}
+              className="w-full sm:w-auto"
             >
               {isLoading ? (
                 <>

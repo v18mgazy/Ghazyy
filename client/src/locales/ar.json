@@ -890,5 +890,15 @@
   "customer_updated": "تم تحديث بيانات العميل",
   "customer_updated_successfully": "تم تحديث بيانات العميل بنجاح",
   "customer_phone": "هاتف العميل",
-  "customer_address": "عنوان العميل"
+  "customer_address": "عنوان العميل",
+  "assistant": "المساعد الذكي",
+  "good_morning": "صباح الخير",
+  "here_is_today_report": "إليك تقرير اليوم:",
+  "sales": "المبيعات",
+  "orders": "عدد الطلبات",
+  "profit": "الأرباح",
+  "top_seller": "الأكثر مبيعًا",
+  "low_stock_alert": "{{count}} منتج قرب ينفذ",
+  "unsold_products": "منتجات لم تبع",
+  "you_can_ask_me": "اسألني أي شيء في أي وقت!"
 }

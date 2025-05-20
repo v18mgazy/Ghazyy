@@ -451,7 +451,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({
       // تنسيق رقم الهاتف
       let phoneNumber = invoiceData.customerPhone.replace(/\s+/g, '');
       if (!phoneNumber.startsWith('+')) {
-        phoneNumber = '+' + phoneNumber;
+        phoneNumber = '02' + phoneNumber;
       }
 
       // إنشاء رابط واتساب

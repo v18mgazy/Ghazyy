@@ -633,11 +633,20 @@ export default function InvoiceManagementPage() {
 
       // إنشاء رابط لفتح WhatsApp
       const invoiceNumber = selectedInvoice.invoiceNumber || '';
+      const rawPhone = customerPhone.replace(/\s+/g, '').replace(/^(\+|0)/, '');
+
+      // لو الرقم يبدأ بـ 1 (رقم محمول مصري)، نضيف 20 ككود دولي
+      let whatsappPhone = rawPhone;
+      if (rawPhone.startsWith('1')) {
+        whatsappPhone = '20' + rawPhone;
+      }
+
       const whatsappMessage = `${t('invoice')} ${invoiceNumber}`;
-      const whatsappUrl = `https://wa.me/${customerPhone}?text=${encodeURIComponent(whatsappMessage)}`;
+      const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(whatsappMessage)}`;
 
       // فتح WhatsApp
       window.open(whatsappUrl, '_blank');
+
 
       // تنزيل الملف
       const link = document.createElement('a');

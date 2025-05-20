@@ -26,6 +26,7 @@ i18n
       lookupLocalStorage: 'language',
       caches: ['localStorage']
     }
+    
   });
 
 export default i18n;
