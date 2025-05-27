@@ -2,200 +2,206 @@
 @tailwind components;
 @tailwind utilities;
 
-/* أنماط الطباعة للتقارير */
+/* أنماط الطباعة للفواتير والتقارير */
 @media print {
-  /* إخفاء كل العناصر التي لا نريدها في الطباعة */
   body * {
     visibility: hidden;
   }
-  
-  /* إظهار فقط عنصر الطباعة والعناصر الفرعية له */
   #print-area, #print-area * {
     visibility: visible;
   }
-  
-  /* جعل منطقة الطباعة تشغل كامل الصفحة */
   #print-area {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
-    padding: 20px;
+    padding: 15px; /* تقليل الحشو قليلاً */
     background-color: white;
+    font-family: 'Cairo', sans-serif; /* استخدام خط عربي مناسب للطباعة */
   }
-  
-  /* تنسيق معلومات المتجر */
   .store-info {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
   }
-  
-  /* تنسيق الجداول */
   #print-area table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
+    font-size: 10pt; /* حجم خط مناسب للطباعة */
   }
-  
   #print-area table th {
-    background-color: #f3f4f6 !important;
-    color: #374151 !important;
-    font-weight: bold;
+    background-color: #e2e8f0 !important; /* لون خلفية أفتح للهيدر */
+    color: #1e293b !important; /* لون نص أغمق */
+    font-weight: 600; /* خط أعرض قليلاً */
     text-align: right;
-    padding: 10px;
-    border: 1px solid #e5e7eb;
+    padding: 8px;
+    border: 1px solid #cbd5e1;
   }
-  
   #print-area table td {
-    padding: 8px 10px;
-    border: 1px solid #e5e7eb;
+    padding: 6px 8px;
+    border: 1px solid #e2e8f0;
     text-align: right;
   }
-  
-  /* إخفاء أزرار وعناصر التحكم عند الطباعة */
+  #print-area .invoice-summary td:first-child {
+    font-weight: 600;
+  }
   #print-area button,
   #print-area [role="tablist"],
-  #print-area .report-controls {
+  #print-area .report-controls,
+  #print-area .no-print { /* إضافة كلاس لإخفاء عناصر محددة */
     display: none !important;
   }
 }
 
+/* --- تصميم احترافي جديد --- */
 :root {
-  /* خلفية وألوان النص الرئيسية */
-  --background: 0 0% 100%;
-  --foreground: 222 47% 11%;
-  
-  /* ألوان الكروت والعناصر */
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+  /* لوحة ألوان احترافية وهادئة */
+  --background: 210 20% 98%; /* أبيض مائل للرمادي الفاتح */
+  --foreground: 215 25% 27%; /* رمادي داكن */
+
+  --card: 0 0% 100%; /* أبيض نقي للكروت */
+  --card-foreground: 215 25% 27%;
+
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  
-  /* اللون الرئيسي - تدرج أرجواني زاهي */
-  --primary: 262 83% 58%;
-  --primary-foreground: 210 40% 98%;
-  
-  /* ألوان ثانوية عصرية وجذابة */
-  --secondary: 330 100% 70%;
-  --secondary-foreground: 210 40% 98%;
-  
-  /* ألوان الإبراز والحدود */
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 221 83% 97%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  
-  /* ألوان تنبيهات وأخطاء */
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --ring: 221 83% 53%;
-  
-  /* حواف مدورة */
-  --radius: 0.8rem;
+  --popover-foreground: 215 25% 27%;
+
+  --primary: 220 90% 55%; /* أزرق معتدل */
+  --primary-foreground: 0 0% 100%; /* أبيض */
+
+  --secondary: 210 15% 90%; /* رمادي فاتح جداً */
+  --secondary-foreground: 215 20% 45%; /* رمادي متوسط */
+
+  --muted: 210 15% 94%; /* رمادي أفتح قليلاً */
+  --muted-foreground: 215 15% 55%; /* رمادي أفتح */
+
+  --accent: 210 15% 96%; /* رمادي فاتح جداً للإبراز */
+  --accent-foreground: 220 80% 45%; /* أزرق أغمق قليلاً */
+
+  --destructive: 0 75% 55%; /* أحمر معتدل */
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 210 15% 88%; /* لون الحدود */
+  --input: 210 15% 88%; /* لون حقول الإدخال */
+  --ring: 220 90% 65%; /* لون الحلقة عند التركيز */
+
+  --radius: 0.5rem; /* حواف دائرية أقل حدة */
 }
 
 .dark {
-  /* خلفية وألوان النص في المظهر الداكن */
-  --background: 222 47% 11%;
-  --foreground: 210 40% 98%;
-  
-  /* ألوان الكروت والعناصر */
-  --card: 222 47% 10%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222 47% 10%;
-  --popover-foreground: 210 40% 98%;
-  
-  /* اللون الرئيسي - نفس تدرج الأزرق للتناسق */
-  --primary: 217 91% 60%;
-  --primary-foreground: 210 40% 98%;
-  
-  /* ألوان ثانوية */
-  --secondary: 217 32% 17%;
-  --secondary-foreground: 210 40% 98%;
-  
-  /* ألوان الإبراز والحدود */
-  --muted: 217 32% 17%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217 32% 17%;
-  --accent-foreground: 210 40% 98%;
-  --border: 217 32% 17%;
-  --input: 217 32% 17%;
-  
-  /* ألوان تنبيهات وأخطاء */
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --ring: 224.3 76.3% 48%;
-  
-  /* حواف مدورة */
-  --radius: 0.8rem;
+  --background: 220 15% 15%; /* رمادي داكن جداً */
+  --foreground: 210 20% 95%; /* أبيض مائل للرمادي */
+
+  --card: 220 15% 20%; /* رمادي أغمق للكروت */
+  --card-foreground: 210 20% 95%;
+
+  --popover: 220 15% 18%;
+  --popover-foreground: 210 20% 95%;
+
+  --primary: 220 80% 65%; /* أزرق أفتح للوضع الداكن */
+  --primary-foreground: 220 15% 10%; /* أسود مائل للرمادي */
+
+  --secondary: 220 10% 25%; /* رمادي داكن */
+  --secondary-foreground: 210 15% 80%; /* رمادي فاتح */
+
+  --muted: 220 10% 22%;
+  --muted-foreground: 210 15% 65%;
+
+  --accent: 220 10% 28%;
+  --accent-foreground: 210 20% 95%;
+
+  --destructive: 0 65% 50%; /* أحمر أغمق قليلاً */
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 220 10% 30%;
+  --input: 220 10% 30%;
+  --ring: 220 80% 70%;
+
+  --radius: 0.5rem;
 }
 
 @layer base {
   * {
     @apply border-border;
   }
-
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    /* استخدام خط Cairo الأكثر احترافية للعربية والإنجليزية */
+    @apply font-[Cairo] antialiased bg-background text-foreground;
   }
-  
-  /* تحسين عرض النصوص */
+  /* إضافة خط Cairo */
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+
   h1, h2, h3, h4, h5, h6 {
-    @apply font-bold tracking-tight;
+    @apply font-semibold tracking-tight;
   }
-  
   h1 {
-    @apply text-3xl sm:text-4xl md:text-5xl;
+    @apply text-2xl md:text-3xl;
   }
-  
   h2 {
-    @apply text-2xl sm:text-3xl;
+    @apply text-xl md:text-2xl;
   }
-  
-  /* تأثير تدرج النص للعناوين الرئيسية */
-  .gradient-heading {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400;
+
+  /* إزالة بعض التأثيرات الزائدة */
+  .gradient-heading, .btn-glow, .bg-gradient-pattern, .grid-pattern {
+    /* تم التعطيل للحصول على مظهر أنظف */
   }
-  
-  /* تأثيرات بطاقات وأزرار */
+
+  /* تحسينات طفيفة على البطاقات */
+  .card {
+    @apply rounded-lg shadow-sm; /* تقليل الظل */
+  }
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
-  }
-  
-  .card-glass {
-    @apply bg-white/75 dark:bg-slate-900/75 backdrop-blur-md border border-slate-200/50 dark:border-slate-700/50 shadow-sm;
-  }
-  
-  /* مؤثرات الأزرار الجميلة */
-  .btn-glow {
-    @apply relative overflow-hidden transition-all duration-300;
-  }
-  
-  .btn-glow::after {
-    @apply content-[''] absolute -inset-[100%] bg-gradient-to-r from-transparent via-white/20 to-transparent -rotate-45 animate-[glow_1.5s_ease-in-out_infinite];
-  }
-  
-  @keyframes glow {
-    0% { transform: translateX(-100%) rotate(-45deg); }
-    100% { transform: translateX(100%) rotate(-45deg); }
-  }
-  
-  /* تدرج زخرفي للخلفية، يمكن استخدامه في أقسام مختلفة */
-  .bg-gradient-pattern {
-    @apply bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950;
-  }
-  
-  /* تحسين الرسوم البيانية والجداول */
-  .grid-pattern {
-    background-size: 30px 30px;
-    background-image: linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
-                     linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px);
-  }
-  
-  .dark .grid-pattern {
-    background-image: linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
-                     linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+    @apply transition-shadow duration-200 hover:shadow-md;
   }
 }
+
+/* --- تخصيصات إضافية --- */
+
+/* تحسين مظهر الشريط الجانبي */
+.sidebar-nav a {
+  @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors;
+  @apply text-muted-foreground hover:text-foreground hover:bg-accent;
+}
+.sidebar-nav a.active {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground;
+}
+
+/* تحسين مظهر الهيدر */
+header {
+  @apply sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6;
+}
+
+/* تحسين مظهر الجداول */
+table thead th {
+  @apply font-semibold text-foreground;
+}
+
+table tbody tr:hover {
+  @apply bg-muted/50;
+}
+
+/* تحسين أزرار الإجراءات في الجداول */
+.table-actions button {
+  @apply h-8 w-8;
+}
+
+/* تحسين مظهر حقول الإدخال */
+input, select, textarea {
+  @apply rounded-md;
+}
+
+/* تعديل بسيط على ألوان الأزرار */
+.btn-primary {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+}
+.btn-secondary {
+  @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+}
+.btn-destructive {
+  @apply bg-destructive text-destructive-foreground hover:bg-destructive/90;
+}
+
+/* إضافة بعض الهوامش والتباعدات لتحسين القراءة */
+main {
+  @apply p-4 md:p-6;
+}
+
